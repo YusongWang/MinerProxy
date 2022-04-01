@@ -3,7 +3,7 @@ package eth
 import (
 	"encoding/json"
 	"log"
-	"miner_proxy/src/pack/eth"
+	"miner_proxy/pack/eth"
 	"net"
 )
 
