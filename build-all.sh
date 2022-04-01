@@ -1,6 +1,13 @@
 #!/bin/bash
 
+
 build() {
+    VERSION ?= $(shell cat version.txt)
+    AUTHER ?= $(shell cat auther.txt)
+    COMMIT = $(shell git rev-parse HEAD)
+    SHA = $(shell git rev-parse --short HEAD)
+    LDFLAGS = -ldflags "-X cmd.version=${VERSION} -X cmd.commit=${COMMIT}"
+
     os="$1"
     if [ "$os" == "darwin" ]; then os="macos"; fi
 
@@ -15,7 +22,7 @@ build() {
     if [ "$1" == "windows" ]; then ext=".exe"; fi
 
     echo "build for $os $arch..."
-    GOOS="$1" GOARCH="$2" go build -o "build/MinerProxy-$os-$arch$ext" src/main.go
+    GOOS="$1" GOARCH="$2" go build $(LDFLAGS) -o "build/MinerProxy-$os-$arch$ext" src/main.go
 }
 
 cd "$(dirname "$0")"
