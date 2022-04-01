@@ -3,7 +3,6 @@ package eth
 import (
 	"encoding/json"
 	"errors"
-	"log"
 )
 
 type JSONRpcReq struct {
@@ -57,7 +56,6 @@ func EthStratumReq(data []byte) (StratumReq, error) {
 	var req StratumReq
 	err := json.Unmarshal(data, &req)
 	if err != nil {
-		log.Printf("Malformed stratum request from %v", err)
 		return req, err
 	}
 	return req, nil
@@ -73,7 +71,6 @@ func EthSuccess(id json.RawMessage) (out []byte, err error) {
 
 	out, err = json.Marshal(rpc)
 	if err != nil {
-		//TODO log
 		return nil, err
 	}
 	return
