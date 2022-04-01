@@ -6,28 +6,30 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
-	"miner_proxy/pack/eth"
-	pack "miner_proxy/pack/eth"
 	"net"
 	"runtime"
 	"sync"
+	"time"
 
-	broadcaster "github.com/tjgq/broadcast"
+	pack "miner_proxy/pack/eth"
+	"miner_proxy/utils"
+
+	"go.uber.org/zap"
 )
 
 type EthStratumServer struct {
 	Conn   net.Conn
-	B      *broadcaster.Broadcaster
+	Job    *pack.Job
 	Submit chan []string
 }
 
 func NewEthStratumServerSsl(
 	address string,
-	b *broadcaster.Broadcaster,
+	job *pack.Job,
 	submit chan []string,
 ) (EthStratumServer, error) {
 	eth := EthStratumServer{}
-	eth.B = b
+	eth.Job = job
 	eth.Submit = submit
 
 	cfg := tls.Config{}
@@ -44,11 +46,11 @@ func NewEthStratumServerSsl(
 
 func NewEthStratumServerTcp(
 	address string,
-	b *broadcaster.Broadcaster,
+	job *pack.Job,
 	submit chan []string,
 ) (EthStratumServer, error) {
 	eth := EthStratumServer{}
-	eth.B = b
+	eth.Job = job
 	eth.Submit = submit
 	conn, err := net.Dial("tcp", address)
 	if err != nil {
@@ -86,6 +88,7 @@ func (eth *EthStratumServer) Login(wallet string) error {
 		log.Println("Socket Close", err)
 		return err
 	}
+
 	if len <= 0 {
 		log.Println("Socket Close len :", len)
 		return errors.New("Socket Close len")
@@ -122,19 +125,24 @@ func (eth *EthStratumServer) SubmitJob(job []string) error {
 }
 
 // bradcase 当前工作
-func (eth *EthStratumServer) NotifyWorks(job eth.JSONPushMessage) error {
-	res, err := json.Marshal(job)
-	if err != nil {
-		return err
-	}
-	res = append(res, '\n')
-	eth.B.Send(res)
+func (eth *EthStratumServer) NotifyWorks(job []string) error {
+	eth.Job.Lock.Lock()
+	eth.Job.Job = append(eth.Job.Job, job)
+	eth.Job.Lock.Unlock()
 	return nil
 }
 
 // 进行事件循环处理
 func (eth *EthStratumServer) StartLoop() {
 	var wg sync.WaitGroup
+	// go func() {
+	// 	for {
+	// 		eth.Job.Lock.RLock()
+	// 		log.Println(eth.Job.Job)
+	// 		eth.Job.Lock.RUnlock()
+	// 		time.Sleep(time.Second)
+	// 	}
+	// }()
 
 	go func() {
 		wg.Add(1)
@@ -147,13 +155,29 @@ func (eth *EthStratumServer) StartLoop() {
 				eth.Conn.Close()
 				return
 			}
-
 			var push pack.JSONPushMessage
 			if err = json.Unmarshal([]byte(buf_str), &push); err == nil {
-				eth.NotifyWorks(push)
+				if result, ok := push.Result.(bool); ok {
+					//增加份额
+					if result == true {
+						// TODO
+						utils.Logger.Info("有效份额", zap.Any("RPC", buf_str))
+					} else {
+						utils.Logger.Warn("无效份额", zap.Any("RPC", buf_str))
+					}
+				} else if list, ok := push.Result.([]interface{}); ok {
+					job := make([]string, len(list))
+					for i, arg := range list {
+						job[i] = arg.(string)
+					}
+					eth.NotifyWorks(job)
+				} else {
+					//TODO
+				}
 			} else {
 				log.Println(err)
 			}
+
 			log.Println(buf_str)
 		}
 	}()

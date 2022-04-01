@@ -3,7 +3,13 @@ package eth
 import (
 	"encoding/json"
 	"errors"
+	"sync"
 )
+
+type Job struct {
+	Job  [][]string
+	Lock sync.RWMutex
+}
 
 type JSONRpcReq struct {
 	Id     json.RawMessage `json:"id"`
