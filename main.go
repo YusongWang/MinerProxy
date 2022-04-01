@@ -2,11 +2,9 @@ package main
 
 import (
 	"miner_proxy/cmd"
+	_ "miner_proxy/utils"
 )
 
 func main() {
-	//TODO init logger
 	cmd.Execute()
-	//TODO parse config
-
 }
