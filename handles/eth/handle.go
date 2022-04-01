@@ -2,22 +2,25 @@ package eth
 
 import (
 	"encoding/json"
-	"log"
-	"miner_proxy/src/pack/eth"
+	"miner_proxy/pack/eth"
 	"net"
+
+	"go.uber.org/zap"
 )
 
-type Handle struct{}
+type Handle struct {
+	log *zap.Logger
+}
 
 func (hand *Handle) OnConnect(addr string) {
-	log.Println("On Connect ", addr)
+	hand.log.Info("On Connect")
 }
 
 func (hand *Handle) OnMessage(c net.Conn, data []byte) (out []byte, err error) {
-	log.Println(string(data))
+	hand.log.Info(string(data))
 	req, err := eth.EthStratumReq(data)
 	if err != nil {
-		log.Println(err)
+		hand.log.Error(err.Error())
 		c.Close()
 		return
 	}
@@ -27,7 +30,7 @@ func (hand *Handle) OnMessage(c net.Conn, data []byte) (out []byte, err error) {
 		var params []string
 		err = json.Unmarshal(req.Params, &params)
 		if err != nil {
-			log.Println("Malformed stratum request params from", c.RemoteAddr().String())
+			hand.log.Error(err.Error())
 			c.Close()
 			return
 		}
@@ -59,7 +62,7 @@ func (hand *Handle) OnMessage(c net.Conn, data []byte) (out []byte, err error) {
 		//return cs.sendTCPResult(req.Id, reply)
 		out, err = eth.EthSuccess(req.Id)
 		if err != nil {
-			log.Fatalln(err)
+			hand.log.Error(err.Error())
 			c.Close()
 			return
 		}
@@ -92,13 +95,13 @@ func (hand *Handle) OnMessage(c net.Conn, data []byte) (out []byte, err error) {
 		var params []string
 		err = json.Unmarshal(req.Params, &params)
 		if err != nil {
-			log.Println("Malformed stratum request params from", c.RemoteAddr().String())
+			hand.log.Error(err.Error())
 			return
 		}
 		//s.Remote <- params
 		out, err = eth.EthSuccess(req.Id)
 		if err != nil {
-			log.Fatalln(err)
+			hand.log.Error(err.Error())
 			c.Close()
 			return
 		}
@@ -108,21 +111,22 @@ func (hand *Handle) OnMessage(c net.Conn, data []byte) (out []byte, err error) {
 		// 直接返回
 		out, err = eth.EthSuccess(req.Id)
 		if err != nil {
-			log.Fatalln(err)
+			hand.log.Error(err.Error())
 			c.Close()
 			return
 		}
 
 		return
 	default:
-		log.Println("KnownRpc")
+		hand.log.Info("KnownRpc")
 		return
-		// errReply := s.handleUnknownRPC(cs, req.Method)
-		// return cs.sendTCPError(req.Id, errReply)
 	}
-	return
 }
 
 func (hand *Handle) OnClose() {
+	hand.log.Info("OnClose !!!!!")
+}
 
+func (hand *Handle) SetLog(log *zap.Logger) {
+	hand.log = log
 }

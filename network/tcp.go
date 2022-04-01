@@ -1,19 +1,19 @@
 package network
 
 import (
-	"log"
+	"miner_proxy/utils"
 	"net"
 )
 
 func NewTcp(addr string) (ln net.Listener, err error) {
 	//TODO check empty and give default cer.
-	tcpAddr, err := net.ResolveTCPAddr("tcp", ":8080")
+	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
 	if err != nil {
-		log.Println(err.Error())
+		utils.Logger.Error(err.Error())
 	}
 	ln, err = net.ListenTCP("tcp", tcpAddr)
 	if err != nil {
-		log.Println(err)
+		utils.Logger.Error(err.Error())
 		return
 	}
 
