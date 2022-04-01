@@ -1,4 +1,4 @@
 all :
-	go build -o MinerProxy ./src/main.go
+	go build -o MinerProxy main.go
 prod :
 	sh ./build-all.sh

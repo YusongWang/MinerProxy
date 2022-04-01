@@ -9,7 +9,6 @@ import (
 	"net"
 	"runtime"
 	"sync"
-	"time"
 
 	pack "miner_proxy/pack/eth"
 	"miner_proxy/utils"
