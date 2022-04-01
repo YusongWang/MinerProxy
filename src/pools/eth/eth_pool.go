@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"miner_proxy/src/pack/eth"
 	pack "miner_proxy/src/pack/eth"
 	"net"
 	"runtime"
@@ -95,8 +96,8 @@ func (eth *EthStratumServer) Login(wallet string) error {
 
 // 提交工作量证明
 func (eth *EthStratumServer) SubmitJob(job []string) error {
-	json_rpc := eth.ServerReq{
-		ServerBaseReq: eth.ServerBaseReq{
+	json_rpc := pack.ServerReq{
+		ServerBaseReq: pack.ServerBaseReq{
 			Id:     40,
 			Method: "eth_submitWork",
 			Params: job,
@@ -121,7 +122,7 @@ func (eth *EthStratumServer) SubmitJob(job []string) error {
 }
 
 // bradcase 当前工作
-func (eth *EthStratumServer) NotifyWorks(job) error {
+func (eth *EthStratumServer) NotifyWorks(job eth.JSONPushMessage) error {
 	res, err := json.Marshal(job)
 	if err != nil {
 		return err
@@ -147,7 +148,7 @@ func (eth *EthStratumServer) StartLoop() {
 				return
 			}
 
-			var push eth.JSONPushMessage
+			var push pack.JSONPushMessage
 			if err = json.Unmarshal([]byte(buf_str), &push); err == nil {
 				eth.NotifyWorks(push)
 			} else {
