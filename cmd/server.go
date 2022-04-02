@@ -7,6 +7,7 @@ import (
 	ethpool "miner_proxy/pools/eth"
 	"miner_proxy/serve"
 	"miner_proxy/utils"
+	"sync"
 
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -21,9 +22,16 @@ var serverCmd = &cobra.Command{
 	Short: "启动MinerProxy核心，提供转发服务。",
 	Long:  `无UI界面启动。`,
 	Run: func(cmd *cobra.Command, args []string) {
-		net, err := network.NewTcp(":38888")
+		net, err := network.NewTcp(":38880")
 		if err != nil {
-			utils.Logger.Error("can't bind to addr", zap.String("端口", ":38888"))
+			utils.Logger.Error("can't bind to TCP addr", zap.String("端口", ":38880"))
+			return
+		}
+
+		nettls, err := network.NewTls("cert.pem", "key.pem", ":38888")
+		if err != nil {
+			utils.Logger.Error("can't bind to SSL addr", zap.String("端口", ":38888"))
+			return
 		}
 
 		dev_job := &ethpack.Job{}
@@ -49,8 +57,23 @@ var serverCmd = &cobra.Command{
 		fee_pool.Login("0x3602b50d3086edefcd9318bcceb6389004fb14ee")
 		go fee_pool.StartLoop()
 
+		var wg sync.WaitGroup
 		handle := eth.Handle{}
-		s := serve.NewServe(net, &handle)
-		s.StartLoop()
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			s := serve.NewServe(net, &handle)
+			s.StartLoop()
+		}()
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			s := serve.NewServe(nettls, &handle)
+			s.StartLoop()
+		}()
+
+		wg.Wait()
 	},
 }
