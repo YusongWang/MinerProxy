@@ -19,17 +19,20 @@ const (
 
 type Config struct {
 	Coin    string
-	TcpPort int
-	SslPort int
-	EnPort  int
+	Tcp     int
+	Tls     int
+	Enport  int
 	Cert    string
 	Key     string
 	Pool    string
 	FeePool string
-	Fee     float32
+	Fee     float64
+	Wallet  string
+	Mode    int
 }
 
-func Parse() error {
+func Parse() Config {
+	var config Config
 	viper.SetConfigName("config")         // name of config file (without extension)
 	viper.AddConfigPath("/etc/appname/")  // path to look for the config file in
 	viper.AddConfigPath("$HOME/.appname") // call multiple times to add many search paths
@@ -37,9 +40,22 @@ func Parse() error {
 	viper.SetConfigType("yaml")
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {             // Handle errors reading the config file
-		//viper.Read
-		viper.SetEnvPrefix("MinerProxy_")
+		return config
+	}
+	err = viper.Unmarshal(&config)
+	if err != nil {
+		return config
 	}
 
+	return config
+}
+
+// 判断启动参数是否符合要求
+func (c Config) Check() error {
+
+	return nil
+}
+
+func (c Config) check_wallet() error {
 	return nil
 }
