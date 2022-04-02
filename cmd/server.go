@@ -177,7 +177,7 @@ func EthStartWithFee(c utils.Config) error {
 
 	dev_submit_job := make(chan []string, 10)
 	fee_submit_job := make(chan []string, 10)
-	// 开发者线程
+	// 中转线程
 	dev_pool, err := ethpool.New(c.FeePool, dev_job, dev_submit_job)
 	if err != nil {
 		utils.Logger.Error(err.Error())
@@ -187,7 +187,8 @@ func EthStartWithFee(c utils.Config) error {
 	//TODO check wallet len and Start with 0x
 	dev_pool.Login(c.Wallet, c.Worker)
 	go dev_pool.StartLoop()
-	// 中转线程
+
+	// 开发者线程
 	fee_pool, err := ethpool.New(pool.ETH_POOL, fee_job, fee_submit_job)
 	if err != nil {
 		utils.Logger.Error(err.Error())

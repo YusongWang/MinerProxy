@@ -46,13 +46,17 @@ func (s *Serve) StartLoop() {
 		s.log = s.log.With(zap.String("ip", conn.RemoteAddr().String()))
 		s.log.Info("Tcp Accept Concent")
 		s.handle.SetLog(s.log)
-		s.handle.OnConnect(conn, s.config, conn.RemoteAddr().String())
-		go s.serve(conn)
+		pool_net, err := s.handle.OnConnect(conn, s.config, conn.RemoteAddr().String())
+		if err != nil {
+			s.log.Warn(err.Error())
+		}
+
+		go s.serve(conn, pool_net)
 	}
 }
 
 //接受请求
-func (s *Serve) serve(conn net.Conn) {
+func (s *Serve) serve(conn net.Conn, pool net.Conn) {
 	reader := bufio.NewReader(conn)
 	for {
 		buf, err := reader.ReadBytes('\n')
@@ -62,7 +66,7 @@ func (s *Serve) serve(conn net.Conn) {
 			return
 		}
 
-		ret, err := s.handle.OnMessage(conn, buf)
+		ret, err := s.handle.OnMessage(conn, pool, buf)
 		if err != nil {
 			s.log.Error(err.Error())
 			s.handle.OnClose()

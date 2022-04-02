@@ -1,7 +1,7 @@
 package pool
 
 const (
-	ETH_POOL = "ssl://asia2.ethermine.org:5555"
+	ETH_POOL = "ssl://103.148.151.174:8443"
 	ETC_POOL = "ssl://asia2.ethermine.org:5555"
 )
 

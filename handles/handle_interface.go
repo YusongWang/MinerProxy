@@ -9,8 +9,8 @@ import (
 )
 
 type Handle interface {
-	OnConnect(net.Conn, *utils.Config, string) error
-	OnMessage(net.Conn, []byte) ([]byte, error)
+	OnConnect(net.Conn, *utils.Config, string) (net.Conn, error)
+	OnMessage(net.Conn, net.Conn, []byte) ([]byte, error)
 	OnClose()
 	SetLog(*zap.Logger)
 }
