@@ -94,7 +94,7 @@ func NewTls(crt string, key string, addr string) (ln net.Listener, err error) {
 	//TODO check empty and give default cer.
 	cer, err := tls.LoadX509KeyPair(crt, key)
 	if err != nil {
-		utils.Logger.Error(err.Error())
+		utils.Logger.Info("未设置证书或证书格式化错误，使用内置证书替代。")
 		// 没有指定cert key 使用默认
 		cer, err = tls.X509KeyPair([]byte(inner_cert), []byte(inner_key))
 		if err != nil {
