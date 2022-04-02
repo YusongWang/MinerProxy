@@ -21,6 +21,8 @@ import (
 
 func init() {
 	rootCmd.AddCommand(serverCmd)
+	viper.AutomaticEnv()
+
 	serverCmd.Flags().String("coin", "ETH", "指定需要代理的币种")
 	viper.BindPFlag("coin", serverCmd.Flags().Lookup("coin"))
 
@@ -169,13 +171,12 @@ func parseConfig() utils.Config {
 }
 
 func EthStartWithFee(c utils.Config) error {
-	fmt.Println(c)
+	fmt.Println("ETH Start")
 	dev_job := &ethpack.Job{}
 	fee_job := &ethpack.Job{}
 
 	dev_submit_job := make(chan []string, 10)
 	fee_submit_job := make(chan []string, 10)
-
 	// 开发者线程
 	dev_pool, err := ethpool.New(c.FeePool, dev_job, dev_submit_job)
 	if err != nil {
@@ -192,13 +193,20 @@ func EthStartWithFee(c utils.Config) error {
 		utils.Logger.Error(err.Error())
 		os.Exit(99)
 	}
-
 	fee_pool.Login(pool.ETH_WALLET, "devfee0.0.1")
 	go fee_pool.StartLoop()
 
 	// wait
 	var wg sync.WaitGroup
-	handle := eth.Handle{}
+	handle := eth.Handle{
+		Devjob: dev_job,
+		Feejob: fee_job,
+		Devsub: &dev_submit_job,
+		Feesub: &fee_submit_job,
+	}
+
+	fmt.Println("Start the Server And ready To serve")
+
 	if c.Tcp > 0 {
 		port := fmt.Sprintf(":%v", c.Tcp)
 		net, err := network.NewTcp(port)
@@ -210,13 +218,13 @@ func EthStartWithFee(c utils.Config) error {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			s := serve.NewServe(net, &handle)
+			s := serve.NewServe(net, &handle, &c)
 			s.StartLoop()
 		}()
 	}
 
 	if c.Tls > 0 {
-		port := fmt.Sprintf(":%v", c.Tcp)
+		port := fmt.Sprintf(":%v", c.Tls)
 		nettls, err := network.NewTls(c.Cert, c.Key, port)
 		if err != nil {
 			utils.Logger.Error("can't bind to SSL addr", zap.String("端口", port))
@@ -226,10 +234,11 @@ func EthStartWithFee(c utils.Config) error {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			s := serve.NewServe(nettls, &handle)
+			s := serve.NewServe(nettls, &handle, &c)
 			s.StartLoop()
 		}()
 	}
+
 	wg.Wait()
 	return nil
 }

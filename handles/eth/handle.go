@@ -3,17 +3,69 @@ package eth
 import (
 	"encoding/json"
 	"miner_proxy/pack/eth"
+	pack "miner_proxy/pack/eth"
+	ethpool "miner_proxy/pools/eth"
+	"miner_proxy/utils"
 	"net"
 
+	"bufio"
 	"go.uber.org/zap"
 )
 
 type Handle struct {
-	log *zap.Logger
+	log    *zap.Logger
+	Devjob *eth.Job
+	Feejob *eth.Job
+	Devsub *chan []string
+	Feesub *chan []string
 }
 
-func (hand *Handle) OnConnect(addr string) {
-	hand.log.Info("On Connect")
+func (hand *Handle) OnConnect(c net.Conn, config *utils.Config, addr string) error {
+	hand.log.Info("On Miner Connect To Pool " + config.Pool)
+	pool, err := ethpool.NewPool(config.Pool)
+	if err != nil {
+		hand.log.Warn("矿池连接失败", zap.Error(err), zap.String("pool", config.Pool))
+		c.Close()
+		return err
+	}
+	// 处理上游矿池。如果连接失败。矿工线程直接退出并关闭
+	go func() {
+		reader := bufio.NewReader(pool)
+		log := hand.log.With(zap.String("Miner", c.RemoteAddr().String()))
+		for {
+			buf, err := reader.ReadBytes('\n')
+			if err != nil {
+				return
+			}
+			var push pack.JSONPushMessage
+			if err = json.Unmarshal([]byte(buf), &push); err == nil {
+				if result, ok := push.Result.(bool); ok {
+					//增加份额
+					if result == true {
+						// TODO
+						log.Info("有效份额", zap.Any("RPC", string(buf)))
+					} else {
+						log.Warn("无效份额", zap.Any("RPC", string(buf)))
+					}
+				} else if _, ok := push.Result.([]interface{}); ok {
+					b := append(buf, '\n')
+					_, err = c.Write(b)
+					if err != nil {
+						log.Error(err.Error())
+						c.Close()
+						return
+					}
+				} else {
+					//TODO
+				}
+			} else {
+				log.Error(err.Error())
+				return
+			}
+		}
+	}()
+
+	return nil
 }
 
 func (hand *Handle) OnMessage(c net.Conn, data []byte) (out []byte, err error) {
@@ -115,7 +167,6 @@ func (hand *Handle) OnMessage(c net.Conn, data []byte) (out []byte, err error) {
 			c.Close()
 			return
 		}
-
 		return
 	default:
 		hand.log.Info("KnownRpc")

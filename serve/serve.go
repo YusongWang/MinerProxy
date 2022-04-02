@@ -15,6 +15,7 @@ import (
 // pacakge
 // rpc encode & decode
 type Serve struct {
+	config *utils.Config
 	netln  net.Listener
 	handle handles.Handle
 	log    *zap.Logger
@@ -24,8 +25,12 @@ type Serve struct {
 // conn 支持TCP SSL
 // handle 支持自定义handle.
 //
-func NewServe(netln net.Listener, handle handles.Handle) Serve {
-	return Serve{netln, handle, utils.Logger}
+func NewServe(
+	netln net.Listener,
+	handle handles.Handle,
+	config *utils.Config,
+) Serve {
+	return Serve{netln: netln, handle: handle, log: utils.Logger, config: config}
 }
 
 func (s *Serve) StartLoop() {
@@ -36,10 +41,12 @@ func (s *Serve) StartLoop() {
 			s.log.Error(err.Error())
 			continue
 		}
+		// Pool
+
 		s.log = s.log.With(zap.String("ip", conn.RemoteAddr().String()))
 		s.log.Info("Tcp Accept Concent")
 		s.handle.SetLog(s.log)
-		s.handle.OnConnect(conn.RemoteAddr().String())
+		s.handle.OnConnect(conn, s.config, conn.RemoteAddr().String())
 		go s.serve(conn)
 	}
 }
