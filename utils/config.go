@@ -27,6 +27,7 @@ type Config struct {
 	Pool    string
 	FeePool string
 	Fee     float64
+	Worker  string
 	Wallet  string
 	Mode    int
 }

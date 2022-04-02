@@ -5,9 +5,11 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"runtime"
+	"strings"
 	"sync"
 
 	pack "miner_proxy/pack/eth"
@@ -20,6 +22,23 @@ type EthStratumServer struct {
 	Conn   net.Conn
 	Job    *pack.Job
 	Submit chan []string
+}
+
+func New(
+	address string,
+	job *pack.Job,
+	submit chan []string,
+) (EthStratumServer, error) {
+	fmt.Println(address)
+	if strings.HasPrefix(address, "tcp://") {
+		address = strings.ReplaceAll(address, "tcp://", "")
+		return NewEthStratumServerTcp(address, job, submit)
+	} else if strings.HasPrefix(address, "ssl://") {
+		address = strings.ReplaceAll(address, "ssl://", "")
+		return NewEthStratumServerSsl(address, job, submit)
+	} else {
+		return EthStratumServer{}, errors.New("不支持的协议类型: " + address)
+	}
 }
 
 func NewEthStratumServerSsl(
@@ -60,7 +79,7 @@ func NewEthStratumServerTcp(
 }
 
 // 用自定义钱包进行登陆
-func (eth *EthStratumServer) Login(wallet string) error {
+func (eth *EthStratumServer) Login(wallet string, worker string) error {
 	//eth_mining.EthStratumReq()
 	var a []string
 	a = append(a, wallet)
@@ -71,7 +90,7 @@ func (eth *EthStratumServer) Login(wallet string) error {
 			Method: "eth_submitLogin",
 			Params: a,
 		},
-		Worker: "P1",
+		Worker: worker,
 	}
 
 	res, err := json.Marshal(login)
