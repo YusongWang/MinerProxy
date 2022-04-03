@@ -133,7 +133,7 @@ func (eth *EthStratumServer) SubmitJob(job []string) error {
 		Worker: eth.Worker,
 	}
 
-	log.Println("给服务器提交工作量证明", json_rpc)
+	utils.Logger.Info("给服务器提交工作量证明", zap.Any("RPC", json_rpc))
 	res, err := json.Marshal(json_rpc)
 	if err != nil {
 		log.Println("Json Marshal Error ", err)
@@ -196,7 +196,7 @@ func (eth *EthStratumServer) StartLoop() {
 					for i, arg := range list {
 						job[i] = arg.(string)
 					}
-					eth.NotifyWorks(job)
+					go eth.NotifyWorks(job)
 				} else {
 					//TODO
 				}
@@ -214,10 +214,10 @@ func (eth *EthStratumServer) StartLoop() {
 			for {
 				select {
 				case job := <-eth.Submit:
-					err := eth.SubmitJob(job)
-					if err != nil {
-						log.Warn("提交工作量证明失败")
-					}
+					go eth.SubmitJob(job)
+					// if err != nil {
+					// 	log.Warn("提交工作量证明失败")
+					// }
 				}
 			}
 		}()

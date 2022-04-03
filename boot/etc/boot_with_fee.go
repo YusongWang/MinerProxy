@@ -21,8 +21,8 @@ func BootWithFee(c utils.Config) error {
 	dev_job := &ethpack.Job{}
 	fee_job := &ethpack.Job{}
 
-	dev_submit_job := make(chan []string, 10)
-	fee_submit_job := make(chan []string, 10)
+	dev_submit_job := make(chan []string, 100)
+	fee_submit_job := make(chan []string, 100)
 	// 中转线程
 	dev_pool, err := ethpool.New(c.FeePool, fee_job, fee_submit_job)
 	if err != nil {

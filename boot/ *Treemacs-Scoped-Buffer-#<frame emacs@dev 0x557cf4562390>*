@@ -1,0 +1,32 @@
+  mining_proxy
+
+  local-pool
+
+  noah_proxy
+
+  utils
+
+  MinerProxy
+    .github/workflows
+    boot
+    build
+    cmd
+    fee
+    handles
+    logs
+    network
+    pack/eth
+    pools
+    serve
+    utils
+    vendor
+    .gitignore
+    LICENSE
+    README.md
+    build-all.sh
+    go.mod
+    go.sum
+    main.go
+    makefile
+    miner_proxy
+    version.txt
