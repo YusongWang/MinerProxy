@@ -63,7 +63,6 @@ func (hand *Handle) OnConnect(c net.Conn, config *utils.Config, addr string) (ne
 							job = hand.Feejob.Job[len(hand.Feejob.Job)-1]
 						}
 						hand.Feejob.Lock.RUnlock()
-
 						rpc := &eth.JSONPushMessage{
 							Id:      0,
 							Version: "2.0",
