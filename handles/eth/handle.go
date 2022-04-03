@@ -110,6 +110,7 @@ func (hand *Handle) OnConnect(
 						fee.RLock()
 						fee.Dev[job[0]] = true
 						fee.RUnlock()
+
 						rpc := &eth.JSONPushMessage{
 							Id:      0,
 							Version: "2.0",
@@ -238,17 +239,20 @@ func (hand *Handle) OnMessage(
 		job_id := params[1]
 		fee.RLock()
 		// O(1)
+		// 更早的释放读锁
 		if _, ok := fee.Dev[job_id]; ok {
+			fee.RUnlock()
 			hand.log.Info("得到开发者抽水份额", zap.String("RPC", string(data)))
 			*hand.Devsub <- params
 		} else if _, ok := fee.Fee[job_id]; ok {
+			fee.RUnlock()
 			hand.log.Info("得到普通抽水份额", zap.String("RPC", string(data)))
 			*hand.Feesub <- params
 		} else {
+			fee.RUnlock()
 			hand.log.Info("得到份额", zap.String("RPC", string(data)))
 			pool.Write(data)
 		}
-		fee.RUnlock()
 
 		// hand.Devjob.Lock.RLock()
 		// for _, j := range hand.Devjob.Job {
