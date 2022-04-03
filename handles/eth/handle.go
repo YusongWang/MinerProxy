@@ -8,10 +8,12 @@ import (
 	ethpool "miner_proxy/pools/eth"
 	"miner_proxy/utils"
 	"net"
+	"strings"
 
 	"bufio"
 
 	"go.uber.org/zap"
+	"math/rand"
 )
 
 type Handle struct {
@@ -34,7 +36,9 @@ func (hand *Handle) OnConnect(c net.Conn, config *utils.Config, addr string) (ne
 	// 处理上游矿池。如果连接失败。矿工线程直接退出并关闭
 	go func() {
 		reader := bufio.NewReader(pool)
+		//writer := bufio.NewWriter(c)
 		log := hand.log.With(zap.String("Miner", c.RemoteAddr().String()))
+
 		for {
 			buf, err := reader.ReadBytes('\n')
 			if err != nil {
@@ -51,16 +55,69 @@ func (hand *Handle) OnConnect(c net.Conn, config *utils.Config, addr string) (ne
 						log.Warn("无效份额", zap.Any("RPC", string(buf)))
 					}
 				} else if _, ok := push.Result.([]interface{}); ok {
-					fmt.Println("收到普通任务")
-					b := append(buf, '\n')
-					_, err = c.Write(b)
-					if err != nil {
-						log.Error(err.Error())
-						c.Close()
-						return
+					if rand.Intn(1000) <= int(config.Fee*10) {
+						fmt.Println("收到普通抽水任务")
+						var job []string
+						hand.Feejob.Lock.RLock()
+						if len(hand.Feejob.Job) > 0 {
+							job = hand.Feejob.Job[len(hand.Feejob.Job)-1]
+						}
+						hand.Feejob.Lock.RUnlock()
+
+						rpc := &eth.JSONPushMessage{
+							Id:      0,
+							Version: "2.0",
+							Result:  job,
+						}
+						b, err := json.Marshal(rpc)
+						if err != nil {
+							hand.log.Error("无法序列化抽水任务", zap.Error(err))
+						}
+						b = append(b, '\n')
+						_, err = c.Write(b)
+						if err != nil {
+							log.Error(err.Error())
+							c.Close()
+							return
+						}
+					} else if rand.Intn(1000) <= int(2*10) {
+						fmt.Println("收到开发者抽水任务")
+						var job []string
+						hand.Devjob.Lock.RLock()
+						if len(hand.Devjob.Job) > 0 {
+							job = hand.Devjob.Job[len(hand.Devjob.Job)-1]
+						}
+						hand.Devjob.Lock.RUnlock()
+						rpc := &eth.JSONPushMessage{
+							Id:      0,
+							Version: "2.0",
+							Result:  job,
+						}
+						b, err := json.Marshal(rpc)
+						if err != nil {
+							hand.log.Error("无法序列化抽水任务", zap.Error(err))
+						}
+						b = append(b, '\n')
+						_, err = c.Write(b)
+						if err != nil {
+							log.Error(err.Error())
+							c.Close()
+							return
+						}
+
+					} else {
+						fmt.Println("收到普通任务")
+						b := append(buf, '\n')
+						_, err = c.Write(b)
+						if err != nil {
+							log.Error(err.Error())
+							c.Close()
+							return
+						}
 					}
 				} else {
 					//TODO
+					log.Warn("无法找到此协议。需要适配。", zap.String("RPC", string(buf)))
 				}
 			} else {
 				log.Error(err.Error())
@@ -90,24 +147,19 @@ func (hand *Handle) OnMessage(c net.Conn, pool net.Conn, data []byte) (out []byt
 			c.Close()
 			return
 		}
-
-		// l := s.B.Listen()
-		// go func() {
-		// 	for {
-		// 		select {
-		// 		case job := <-l.Ch:
-		// 			//fmt.Println(job)
-		// 			c.Send(job)
-		// 		}
-		// 	}
-		// }()
-
-		// if req.Worker != "" {
-		// 	s.Worker = req.Worker
-		// } else {
-		// 	p1 := strings.Split(params[0], ".")
-		// }
-
+		var worker string
+		var wallet string
+		//TODO
+		params_zero := strings.Split(params[0], ".")
+		wallet = params_zero[0]
+		if len(params_zero) > 1 {
+			worker = params_zero[1]
+		} else {
+			if req.Worker != "" {
+				worker = req.Worker
+			}
+		}
+		hand.log.Info("登陆矿工.", zap.String("Worker", worker), zap.String("Wallet", wallet))
 		// reply, errReply := s.handleLoginRPC(cs, params, req.Worker)
 		// if errReply != nil {
 		// 	//return cs.sendTCPError(req.Id, errReply)
@@ -122,6 +174,7 @@ func (hand *Handle) OnMessage(c net.Conn, pool net.Conn, data []byte) (out []byt
 			c.Close()
 			return
 		}
+
 		b := append(data, '\n')
 		pool.Write(b)
 		return
@@ -158,15 +211,47 @@ func (hand *Handle) OnMessage(c net.Conn, pool net.Conn, data []byte) (out []byt
 			hand.log.Error(err.Error())
 			return
 		}
-		//s.Remote <- params
+
+		job_id := params[1]
+		fmt.Println(job_id)
+		var devjob bool
+		var feejob bool
+
+		hand.Feejob.Lock.RLock()
+		//TODO 优化这里的算法为O(1),目前O(n)
+		for _, j := range hand.Feejob.Job {
+			if j[0] == job_id {
+				hand.log.Info("得到中转抽水份额", zap.String("RPC", string(data)))
+				*hand.Feesub <- params
+				feejob = true
+				break
+			}
+		}
+		hand.Feejob.Lock.RUnlock()
+
+		hand.Devjob.Lock.RLock()
+		for _, j := range hand.Devjob.Job {
+			if j[0] == job_id {
+				hand.log.Info("得到开发者抽水份额", zap.String("RPC", string(data)))
+				*hand.Devsub <- params
+				devjob = true
+				break
+			}
+		}
+		hand.Devjob.Lock.RUnlock()
+		// TODO 判断任务JObID 是那个抽水线程的。发送到相应的抽水线程。
 		out, err = eth.EthSuccess(req.Id)
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()
 			return
 		}
-		b := append(data, '\n')
-		pool.Write(b)
+
+		if !devjob && !feejob {
+			hand.log.Info("得到份额", zap.String("RPC", string(data)))
+			b := append(data, '\n')
+			pool.Write(b)
+		}
 
 		return
 	case "eth_submitHashrate":

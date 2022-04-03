@@ -22,6 +22,7 @@ type EthStratumServer struct {
 	Conn   net.Conn
 	Job    *pack.Job
 	Submit chan []string
+	Worker string
 }
 
 func New(
@@ -82,8 +83,12 @@ func NewEthStratumServerTcp(
 // 用自定义钱包进行登陆
 func (eth *EthStratumServer) Login(wallet string, worker string) error {
 	//eth_mining.EthStratumReq()
-	fmt.Println("矿池登陆")
+	if worker == "" {
+		return errors.New("矿工名称不能为空！")
+	}
+	eth.Worker = worker
 
+	fmt.Println("矿池登陆")
 	var a []string
 	a = append(a, wallet)
 	a = append(a, "x")
@@ -126,7 +131,7 @@ func (eth *EthStratumServer) SubmitJob(job []string) error {
 			Method: "eth_submitWork",
 			Params: job,
 		},
-		Worker: "Default",
+		Worker: eth.Worker,
 	}
 
 	log.Println("给服务器提交工作量证明", json_rpc)
