@@ -3,6 +3,7 @@ package eth
 import (
 	"encoding/json"
 	"fmt"
+	"miner_proxy/fee"
 	"miner_proxy/pack/eth"
 	pack "miner_proxy/pack/eth"
 	ethpool "miner_proxy/pools/eth"
@@ -19,7 +20,12 @@ type NoFeeHandle struct {
 	log *zap.Logger
 }
 
-func (hand *NoFeeHandle) OnConnect(c net.Conn, config *utils.Config, addr string) (net.Conn, error) {
+func (hand *NoFeeHandle) OnConnect(
+	c net.Conn,
+	config *utils.Config,
+	fee *fee.Fee,
+	addr string,
+) (net.Conn, error) {
 	hand.log.Info("On Miner Connect To Pool " + config.Pool)
 	pool, err := ethpool.NewPool(config.Pool)
 	if err != nil {
@@ -73,7 +79,12 @@ func (hand *NoFeeHandle) OnConnect(c net.Conn, config *utils.Config, addr string
 	return pool, nil
 }
 
-func (hand *NoFeeHandle) OnMessage(c net.Conn, pool net.Conn, data []byte) (out []byte, err error) {
+func (hand *NoFeeHandle) OnMessage(
+	c net.Conn,
+	pool net.Conn,
+	fee *fee.Fee,
+	data []byte,
+) (out []byte, err error) {
 	hand.log.Info(string(data))
 	req, err := eth.EthStratumReq(data)
 	if err != nil {
@@ -119,8 +130,7 @@ func (hand *NoFeeHandle) OnMessage(c net.Conn, pool net.Conn, data []byte) (out 
 			return
 		}
 
-		b := append(data, '\n')
-		pool.Write(b)
+		pool.Write(data)
 		return
 	case "eth_getWork":
 		// reply, errReply := s.handleGetWorkRPC(cs)
@@ -142,9 +152,7 @@ func (hand *NoFeeHandle) OnMessage(c net.Conn, pool net.Conn, data []byte) (out 
 		// 	c.Close()
 		// 	return
 		// }
-		b := append(data, '\n')
-		pool.Write(b)
-
+		pool.Write(data)
 		// log.Println("Ret", brpc)
 		// out = append(brpc, '\n')
 		return
@@ -156,7 +164,6 @@ func (hand *NoFeeHandle) OnMessage(c net.Conn, pool net.Conn, data []byte) (out 
 			return
 		}
 
-		// TODO 判断任务JObID 是那个抽水线程的。发送到相应的抽水线程。
 		out, err = eth.EthSuccess(req.Id)
 		if err != nil {
 			hand.log.Error(err.Error())
@@ -165,8 +172,7 @@ func (hand *NoFeeHandle) OnMessage(c net.Conn, pool net.Conn, data []byte) (out 
 		}
 
 		hand.log.Info("得到份额", zap.String("RPC", string(data)))
-		b := append(data, '\n')
-		pool.Write(b)
+		pool.Write(data)
 		return
 	case "eth_submitHashrate":
 		// 直接返回

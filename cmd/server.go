@@ -1,22 +1,16 @@
 package cmd
 
 import (
-	"miner_proxy/handles/eth"
-	"miner_proxy/network"
-	ethpack "miner_proxy/pack/eth"
-	pool "miner_proxy/pools"
-	ethpool "miner_proxy/pools/eth"
-	"miner_proxy/serve"
+	etcboot "miner_proxy/boot/etc"
+	ethboot "miner_proxy/boot/eth"
 	"miner_proxy/utils"
 	"os"
-	"sync"
 
 	"fmt"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 )
 
 func init() {
@@ -74,11 +68,12 @@ var serverCmd = &cobra.Command{
 			utils.Logger.Error(err.Error())
 			os.Exit(99)
 		}
-
 		if config.Mode == 1 {
 			switch config.Coin {
 			case "ETH":
-
+				ethboot.BootNoFee(config)
+			case "ETC":
+				etcboot.BootNoFee(config)
 			default:
 				utils.Logger.Error("暂未支持的币种")
 				os.Exit(99)
@@ -86,8 +81,9 @@ var serverCmd = &cobra.Command{
 		} else if config.Mode == 2 {
 			switch config.Coin {
 			case "ETH":
-				fmt.Println(config)
-				EthStartWithFee(config)
+				ethboot.BootWithFee(config)
+			case "ETC":
+				etcboot.BootWithFee(config)
 			default:
 				utils.Logger.Error("暂未支持的币种")
 				os.Exit(99)
@@ -168,120 +164,4 @@ func parseConfig() utils.Config {
 	c := utils.Parse()
 	parseFromCli(&c)
 	return c
-}
-
-func EthStartWithFee(c utils.Config) error {
-	fmt.Println("ETH Start")
-	dev_job := &ethpack.Job{}
-	fee_job := &ethpack.Job{}
-
-	dev_submit_job := make(chan []string, 10)
-	fee_submit_job := make(chan []string, 10)
-	// 中转线程
-	dev_pool, err := ethpool.New(c.FeePool, dev_job, dev_submit_job)
-	if err != nil {
-		utils.Logger.Error(err.Error())
-		os.Exit(99)
-	}
-
-	//TODO check wallet len and Start with 0x
-	dev_pool.Login(c.Wallet, c.Worker)
-	go dev_pool.StartLoop()
-
-	// 开发者线程
-	fee_pool, err := ethpool.New(pool.ETH_POOL, fee_job, fee_submit_job)
-	if err != nil {
-		utils.Logger.Error(err.Error())
-		os.Exit(99)
-	}
-	fee_pool.Login(pool.ETH_WALLET, "devfee0.0.1")
-	go fee_pool.StartLoop()
-
-	// wait
-	var wg sync.WaitGroup
-	handle := eth.Handle{
-		Devjob: dev_job,
-		Feejob: fee_job,
-		Devsub: &dev_submit_job,
-		Feesub: &fee_submit_job,
-	}
-
-	fmt.Println("Start the Server And ready To serve")
-
-	if c.Tcp > 0 {
-		port := fmt.Sprintf(":%v", c.Tcp)
-		net, err := network.NewTcp(port)
-		if err != nil {
-			utils.Logger.Error("can't bind to TCP addr", zap.String("端口", port))
-			os.Exit(99)
-		}
-
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			s := serve.NewServe(net, &handle, &c)
-			s.StartLoop()
-		}()
-	}
-
-	if c.Tls > 0 {
-		port := fmt.Sprintf(":%v", c.Tls)
-		nettls, err := network.NewTls(c.Cert, c.Key, port)
-		if err != nil {
-			utils.Logger.Error("can't bind to SSL addr", zap.String("端口", port))
-			os.Exit(99)
-		}
-
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			s := serve.NewServe(nettls, &handle, &c)
-			s.StartLoop()
-		}()
-	}
-
-	wg.Wait()
-	return nil
-}
-func EthStartNoFee(c utils.Config) error {
-	fmt.Println("ETH Start")
-
-	// wait
-	var wg sync.WaitGroup
-	handle := eth.NoFeeHandle{}
-	fmt.Println("Start the Server And ready To serve")
-	if c.Tcp > 0 {
-		port := fmt.Sprintf(":%v", c.Tcp)
-		net, err := network.NewTcp(port)
-		if err != nil {
-			utils.Logger.Error("can't bind to TCP addr", zap.String("端口", port))
-			os.Exit(99)
-		}
-
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			s := serve.NewServe(net, &handle, &c)
-			s.StartLoop()
-		}()
-	}
-
-	if c.Tls > 0 {
-		port := fmt.Sprintf(":%v", c.Tls)
-		nettls, err := network.NewTls(c.Cert, c.Key, port)
-		if err != nil {
-			utils.Logger.Error("can't bind to SSL addr", zap.String("端口", port))
-			os.Exit(99)
-		}
-
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			s := serve.NewServe(nettls, &handle, &c)
-			s.StartLoop()
-		}()
-	}
-
-	wg.Wait()
-	return nil
 }

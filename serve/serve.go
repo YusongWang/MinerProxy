@@ -2,6 +2,7 @@ package serve
 
 import (
 	"bufio"
+	"miner_proxy/fee"
 	"miner_proxy/handles"
 	"miner_proxy/utils"
 	"net"
@@ -41,22 +42,26 @@ func (s *Serve) StartLoop() {
 			s.log.Error(err.Error())
 			continue
 		}
-		// Pool
 
-		s.log = s.log.With(zap.String("ip", conn.RemoteAddr().String()))
 		s.log.Info("Tcp Accept Concent")
 		s.handle.SetLog(s.log)
-		pool_net, err := s.handle.OnConnect(conn, s.config, conn.RemoteAddr().String())
+
+		var fee fee.Fee
+		fee.Lock()
+		fee.Dev = make(map[string]bool)
+		fee.Fee = make(map[string]bool)
+		fee.Unlock()
+
+		pool_net, err := s.handle.OnConnect(conn, s.config, &fee, conn.RemoteAddr().String())
 		if err != nil {
 			s.log.Warn(err.Error())
 		}
-
-		go s.serve(conn, pool_net)
+		go s.serve(conn, pool_net, &fee)
 	}
 }
 
 //接受请求
-func (s *Serve) serve(conn net.Conn, pool net.Conn) {
+func (s *Serve) serve(conn net.Conn, pool net.Conn, fee *fee.Fee) {
 	reader := bufio.NewReader(conn)
 	for {
 		buf, err := reader.ReadBytes('\n')
@@ -66,7 +71,7 @@ func (s *Serve) serve(conn net.Conn, pool net.Conn) {
 			return
 		}
 
-		ret, err := s.handle.OnMessage(conn, pool, buf)
+		ret, err := s.handle.OnMessage(conn, pool, fee, buf)
 		if err != nil {
 			s.log.Error(err.Error())
 			s.handle.OnClose()
