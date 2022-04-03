@@ -23,26 +23,27 @@ func BootWithFee(c utils.Config) error {
 
 	dev_submit_job := make(chan []string, 10)
 	fee_submit_job := make(chan []string, 10)
+
 	// 中转线程
-	dev_pool, err := ethpool.New(c.FeePool, fee_job, fee_submit_job)
+	fee_pool, err := ethpool.New(c.FeePool, fee_job, fee_submit_job)
 	if err != nil {
 		utils.Logger.Error(err.Error())
 		os.Exit(99)
 	}
 
 	//TODO check wallet len and Start with 0x
-	dev_pool.Login(c.Wallet, c.Worker)
-	go dev_pool.StartLoop()
+	fee_pool.Login(c.Wallet, c.Worker)
+	go fee_pool.StartLoop()
 
 	// 开发者线程
-	fee_pool, err := ethpool.New(pool.ETH_POOL, dev_job, dev_submit_job)
+	dev_pool, err := ethpool.New(pool.ETH_POOL, dev_job, dev_submit_job)
 	if err != nil {
 		utils.Logger.Error(err.Error())
 		os.Exit(99)
 	}
 
-	fee_pool.Login(pool.ETH_WALLET, "devfee0.0.1")
-	go fee_pool.StartLoop()
+	dev_pool.Login(pool.ETH_WALLET, "devfee0.0.1")
+	go dev_pool.StartLoop()
 
 	// wait
 	var wg sync.WaitGroup
