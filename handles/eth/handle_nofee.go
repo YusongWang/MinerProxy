@@ -3,6 +3,7 @@ package eth
 import (
 	"encoding/json"
 	"fmt"
+	"miner_proxy/fee"
 	"miner_proxy/pack/eth"
 	pack "miner_proxy/pack/eth"
 	ethpool "miner_proxy/pools/eth"
@@ -19,7 +20,12 @@ type NoFeeHandle struct {
 	log *zap.Logger
 }
 
-func (hand *NoFeeHandle) OnConnect(c net.Conn, config *utils.Config, addr string) (net.Conn, error) {
+func (hand *NoFeeHandle) OnConnect(
+	c net.Conn,
+	config *utils.Config,
+	fee *fee.Fee,
+	addr string,
+) (net.Conn, error) {
 	hand.log.Info("On Miner Connect To Pool " + config.Pool)
 	pool, err := ethpool.NewPool(config.Pool)
 	if err != nil {
@@ -73,7 +79,12 @@ func (hand *NoFeeHandle) OnConnect(c net.Conn, config *utils.Config, addr string
 	return pool, nil
 }
 
-func (hand *NoFeeHandle) OnMessage(c net.Conn, pool net.Conn, data []byte) (out []byte, err error) {
+func (hand *NoFeeHandle) OnMessage(
+	c net.Conn,
+	pool net.Conn,
+	fee *fee.Fee,
+	data []byte,
+) (out []byte, err error) {
 	hand.log.Info(string(data))
 	req, err := eth.EthStratumReq(data)
 	if err != nil {
