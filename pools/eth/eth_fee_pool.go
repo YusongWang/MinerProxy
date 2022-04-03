@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"runtime"
 	"strings"
 	"sync"
 
@@ -169,6 +168,7 @@ func (eth *EthStratumServer) StartLoop() {
 	// 		time.Sleep(time.Second)
 	// 	}
 	// }()
+	log := utils.Logger.With(zap.String("Worker", eth.Worker))
 
 	go func() {
 		wg.Add(1)
@@ -176,8 +176,8 @@ func (eth *EthStratumServer) StartLoop() {
 		for {
 			buf_str, err := bufio.NewReader(eth.Conn).ReadString('\n')
 			if err != nil {
-				log.Println("远程已经关闭")
-				log.Println(err)
+				log.Info("远程已经关闭")
+				log.Error(err.Error())
 				eth.Conn.Close()
 				return
 			}
@@ -187,9 +187,9 @@ func (eth *EthStratumServer) StartLoop() {
 					//增加份额
 					if result == true {
 						// TODO
-						utils.Logger.Info("有效份额", zap.Any("RPC", buf_str))
+						log.Info("有效份额", zap.Any("RPC", buf_str))
 					} else {
-						utils.Logger.Warn("无效份额", zap.Any("RPC", buf_str))
+						log.Warn("无效份额", zap.Any("RPC", buf_str))
 					}
 				} else if list, ok := push.Result.([]interface{}); ok {
 					job := make([]string, len(list))
@@ -201,14 +201,13 @@ func (eth *EthStratumServer) StartLoop() {
 					//TODO
 				}
 			} else {
-				log.Println(err)
+				log.Error(err.Error())
 			}
-
-			log.Println(buf_str)
 		}
 	}()
 
-	for i := 0; i < runtime.NumCPU(); i++ {
+	//TODO 调试这里的最优化接受携程数量
+	for i := 0; i < 10; i++ {
 		go func() {
 			wg.Add(1)
 			defer wg.Done()
@@ -217,12 +216,10 @@ func (eth *EthStratumServer) StartLoop() {
 				case job := <-eth.Submit:
 					err := eth.SubmitJob(job)
 					if err != nil {
-						log.Fatalln("提交工作量证明失败")
+						log.Warn("提交工作量证明失败")
 					}
-					log.Println(job)
 				}
 			}
-
 		}()
 	}
 
