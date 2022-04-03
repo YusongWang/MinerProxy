@@ -12,6 +12,8 @@ import (
 
 	"os"
 	"sync"
+
+	"go.uber.org/zap"
 )
 
 func BootWithFee(c utils.Config) error {

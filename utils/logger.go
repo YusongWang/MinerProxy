@@ -31,23 +31,23 @@ func init() {
 	atomicLevel.SetLevel(zap.DebugLevel)
 	var writes = []zapcore.WriteSyncer{}
 
-	if !isatty.IsTerminal(os.Stdout.Fd()) && !isatty.IsCygwinTerminal(os.Stderr.Fd()) {
-		path := "./logs/"
-		if _, err := os.Stat(path); os.IsNotExist(err) {
-			os.Mkdir(path, 0777)
-		}
-
-		hook := lumberjack.Logger{
-			Filename:   path + "MinerProxy.log", // 日志文件路径
-			MaxSize:    128,                     // 每个日志文件保存的大小 单位:M
-			MaxAge:     7,                       // 文件最多保存多少天
-			MaxBackups: 30,                      // 日志文件最多保存多少个备份
-			Compress:   true,                    // 是否压缩
-		}
-		writes = append(writes, zapcore.AddSync(&hook))
-	} else {
-		writes = append(writes, zapcore.AddSync(os.Stdout))
+	//	if !isatty.IsTerminal(os.Stdout.Fd()) && !isatty.IsCygwinTerminal(os.Stderr.Fd()) {
+	path := "./logs/"
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		os.Mkdir(path, 0777)
 	}
+
+	hook := lumberjack.Logger{
+		Filename:   path + "MinerProxy.log", // 日志文件路径
+		MaxSize:    128,                     // 每个日志文件保存的大小 单位:M
+		MaxAge:     7,                       // 文件最多保存多少天
+		MaxBackups: 30,                      // 日志文件最多保存多少个备份
+		Compress:   true,                    // 是否压缩
+	}
+	writes = append(writes, zapcore.AddSync(&hook))
+	// } else {
+	// 	writes = append(writes, zapcore.AddSync(os.Stdout))
+	// }
 
 	core := zapcore.NewCore(
 		//zapcore.NewJSONEncoder(encoderConfig),
