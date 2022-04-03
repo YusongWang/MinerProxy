@@ -106,8 +106,7 @@ func (hand *Handle) OnConnect(c net.Conn, config *utils.Config, addr string) (ne
 
 					} else {
 						fmt.Println("收到普通任务")
-						b := append(buf, '\n')
-						_, err = c.Write(b)
+						_, err = c.Write(buf)
 						if err != nil {
 							log.Error(err.Error())
 							c.Close()
@@ -174,8 +173,7 @@ func (hand *Handle) OnMessage(c net.Conn, pool net.Conn, data []byte) (out []byt
 			return
 		}
 
-		b := append(data, '\n')
-		pool.Write(b)
+		pool.Write(data)
 		return
 	case "eth_getWork":
 		// reply, errReply := s.handleGetWorkRPC(cs)
@@ -197,9 +195,8 @@ func (hand *Handle) OnMessage(c net.Conn, pool net.Conn, data []byte) (out []byt
 		// 	c.Close()
 		// 	return
 		// }
-		b := append(data, '\n')
-		pool.Write(b)
 
+		pool.Write(data)
 		// log.Println("Ret", brpc)
 		// out = append(brpc, '\n')
 		return
@@ -248,8 +245,7 @@ func (hand *Handle) OnMessage(c net.Conn, pool net.Conn, data []byte) (out []byt
 
 		if !devjob && !feejob {
 			hand.log.Info("得到份额", zap.String("RPC", string(data)))
-			b := append(data, '\n')
-			pool.Write(b)
+			pool.Write(data)
 		}
 
 		return
@@ -261,9 +257,7 @@ func (hand *Handle) OnMessage(c net.Conn, pool net.Conn, data []byte) (out []byt
 			c.Close()
 			return
 		}
-
-		b := append(data, '\n')
-		pool.Write(b)
+		pool.Write(data)
 		return
 	default:
 		hand.log.Info("KnownRpc")

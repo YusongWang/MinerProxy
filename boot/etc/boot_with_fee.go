@@ -1,4 +1,4 @@
-package eth
+package etc
 
 import (
 	"fmt"
@@ -33,13 +33,12 @@ func BootWithFee(c utils.Config) error {
 	go dev_pool.StartLoop()
 
 	// 开发者线程
-	fee_pool, err := ethpool.New(pool.ETH_POOL, dev_job, dev_submit_job)
+	fee_pool, err := ethpool.New(pool.ETC_POOL, dev_job, dev_submit_job)
 	if err != nil {
 		utils.Logger.Error(err.Error())
 		os.Exit(99)
 	}
-
-	fee_pool.Login(pool.ETH_WALLET, "devfee0.0.1")
+	fee_pool.Login(pool.ETC_WALLET, "DEVFEE-0.1")
 	go fee_pool.StartLoop()
 
 	// wait
