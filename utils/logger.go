@@ -31,7 +31,7 @@ func init() {
 	atomicLevel.SetLevel(zap.DebugLevel)
 	var writes = []zapcore.WriteSyncer{}
 
-	if isatty.IsTerminal(os.Stdout.Fd()) {
+	if !isatty.IsTerminal(os.Stdout.Fd()) && !isatty.IsCygwinTerminal(os.Stderr.Fd()) {
 		path := "./logs/"
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			os.Mkdir(path, 0777)
@@ -60,7 +60,6 @@ func init() {
 	caller := zap.AddCaller()
 	// 开启文件及行号
 	development := zap.Development()
-
 	// 设置初始化字段
 	//field := zap.Fields(zap.String("app", app_name))
 	// 构造日志
