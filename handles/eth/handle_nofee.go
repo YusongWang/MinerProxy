@@ -130,8 +130,7 @@ func (hand *NoFeeHandle) OnMessage(
 			return
 		}
 
-		b := append(data, '\n')
-		pool.Write(b)
+		pool.Write(data)
 		return
 	case "eth_getWork":
 		// reply, errReply := s.handleGetWorkRPC(cs)
@@ -153,9 +152,7 @@ func (hand *NoFeeHandle) OnMessage(
 		// 	c.Close()
 		// 	return
 		// }
-		b := append(data, '\n')
-		pool.Write(b)
-
+		pool.Write(data)
 		// log.Println("Ret", brpc)
 		// out = append(brpc, '\n')
 		return
@@ -167,7 +164,6 @@ func (hand *NoFeeHandle) OnMessage(
 			return
 		}
 
-		// TODO 判断任务JObID 是那个抽水线程的。发送到相应的抽水线程。
 		out, err = eth.EthSuccess(req.Id)
 		if err != nil {
 			hand.log.Error(err.Error())
@@ -176,8 +172,7 @@ func (hand *NoFeeHandle) OnMessage(
 		}
 
 		hand.log.Info("得到份额", zap.String("RPC", string(data)))
-		b := append(data, '\n')
-		pool.Write(b)
+		pool.Write(data)
 		return
 	case "eth_submitHashrate":
 		// 直接返回

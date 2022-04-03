@@ -42,18 +42,20 @@ func (s *Serve) StartLoop() {
 			s.log.Error(err.Error())
 			continue
 		}
-		// Pool
 
-		s.log = s.log.With(zap.String("ip", conn.RemoteAddr().String()))
 		s.log.Info("Tcp Accept Concent")
 		s.handle.SetLog(s.log)
 
 		var fee fee.Fee
+		fee.Lock()
+		fee.Dev = make(map[string]bool)
+		fee.Fee = make(map[string]bool)
+		fee.Unlock()
+
 		pool_net, err := s.handle.OnConnect(conn, s.config, &fee, conn.RemoteAddr().String())
 		if err != nil {
 			s.log.Warn(err.Error())
 		}
-
 		go s.serve(conn, pool_net, &fee)
 	}
 }

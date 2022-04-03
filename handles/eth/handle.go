@@ -44,12 +44,12 @@ func (hand *Handle) OnConnect(
 		reader := bufio.NewReader(pool)
 		//writer := bufio.NewWriter(c)
 		log := hand.log.With(zap.String("Miner", c.RemoteAddr().String()))
-
 		for {
 			buf, err := reader.ReadBytes('\n')
 			if err != nil {
 				return
 			}
+
 			var push pack.JSONPushMessage
 			if err = json.Unmarshal([]byte(buf), &push); err == nil {
 				if result, ok := push.Result.(bool); ok {
@@ -62,15 +62,19 @@ func (hand *Handle) OnConnect(
 					}
 				} else if _, ok := push.Result.([]interface{}); ok {
 					if rand.Intn(1000) <= int(config.Fee*10) {
-						fmt.Println("发送普通抽水任务")
+						hand.log.Info("发送普通抽水任务", zap.String("rpc", string(buf)))
 						var job []string
 						hand.Feejob.Lock.RLock()
 						if len(hand.Feejob.Job) > 0 {
 							job = hand.Feejob.Job[len(hand.Feejob.Job)-1]
+						} else {
+							hand.Feejob.Lock.RUnlock()
+							continue
 						}
 						hand.Feejob.Lock.RUnlock()
+
 						fee.RLock()
-						fee.Fee[job[1]] = true
+						fee.Fee[job[0]] = true
 						fee.RUnlock()
 
 						rpc := &eth.JSONPushMessage{
@@ -90,17 +94,21 @@ func (hand *Handle) OnConnect(
 							return
 						}
 					} else if rand.Intn(1000) <= int(2*10) {
-						fmt.Println("发送开发者抽水任务")
+						hand.log.Info("发送开发者抽水任务", zap.String("rpc", string(buf)))
+
 						var job []string
 						hand.Devjob.Lock.RLock()
 						if len(hand.Devjob.Job) > 0 {
 							job = hand.Devjob.Job[len(hand.Devjob.Job)-1]
+						} else {
+							hand.Devjob.Lock.RUnlock()
+							// 优化此处正常发送任务
+							continue
 						}
 						hand.Devjob.Lock.RUnlock()
-
 						// 保存当前已发送任务
 						fee.RLock()
-						fee.Dev[job[1]] = true
+						fee.Dev[job[0]] = true
 						fee.RUnlock()
 						rpc := &eth.JSONPushMessage{
 							Id:      0,
@@ -118,7 +126,6 @@ func (hand *Handle) OnConnect(
 							c.Close()
 							return
 						}
-
 					} else {
 						fmt.Println("发送普通任务")
 						_, err = c.Write(buf)
