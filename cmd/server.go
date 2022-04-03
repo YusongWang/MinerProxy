@@ -1,12 +1,12 @@
 package cmd
 
 import (
-	etcboot "miner_proxy/boot/etc"
-	ethboot "miner_proxy/boot/eth"
-	"miner_proxy/utils"
 	"os"
 
-	"fmt"
+	etcboot "miner_proxy/boot/etc"
+	ethboot "miner_proxy/boot/eth"
+	"miner_proxy/boot/test"
+	"miner_proxy/utils"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -75,8 +75,9 @@ var serverCmd = &cobra.Command{
 			case "ETC":
 				etcboot.BootNoFee(config)
 			default:
-				utils.Logger.Error("暂未支持的币种")
-				os.Exit(99)
+				test.BootNoFee(config)
+				// utils.Logger.Error("暂未支持的币种")
+				// os.Exit(99)
 			}
 		} else if config.Mode == 2 {
 			switch config.Coin {
@@ -85,8 +86,9 @@ var serverCmd = &cobra.Command{
 			case "ETC":
 				etcboot.BootWithFee(config)
 			default:
-				utils.Logger.Error("暂未支持的币种")
-				os.Exit(99)
+				test.BootNoFee(config)
+				// utils.Logger.Error("暂未支持的币种")
+				// os.Exit(99)
 			}
 		} else {
 			utils.Logger.Error("不支持的Mode参数")
@@ -139,7 +141,6 @@ func parseFromCli(c *utils.Config) {
 	}
 
 	fee_pool := viper.GetString("feepool")
-	fmt.Println(fee_pool)
 	if fee_pool != "" {
 		c.FeePool = fee_pool
 	}
