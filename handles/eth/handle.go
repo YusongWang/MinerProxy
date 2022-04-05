@@ -107,9 +107,7 @@ func (hand *Handle) OnConnect(
 						}
 						hand.Devjob.Lock.RUnlock()
 						// 保存当前已发送任务
-						//fee.RLock()
 						fee.Dev[job[0]] = true
-						//fee.RUnlock()
 						rpc.Result = job
 						b, err := json.Marshal(rpc)
 						if err != nil {
@@ -189,6 +187,7 @@ func (hand *Handle) OnMessage(
 				worker = req.Worker
 			}
 		}
+
 		hand.log.Info("登陆矿工.", zap.String("Worker", worker), zap.String("Wallet", wallet))
 		// reply, errReply := s.handleLoginRPC(cs, params, req.Worker)
 		// if errReply != nil {
