@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"sync"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 type Job struct {
@@ -59,6 +61,7 @@ type ServerReq struct {
 }
 
 func EthStratumReq(data []byte) (StratumReq, error) {
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	var req StratumReq
 	err := json.Unmarshal(data, &req)
 	if err != nil {
@@ -69,6 +72,7 @@ func EthStratumReq(data []byte) (StratumReq, error) {
 
 // Return Success
 func EthSuccess(id json.RawMessage) (out []byte, err error) {
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	rpc := &JSONRpcResp{
 		Id:      id,
 		Version: "2.0",

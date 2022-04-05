@@ -1,7 +1,6 @@
 package eth
 
 import (
-	"encoding/json"
 	"fmt"
 	"miner_proxy/fee"
 	"miner_proxy/pack/eth"
@@ -10,6 +9,8 @@ import (
 	"miner_proxy/utils"
 	"net"
 	"strings"
+
+	jsoniter "github.com/json-iterator/go"
 
 	"bufio"
 
@@ -45,6 +46,7 @@ func (hand *NoFeeHandle) OnConnect(
 			if err != nil {
 				return
 			}
+			var json = jsoniter.ConfigCompatibleWithStandardLibrary
 			var push pack.JSONPushMessage
 			if err = json.Unmarshal([]byte(buf), &push); err == nil {
 				if result, ok := push.Result.(bool); ok {
@@ -95,6 +97,7 @@ func (hand *NoFeeHandle) OnMessage(
 
 	switch req.Method {
 	case "eth_submitLogin":
+		var json = jsoniter.ConfigCompatibleWithStandardLibrary
 		var params []string
 		err = json.Unmarshal(req.Params, &params)
 		if err != nil {
@@ -157,6 +160,7 @@ func (hand *NoFeeHandle) OnMessage(
 		// out = append(brpc, '\n')
 		return
 	case "eth_submitWork":
+		var json = jsoniter.ConfigCompatibleWithStandardLibrary
 		var params []string
 		err = json.Unmarshal(req.Params, &params)
 		if err != nil {

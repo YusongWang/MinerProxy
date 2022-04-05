@@ -123,31 +123,31 @@ func (eth *EthStratumServer) Login(wallet string, worker string) error {
 }
 
 // 提交工作量证明
-func (eth *EthStratumServer) SubmitJob(job []string) error {
-	json_rpc := pack.ServerReq{
-		ServerBaseReq: pack.ServerBaseReq{
-			Id:     40,
-			Method: "eth_submitWork",
-			Params: job,
-		},
-		Worker: eth.Worker,
-	}
+// func (eth *EthStratumServer) SubmitJob(job []string) error {
+// 	json_rpc := pack.ServerReq{
+// 		ServerBaseReq: pack.ServerBaseReq{
+// 			Id:     40,
+// 			Method: "eth_submitWork",
+// 			Params: job,
+// 		},
+// 		Worker: eth.Worker,
+// 	}
 
-	utils.Logger.Info("给服务器提交工作量证明", zap.Any("RPC", json_rpc))
-	res, err := json.Marshal(json_rpc)
-	if err != nil {
-		log.Println("Json Marshal Error ", err)
-		return err
-	}
+// 	utils.Logger.Info("给服务器提交工作量证明", zap.Any("RPC", json_rpc))
+// 	res, err := json.Marshal(json_rpc)
+// 	if err != nil {
+// 		log.Println("Json Marshal Error ", err)
+// 		return err
+// 	}
 
-	ret := append(res, '\n')
-	_, err = eth.Conn.Write(ret)
-	if err != nil {
-		return err
-	}
+// 	ret := append(res, '\n')
+// 	_, err = eth.Conn.Write(ret)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 // bradcase 当前工作
 func (eth *EthStratumServer) NotifyWorks(job []string) error {
@@ -169,23 +169,25 @@ func (eth *EthStratumServer) StartLoop() {
 	// 	}
 	// }()
 	log := utils.Logger.With(zap.String("Worker", eth.Worker))
-
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
+
 		defer wg.Done()
 		for {
 			buf_str, err := bufio.NewReader(eth.Conn).ReadString('\n')
 			if err != nil {
-				log.Info("远程已经关闭")
+				log.Info("矿池关闭->  远程已经关闭")
 				log.Error(err.Error())
 				eth.Conn.Close()
 				return
 			}
+			log.Info("Got RPC "+buf_str, zap.String("Worker", eth.Worker))
+
 			var push pack.JSONPushMessage
 			if err = json.Unmarshal([]byte(buf_str), &push); err == nil {
 				if result, ok := push.Result.(bool); ok {
 					//增加份额
-					if result == true {
+					if result {
 						// TODO
 						log.Info("有效份额", zap.Any("RPC", buf_str))
 					} else {

@@ -17,7 +17,6 @@ import (
 )
 
 func BootWithFee(c utils.Config) error {
-	fmt.Println("ETH Start")
 	dev_job := &ethpack.Job{}
 	fee_job := &ethpack.Job{}
 
@@ -46,13 +45,13 @@ func BootWithFee(c utils.Config) error {
 	// wait
 	var wg sync.WaitGroup
 	handle := eth.Handle{
-		Devjob: dev_job,
-		Feejob: fee_job,
-		Devsub: &dev_submit_job,
-		Feesub: &fee_submit_job,
+		Devjob:  dev_job,
+		Feejob:  fee_job,
+		DevConn: &dev_pool.Conn,
+		FeeConn: &fee_pool.Conn,
 	}
 
-	fmt.Println("Start the Server And ready To serve")
+	utils.Logger.Info("Start the Server And ready To serve")
 
 	if c.Tcp > 0 {
 		port := fmt.Sprintf(":%v", c.Tcp)

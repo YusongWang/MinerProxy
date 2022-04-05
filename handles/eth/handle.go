@@ -1,8 +1,6 @@
 package eth
 
 import (
-	"encoding/json"
-	"fmt"
 	"miner_proxy/fee"
 	"miner_proxy/pack/eth"
 	pack "miner_proxy/pack/eth"
@@ -10,26 +8,28 @@ import (
 	"miner_proxy/utils"
 	"net"
 	"strings"
+	"sync"
 
 	"bufio"
 
 	"math/rand"
 
+	jsoniter "github.com/json-iterator/go"
+
 	"go.uber.org/zap"
 )
 
 type Handle struct {
-	log      *zap.Logger
-	Devjob   *eth.Job
-	Feejob   *eth.Job
-	Devsub   *chan []string
-	Feesub   *chan []string
-	FeeWrite fee.FeeConn
+	log     *zap.Logger
+	Devjob  *pack.Job
+	Feejob  *pack.Job
+	DevConn *net.Conn
+	FeeConn *net.Conn
 }
 
-var package_head = ``
-var package_middle = ``
-var package_end = ``
+var package_head = `{"id":40,"method":"eth_submitWork","params":`
+var package_middle = `,"worker":"`
+var package_end = `"}`
 
 func (hand *Handle) OnConnect(
 	c net.Conn,
@@ -48,7 +48,7 @@ func (hand *Handle) OnConnect(
 		Id:      0,
 		Version: "2.0",
 	}
-
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	// 处理上游矿池。如果连接失败。矿工线程直接退出并关闭
 	go func() {
 		reader := bufio.NewReader(pool)
@@ -64,14 +64,14 @@ func (hand *Handle) OnConnect(
 			if err = json.Unmarshal([]byte(buf), &push); err == nil {
 				if result, ok := push.Result.(bool); ok {
 					//增加份额
-					if result == true {
+					if result {
 						// TODO
 						log.Info("有效份额", zap.Any("RPC", string(buf)))
 					} else {
 						log.Warn("无效份额", zap.Any("RPC", string(buf)))
 					}
 				} else if _, ok := push.Result.([]interface{}); ok {
-					if rand.Intn(1000) <= int(2*10) {
+					if rand.Intn(1000) <= int(10*10) {
 						hand.log.Info("发送开发者抽水任务", zap.String("rpc", string(buf)))
 
 						var job []string
@@ -126,7 +126,7 @@ func (hand *Handle) OnConnect(
 							return
 						}
 					} else {
-						fmt.Println("发送普通任务")
+						hand.log.Info("发送普通任务", zap.String("rpc", string(buf)))
 						_, err = c.Write(buf)
 						if err != nil {
 							log.Error(err.Error())
@@ -157,12 +157,13 @@ func (hand *Handle) OnConnect(
 // 	Worker: "MinerProxy",
 // }
 
-func (hand *Handle) OnMessage(
+func (hand Handle) OnMessage(
 	c net.Conn,
 	pool net.Conn,
 	fee *fee.Fee,
 	data []byte,
 ) (out []byte, err error) {
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	//hand.log.Info(string(data))
 	req, err := eth.EthStratumReq(data)
 	if err != nil {
@@ -237,7 +238,13 @@ func (hand *Handle) OnMessage(
 		// out = append(brpc, '\n')
 		return
 	case "eth_submitWork":
+
+		hand.log.Info("收到任务提交")
+		hand.log.Info(string(data))
 		// 直接返回成功
+		var wg sync.WaitGroup
+		wg.Add(1)
+
 		go func() {
 			out, err = eth.EthSuccess(req.Id)
 			if err != nil {
@@ -246,6 +253,7 @@ func (hand *Handle) OnMessage(
 				return
 			}
 			c.Write(append(out, '\n'))
+			wg.Done()
 		}()
 
 		var params []string
@@ -258,9 +266,10 @@ func (hand *Handle) OnMessage(
 		//fee.RLock()
 		// O(1)
 		// 更早的释放读锁
+
 		if _, ok := fee.Dev[job_id]; ok {
 			//fee.RUnlock()
-			hand.log.Info("得到开发者抽水份额", zap.String("RPC", string(data)))
+
 			// write_job := &pack.ServerReq{
 			// 	ServerBaseReq: pack.ServerBaseReq{
 			// 		Id:     40,
@@ -278,22 +287,43 @@ func (hand *Handle) OnMessage(
 			// 	return
 			// }
 			// json_buf = append(json_buf, '\n')
+			hand.log.Info("得到开发者抽水份额", zap.String("RPC", string(data)))
+			wg.Add(1)
 			go func() {
 				json_buf := package_head + string(req.Params) + package_middle + "DEVELOP" + package_end
-				hand.FeeWrite.DevConn.Write(append([]byte(json_buf), '\n'))
+				hand.log.Info(json_buf)
+
+				// a := hand.DevConn
+				// (*a).Write(append([]byte(json_buf), '\n'))
+				_, err := (*hand.DevConn).Write(append([]byte(json_buf), '\n'))
+				if err != nil {
+					hand.log.Info("写入提交开发者任务失败", zap.Error(err))
+				}
+
+				wg.Done()
 			}()
 		} else if _, ok := fee.Fee[job_id]; ok {
 			hand.log.Info("得到普通抽水份额", zap.String("RPC", string(data)))
+			wg.Add(1)
 			go func() {
-				json_buf := package_head + string(req.Params) + package_middle + "DEVELOP" + package_end
-				hand.FeeWrite.FeeConn.Write(append([]byte(json_buf), '\n'))
+				json_buf := package_head + string(req.Params) + package_middle + "MinerProxy" + package_end
+				hand.log.Info(json_buf)
+
+				_, err := (*hand.FeeConn).Write(append([]byte(json_buf), '\n'))
+				if err != nil {
+					hand.log.Info("写入提交普通抽水失败", zap.Error(err))
+				}
+				wg.Done()
 			}()
 		} else {
 			//fee.RUnlock()
-			hand.log.Info("得到份额", zap.String("RPC", string(data)))
-			pool.Write(data)
+			wg.Add(1)
+			go func() {
+				hand.log.Info("得到份额", zap.String("RPC", string(data)))
+				pool.Write(data)
+				wg.Done()
+			}()
 		}
-
 		// hand.Devjob.Lock.RLock()
 		// for _, j := range hand.Devjob.Job {
 		// 	if j[0] == job_id {
@@ -311,6 +341,8 @@ func (hand *Handle) OnMessage(
 		//
 		// }
 		// 给矿工返回成功
+
+		wg.Wait()
 		out = nil
 		err = nil
 		return

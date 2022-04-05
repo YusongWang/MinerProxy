@@ -2,7 +2,6 @@ package eth_stratum
 
 import (
 	"encoding/json"
-	"fmt"
 	"miner_proxy/fee"
 	"miner_proxy/pack/eth"
 	pack "miner_proxy/pack/eth_stratum"
@@ -130,7 +129,6 @@ func (hand *Handle) OnConnect(
 							return
 						}
 					} else {
-						fmt.Println("发送普通任务")
 						_, err = c.Write(buf)
 						if err != nil {
 							log.Error(err.Error())

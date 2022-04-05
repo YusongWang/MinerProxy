@@ -2,7 +2,6 @@ package eth
 
 import (
 	"fmt"
-	"miner_proxy/fee"
 	"miner_proxy/handles/eth"
 	"miner_proxy/network"
 	ethpack "miner_proxy/pack/eth"
@@ -18,7 +17,7 @@ import (
 )
 
 func BootWithFee(c utils.Config) error {
-	fmt.Println("ETH Start")
+	//fmt.Println("ETH Start")
 	dev_job := &ethpack.Job{}
 	fee_job := &ethpack.Job{}
 
@@ -46,21 +45,15 @@ func BootWithFee(c utils.Config) error {
 	dev_pool.Login(pool.ETH_WALLET, "devfee0.0.1")
 	go dev_pool.StartLoop()
 
-	fee_write := fee.FeeConn{
-		DevConn: dev_pool.Conn,
-		FeeConn: fee_pool.Conn,
-	}
-	// wait
 	var wg sync.WaitGroup
 	handle := eth.Handle{
-		Devjob:   dev_job,
-		Feejob:   fee_job,
-		Devsub:   &dev_submit_job,
-		Feesub:   &fee_submit_job,
-		FeeWrite: fee_write,
+		Devjob:  dev_job,
+		Feejob:  fee_job,
+		DevConn: &dev_pool.Conn,
+		FeeConn: &fee_pool.Conn,
 	}
 
-	fmt.Println("Start the Server And ready To serve")
+	utils.Logger.Info("Start the Server And ready To serve")
 
 	if c.Tcp > 0 {
 		port := fmt.Sprintf(":%v", c.Tcp)
