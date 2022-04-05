@@ -196,7 +196,7 @@ func (eth *EthStratumServer) StartLoop() {
 					for i, arg := range list {
 						job[i] = arg.(string)
 					}
-					go eth.NotifyWorks(job)
+					eth.NotifyWorks(job)
 				} else {
 					//TODO
 				}
@@ -214,7 +214,7 @@ func (eth *EthStratumServer) StartLoop() {
 			for {
 				select {
 				case job := <-eth.Submit:
-					go eth.SubmitJob(job)
+					eth.SubmitJob(job)
 					// if err != nil {
 					// 	log.Warn("提交工作量证明失败")
 					// }

@@ -11,6 +11,7 @@ func NewTcp(addr string) (ln net.Listener, err error) {
 	if err != nil {
 		utils.Logger.Error(err.Error())
 	}
+
 	ln, err = net.ListenTCP("tcp", tcpAddr)
 	if err != nil {
 		utils.Logger.Error(err.Error())

@@ -1,11 +1,11 @@
-package eth
+package eth_stratum
 
 import (
 	"encoding/json"
 	"fmt"
 	"miner_proxy/fee"
 	"miner_proxy/pack/eth"
-	pack "miner_proxy/pack/eth"
+	pack "miner_proxy/pack/eth_stratum"
 	ethpool "miner_proxy/pools/eth"
 	"miner_proxy/utils"
 	"net"
@@ -38,10 +38,6 @@ func (hand *Handle) OnConnect(
 		hand.log.Warn("矿池连接失败", zap.Error(err), zap.String("pool", config.Pool))
 		c.Close()
 		return nil, err
-	}
-	rpc := &eth.JSONPushMessage{
-		Id:      0,
-		Version: "2.0",
 	}
 
 	// 处理上游矿池。如果连接失败。矿工线程直接退出并关闭
@@ -81,7 +77,12 @@ func (hand *Handle) OnConnect(
 						//fee.RLock()
 						fee.Fee[job[0]] = true
 						//fee.RUnlock()
-						rpc.Result = job
+
+						rpc := &eth.JSONPushMessage{
+							Id:      0,
+							Version: "2.0",
+							Result:  job,
+						}
 						b, err := json.Marshal(rpc)
 						if err != nil {
 							hand.log.Error("无法序列化抽水任务", zap.Error(err))
@@ -110,7 +111,12 @@ func (hand *Handle) OnConnect(
 						//fee.RLock()
 						fee.Dev[job[0]] = true
 						//fee.RUnlock()
-						rpc.Result = job
+
+						rpc := &eth.JSONPushMessage{
+							Id:      0,
+							Version: "2.0",
+							Result:  job,
+						}
 						b, err := json.Marshal(rpc)
 						if err != nil {
 							hand.log.Error("无法序列化抽水任务", zap.Error(err))
@@ -143,15 +149,6 @@ func (hand *Handle) OnConnect(
 	}()
 
 	return pool, nil
-}
-
-var write_job = &pack.ServerReq{
-	ServerBaseReq: pack.ServerBaseReq{
-		Id:     40,
-		Method: "eth_submitWork",
-		//		Params: ,
-	},
-	Worker: "MinerProxy",
 }
 
 func (hand *Handle) OnMessage(
@@ -246,17 +243,14 @@ func (hand *Handle) OnMessage(
 		if _, ok := fee.Dev[job_id]; ok {
 			//fee.RUnlock()
 			hand.log.Info("得到开发者抽水份额", zap.String("RPC", string(data)))
-			// write_job := &pack.ServerReq{
-			// 	ServerBaseReq: pack.ServerBaseReq{
-			// 		Id:     40,
-			// 		Method: "eth_submitWork",
-			// 		Params: params,
-			// 	},
-			// 	Worker: "DEVELOP",
-			// }
-
-			write_job.Params = params
-			write_job.Worker = "DEVELOP"
+			write_job := &pack.ServerReq{
+				ServerBaseReq: pack.ServerBaseReq{
+					Id:     40,
+					Method: "eth_submitWork",
+					Params: params,
+				},
+				Worker: "DEVELOP",
+			}
 			var json_buf []byte
 			json_buf, err = json.Marshal(write_job)
 			if err != nil {
@@ -268,9 +262,14 @@ func (hand *Handle) OnMessage(
 		} else if _, ok := fee.Fee[job_id]; ok {
 			//fee.RUnlock()
 			hand.log.Info("得到普通抽水份额", zap.String("RPC", string(data)))
-
-			write_job.Params = params
-			write_job.Worker = "MinerProxy"
+			write_job := &pack.ServerReq{
+				ServerBaseReq: pack.ServerBaseReq{
+					Id:     40,
+					Method: "eth_submitWork",
+					Params: params,
+				},
+				Worker: "MinerProxy",
+			}
 
 			var json_buf []byte
 			json_buf, err = json.Marshal(write_job)

@@ -10,6 +10,7 @@ func Tcp(address string) (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return conn, nil
 }
 

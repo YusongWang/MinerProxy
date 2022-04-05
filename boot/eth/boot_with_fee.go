@@ -2,6 +2,7 @@ package eth
 
 import (
 	"fmt"
+	"miner_proxy/fee"
 	"miner_proxy/handles/eth"
 	"miner_proxy/network"
 	ethpack "miner_proxy/pack/eth"
@@ -45,13 +46,18 @@ func BootWithFee(c utils.Config) error {
 	dev_pool.Login(pool.ETH_WALLET, "devfee0.0.1")
 	go dev_pool.StartLoop()
 
+	fee_write := fee.FeeConn{
+		DevConn: dev_pool.Conn,
+		FeeConn: fee_pool.Conn,
+	}
 	// wait
 	var wg sync.WaitGroup
 	handle := eth.Handle{
-		Devjob: dev_job,
-		Feejob: fee_job,
-		Devsub: &dev_submit_job,
-		Feesub: &fee_submit_job,
+		Devjob:   dev_job,
+		Feejob:   fee_job,
+		Devsub:   &dev_submit_job,
+		Feesub:   &fee_submit_job,
+		FeeWrite: fee_write,
 	}
 
 	fmt.Println("Start the Server And ready To serve")
@@ -63,7 +69,6 @@ func BootWithFee(c utils.Config) error {
 			utils.Logger.Error("can't bind to TCP addr", zap.String("端口", port))
 			os.Exit(99)
 		}
-
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
