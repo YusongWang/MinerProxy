@@ -207,21 +207,21 @@ func (eth *EthStratumServer) StartLoop() {
 	}()
 
 	//TODO 调试这里的最优化接受携程数量
-	for i := 0; i < 10; i++ {
-		go func() {
-			wg.Add(1)
-			defer wg.Done()
-			for {
-				select {
-				case job := <-eth.Submit:
-					go eth.SubmitJob(job)
-					// if err != nil {
-					// 	log.Warn("提交工作量证明失败")
-					// }
-				}
-			}
-		}()
-	}
+	// for i := 0; i < 10; i++ {
+	// 	go func() {
+	// 		wg.Add(1)
+	// 		defer wg.Done()
+	// 		for {
+	// 			select {
+	// 			case job := <-eth.Submit:
+	// 				go eth.SubmitJob(job)
+	// 				// if err != nil {
+	// 				// 	log.Warn("提交工作量证明失败")
+	// 				// }
+	// 			}
+	// 		}
+	// 	}()
+	// }
 
 	wg.Wait()
 }

@@ -105,6 +105,7 @@ func (hand *Handle) OnConnect(
 							// 优化此处正常发送任务
 							continue
 						}
+
 						hand.Devjob.Lock.RUnlock()
 						// 保存当前已发送任务
 						fee.RLock()
@@ -116,6 +117,7 @@ func (hand *Handle) OnConnect(
 							Version: "2.0",
 							Result:  job,
 						}
+
 						b, err := json.Marshal(rpc)
 						if err != nil {
 							hand.log.Error("无法序列化抽水任务", zap.Error(err))
@@ -185,6 +187,7 @@ func (hand *Handle) OnMessage(
 				worker = req.Worker
 			}
 		}
+
 		hand.log.Info("登陆矿工.", zap.String("Worker", worker), zap.String("Wallet", wallet))
 		// reply, errReply := s.handleLoginRPC(cs, params, req.Worker)
 		// if errReply != nil {
