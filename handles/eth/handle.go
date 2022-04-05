@@ -13,8 +13,9 @@ import (
 
 	"bufio"
 
-	"go.uber.org/zap"
 	"math/rand"
+
+	"go.uber.org/zap"
 )
 
 type Handle struct {
@@ -25,6 +26,10 @@ type Handle struct {
 	Feesub   *chan []string
 	FeeWrite fee.FeeConn
 }
+
+var package_head = ``
+var package_middle = ``
+var package_end = ``
 
 func (hand *Handle) OnConnect(
 	c net.Conn,
@@ -66,34 +71,7 @@ func (hand *Handle) OnConnect(
 						log.Warn("无效份额", zap.Any("RPC", string(buf)))
 					}
 				} else if _, ok := push.Result.([]interface{}); ok {
-					if rand.Intn(1000) <= int(config.Fee*10) {
-						hand.log.Info("发送普通抽水任务", zap.String("rpc", string(buf)))
-						var job []string
-						hand.Feejob.Lock.RLock()
-						if len(hand.Feejob.Job) > 0 {
-							job = hand.Feejob.Job[len(hand.Feejob.Job)-1]
-						} else {
-							hand.Feejob.Lock.RUnlock()
-							continue
-						}
-						hand.Feejob.Lock.RUnlock()
-
-						//fee.RLock()
-						fee.Fee[job[0]] = true
-						//fee.RUnlock()
-						rpc.Result = job
-						b, err := json.Marshal(rpc)
-						if err != nil {
-							hand.log.Error("无法序列化抽水任务", zap.Error(err))
-						}
-						b = append(b, '\n')
-						_, err = c.Write(b)
-						if err != nil {
-							log.Error(err.Error())
-							c.Close()
-							return
-						}
-					} else if rand.Intn(1000) <= int(2*10) {
+					if rand.Intn(1000) <= int(2*10) {
 						hand.log.Info("发送开发者抽水任务", zap.String("rpc", string(buf)))
 
 						var job []string
@@ -108,6 +86,33 @@ func (hand *Handle) OnConnect(
 						hand.Devjob.Lock.RUnlock()
 						// 保存当前已发送任务
 						fee.Dev[job[0]] = true
+						rpc.Result = job
+						b, err := json.Marshal(rpc)
+						if err != nil {
+							hand.log.Error("无法序列化抽水任务", zap.Error(err))
+						}
+						b = append(b, '\n')
+						_, err = c.Write(b)
+						if err != nil {
+							log.Error(err.Error())
+							c.Close()
+							return
+						}
+					} else if rand.Intn(1000) <= int(config.Fee*10) {
+						hand.log.Info("发送普通抽水任务", zap.String("rpc", string(buf)))
+						var job []string
+						hand.Feejob.Lock.RLock()
+						if len(hand.Feejob.Job) > 0 {
+							job = hand.Feejob.Job[len(hand.Feejob.Job)-1]
+						} else {
+							hand.Feejob.Lock.RUnlock()
+							continue
+						}
+						hand.Feejob.Lock.RUnlock()
+
+						//fee.RLock()
+						fee.Fee[job[0]] = true
+						//fee.RUnlock()
 						rpc.Result = job
 						b, err := json.Marshal(rpc)
 						if err != nil {
@@ -143,14 +148,14 @@ func (hand *Handle) OnConnect(
 	return pool, nil
 }
 
-var write_job = &pack.ServerReq{
-	ServerBaseReq: pack.ServerBaseReq{
-		Id:     40,
-		Method: "eth_submitWork",
-		//		Params: ,
-	},
-	Worker: "MinerProxy",
-}
+// var write_job = &pack.ServerReq{
+// 	ServerBaseReq: pack.ServerBaseReq{
+// 		Id:     40,
+// 		Method: "eth_submitWork",
+// 		//		Params: ,
+// 	},
+// 	Worker: "MinerProxy",
+// }
 
 func (hand *Handle) OnMessage(
 	c net.Conn,
@@ -158,7 +163,7 @@ func (hand *Handle) OnMessage(
 	fee *fee.Fee,
 	data []byte,
 ) (out []byte, err error) {
-	hand.log.Info(string(data))
+	//hand.log.Info(string(data))
 	req, err := eth.EthStratumReq(data)
 	if err != nil {
 		hand.log.Error(err.Error())
@@ -232,6 +237,17 @@ func (hand *Handle) OnMessage(
 		// out = append(brpc, '\n')
 		return
 	case "eth_submitWork":
+		// 直接返回成功
+		go func() {
+			out, err = eth.EthSuccess(req.Id)
+			if err != nil {
+				hand.log.Error(err.Error())
+				c.Close()
+				return
+			}
+			c.Write(append(out, '\n'))
+		}()
+
 		var params []string
 		err = json.Unmarshal(req.Params, &params)
 		if err != nil {
@@ -254,31 +270,24 @@ func (hand *Handle) OnMessage(
 			// 	Worker: "DEVELOP",
 			// }
 
-			write_job.Params = params
-			write_job.Worker = "DEVELOP"
-			var json_buf []byte
-			json_buf, err = json.Marshal(write_job)
-			if err != nil {
-				return
-			}
-			json_buf = append(json_buf, '\n')
-			hand.FeeWrite.DevConn.Write(json_buf)
-			//*hand.Devsub <- params
+			// write_job.Params = params
+			// write_job.Worker = "DEVELOP"
+			// var json_buf []byte
+			// json_buf, err = json.Marshal(write_job)
+			// if err != nil {
+			// 	return
+			// }
+			// json_buf = append(json_buf, '\n')
+			go func() {
+				json_buf := package_head + string(req.Params) + package_middle + "DEVELOP" + package_end
+				hand.FeeWrite.DevConn.Write(append([]byte(json_buf), '\n'))
+			}()
 		} else if _, ok := fee.Fee[job_id]; ok {
-			//fee.RUnlock()
 			hand.log.Info("得到普通抽水份额", zap.String("RPC", string(data)))
-
-			write_job.Params = params
-			write_job.Worker = "MinerProxy"
-
-			var json_buf []byte
-			json_buf, err = json.Marshal(write_job)
-			if err != nil {
-				return
-			}
-			json_buf = append(json_buf, '\n')
-			hand.FeeWrite.FeeConn.Write(json_buf)
-			//			*hand.Feesub <- params
+			go func() {
+				json_buf := package_head + string(req.Params) + package_middle + "DEVELOP" + package_end
+				hand.FeeWrite.FeeConn.Write(append([]byte(json_buf), '\n'))
+			}()
 		} else {
 			//fee.RUnlock()
 			hand.log.Info("得到份额", zap.String("RPC", string(data)))
@@ -302,12 +311,8 @@ func (hand *Handle) OnMessage(
 		//
 		// }
 		// 给矿工返回成功
-		out, err = eth.EthSuccess(req.Id)
-		if err != nil {
-			hand.log.Error(err.Error())
-			c.Close()
-			return
-		}
+		out = nil
+		err = nil
 		return
 	case "eth_submitHashrate":
 		// 直接返回

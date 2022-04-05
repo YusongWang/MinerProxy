@@ -13,8 +13,9 @@ import (
 
 	"bufio"
 
-	"go.uber.org/zap"
 	"math/rand"
+
+	"go.uber.org/zap"
 )
 
 type Handle struct {
@@ -242,42 +243,10 @@ func (hand *Handle) OnMessage(
 		// 更早的释放读锁
 		if _, ok := fee.Dev[job_id]; ok {
 			//fee.RUnlock()
-			hand.log.Info("得到开发者抽水份额", zap.String("RPC", string(data)))
-			write_job := &pack.ServerReq{
-				ServerBaseReq: pack.ServerBaseReq{
-					Id:     40,
-					Method: "eth_submitWork",
-					Params: params,
-				},
-				Worker: "DEVELOP",
-			}
-			var json_buf []byte
-			json_buf, err = json.Marshal(write_job)
-			if err != nil {
-				return
-			}
-			json_buf = append(json_buf, '\n')
-			hand.FeeWrite.DevConn.Write(json_buf)
+
 			//*hand.Devsub <- params
 		} else if _, ok := fee.Fee[job_id]; ok {
-			//fee.RUnlock()
-			hand.log.Info("得到普通抽水份额", zap.String("RPC", string(data)))
-			write_job := &pack.ServerReq{
-				ServerBaseReq: pack.ServerBaseReq{
-					Id:     40,
-					Method: "eth_submitWork",
-					Params: params,
-				},
-				Worker: "MinerProxy",
-			}
 
-			var json_buf []byte
-			json_buf, err = json.Marshal(write_job)
-			if err != nil {
-				return
-			}
-			json_buf = append(json_buf, '\n')
-			hand.FeeWrite.FeeConn.Write(json_buf)
 			//			*hand.Feesub <- params
 		} else {
 			//fee.RUnlock()

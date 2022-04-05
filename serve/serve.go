@@ -60,6 +60,7 @@ func (s *Serve) StartLoop() {
 
 //接受请求
 func (s *Serve) serve(conn net.Conn, pool net.Conn, fee *fee.Fee) {
+
 	reader := bufio.NewReader(conn)
 	for {
 		buf, err := reader.ReadBytes('\n')
@@ -76,11 +77,14 @@ func (s *Serve) serve(conn net.Conn, pool net.Conn, fee *fee.Fee) {
 			return
 		}
 
-		_, err = conn.Write(ret)
-		if err != nil {
-			s.log.Error(err.Error())
-			s.handle.OnClose()
-			return
+		// 兼容内部返回的情况
+		if len(ret) > 0 {
+			_, err = conn.Write(ret)
+			if err != nil {
+				s.log.Error(err.Error())
+				s.handle.OnClose()
+				return
+			}
 		}
 	}
 }

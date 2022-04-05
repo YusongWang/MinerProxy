@@ -6,10 +6,16 @@ import (
 )
 
 func Tcp(address string) (net.Conn, error) {
-	conn, err := net.Dial("tcp", address)
+	tcpAddr, err := net.ResolveTCPAddr("tcp", address)
 	if err != nil {
 		return nil, err
 	}
+
+	conn, err := net.DialTCP("tcp", nil, tcpAddr)
+	if err != nil {
+		return nil, err
+	}
+	conn.SetNoDelay(true)
 
 	return conn, nil
 }
@@ -22,5 +28,6 @@ func Tls(address string) (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return conn, nil
 }
