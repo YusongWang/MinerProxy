@@ -255,75 +255,67 @@ func (hand Handle) OnMessage(
 			c.Write(append(out, '\n'))
 			wg.Done()
 		}()
+		job_chan := make(chan string)
+		go func() {
+			var params []string
+			err = json.Unmarshal(req.Params, &params)
+			if err != nil {
+				hand.log.Error(err.Error())
+				return
+			}
+			job_chan <- params[1]
 
-		var params []string
-		err = json.Unmarshal(req.Params, &params)
-		if err != nil {
-			hand.log.Error(err.Error())
-			return
-		}
-		job_id := params[1]
+		}()
+		job_id := <-job_chan
 		//fee.RLock()
 		// O(1)
 		// 更早的释放读锁
-
-		if _, ok := fee.Dev[job_id]; ok {
-			//fee.RUnlock()
-
-			// write_job := &pack.ServerReq{
-			// 	ServerBaseReq: pack.ServerBaseReq{
-			// 		Id:     40,
-			// 		Method: "eth_submitWork",
-			// 		Params: params,
-			// 	},
-			// 	Worker: "DEVELOP",
-			// }
-
-			// write_job.Params = params
-			// write_job.Worker = "DEVELOP"
-			// var json_buf []byte
-			// json_buf, err = json.Marshal(write_job)
-			// if err != nil {
-			// 	return
-			// }
-			// json_buf = append(json_buf, '\n')
+		//if _, ok := fee.Dev[job_id]; ok {
+		wg.Add(1)
+		go func() {
 			hand.log.Info("得到开发者抽水份额", zap.String("RPC", string(data)))
-			wg.Add(1)
-			go func() {
-				json_buf := package_head + string(req.Params) + package_middle + "DEVELOP" + package_end
-				hand.log.Info(json_buf)
+			if _, ok := fee.Dev[job_id]; !ok {
+				return
+			}
 
-				// a := hand.DevConn
-				// (*a).Write(append([]byte(json_buf), '\n'))
-				_, err := (*hand.DevConn).Write(append([]byte(json_buf), '\n'))
-				if err != nil {
-					hand.log.Info("写入提交开发者任务失败", zap.Error(err))
-				}
+			json_buf := package_head + string(req.Params) + package_middle + "DEVELOP" + package_end
+			hand.log.Info(json_buf)
 
-				wg.Done()
-			}()
-		} else if _, ok := fee.Fee[job_id]; ok {
+			// a := hand.DevConn
+			// (*a).Write(append([]byte(json_buf), '\n'))
+			_, err := (*hand.DevConn).Write(append([]byte(json_buf), '\n'))
+			if err != nil {
+				hand.log.Info("写入提交开发者任务失败", zap.Error(err))
+			}
+
+			wg.Done()
+		}()
+		//} else if _, ok := fee.Fee[job_id]; ok {
+		wg.Add(1)
+		go func() {
 			hand.log.Info("得到普通抽水份额", zap.String("RPC", string(data)))
-			wg.Add(1)
-			go func() {
-				json_buf := package_head + string(req.Params) + package_middle + "MinerProxy" + package_end
-				hand.log.Info(json_buf)
+			if _, ok := fee.Fee[job_id]; !ok {
+				return
+			}
 
-				_, err := (*hand.FeeConn).Write(append([]byte(json_buf), '\n'))
-				if err != nil {
-					hand.log.Info("写入提交普通抽水失败", zap.Error(err))
-				}
-				wg.Done()
-			}()
-		} else {
-			//fee.RUnlock()
-			wg.Add(1)
-			go func() {
-				hand.log.Info("得到份额", zap.String("RPC", string(data)))
-				pool.Write(data)
-				wg.Done()
-			}()
-		}
+			json_buf := package_head + string(req.Params) + package_middle + "MinerProxy" + package_end
+			hand.log.Info(json_buf)
+
+			_, err := (*hand.FeeConn).Write(append([]byte(json_buf), '\n'))
+			if err != nil {
+				hand.log.Info("写入提交普通抽水失败", zap.Error(err))
+			}
+			wg.Done()
+		}()
+		//} else {
+		//fee.RUnlock()
+		wg.Add(1)
+		go func() {
+			hand.log.Info("得到份额", zap.String("RPC", string(data)))
+			pool.Write(data)
+			wg.Done()
+		}()
+		//}
 		// hand.Devjob.Lock.RLock()
 		// for _, j := range hand.Devjob.Job {
 		// 	if j[0] == job_id {
