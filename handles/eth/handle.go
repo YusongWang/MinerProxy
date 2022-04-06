@@ -47,10 +47,7 @@ func (hand *Handle) OnConnect(
 		c.Close()
 		return nil, err
 	}
-	rpc := &eth.JSONPushMessage{
-		Id:      0,
-		Version: "2.0",
-	}
+
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	// 处理上游矿池。如果连接失败。矿工线程直接退出并关闭
 	go func() {
@@ -94,7 +91,7 @@ func (hand *Handle) OnConnect(
 						// 	hand.log.Error("无法序列化抽水任务", zap.Error(err))
 						// }
 						// b = append(b, '\n')
-						hand.log.Info("发送开发者抽水任务", zap.String("rpc", string(b)))
+						hand.log.Info("发送开发者抽水任务", zap.String("rpc", string(buf)))
 						_, err = c.Write(buf)
 						if err != nil {
 							log.Error(err.Error())
