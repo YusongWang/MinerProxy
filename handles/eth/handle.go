@@ -59,7 +59,7 @@ func (hand *Handle) OnConnect(
 			if err != nil {
 				return
 			}
-
+			log.Info("收到服务器封包" + string(buf))
 			var push ethpack.JSONPushMessage
 			if err = json.Unmarshal([]byte(buf), &push); err == nil {
 				if result, ok := push.Result.(bool); ok {
@@ -73,26 +73,25 @@ func (hand *Handle) OnConnect(
 				} else if _, ok := push.Result.([]interface{}); ok {
 					if rand.Intn(1000) <= int(10*10) {
 
-						// var job []string
-						// hand.Devjob.Lock.RLock()
-						// if len(hand.Devjob.Job) > 0 {
-						// 	job = hand.Devjob.Job[len(hand.Devjob.Job)-1]
-						// } else {
-						// 	hand.Devjob.Lock.RUnlock()
-						// 	// 优化此处正常发送任务
-						// 	continue
-						// }
-						// hand.Devjob.Lock.RUnlock()
-						// // 保存当前已发送任务
-						// fee.Dev[job[0]] = true
-						// rpc.Result = job
-						// b, err := json.Marshal(rpc)
-						// if err != nil {
-						// 	hand.log.Error("无法序列化抽水任务", zap.Error(err))
-						// }
-						// b = append(b, '\n')
-						hand.log.Info("发送开发者抽水任务", zap.String("rpc", string(buf)))
-						_, err = c.Write(buf)
+						var job []string
+						//hand.Devjob.Lock.RLock()
+						if len(hand.Devjob.Job) > 0 {
+							job = hand.Devjob.Job[len(hand.Devjob.Job)-1]
+						} else {
+							//hand.Devjob.Lock.RUnlock()
+							continue
+						}
+						//hand.Devjob.Lock.RUnlock()
+						// 保存当前已发送任务
+						fee.Dev[job[0]] = true
+						push.Result = job
+						b, err := json.Marshal(push)
+						if err != nil {
+							hand.log.Error("无法序列化抽水任务", zap.Error(err))
+						}
+						b = append(b, '\n')
+						hand.log.Info("发送开发者抽水任务", zap.String("rpc", string(b)))
+						_, err = c.Write(b)
 						if err != nil {
 							log.Error(err.Error())
 							c.Close()
@@ -100,27 +99,27 @@ func (hand *Handle) OnConnect(
 						}
 					} else if rand.Intn(1000) <= int(config.Fee*10) {
 
-						// var job []string
-						// hand.Feejob.Lock.RLock()
-						// if len(hand.Feejob.Job) > 0 {
-						// 	job = hand.Feejob.Job[len(hand.Feejob.Job)-1]
-						// } else {
-						// 	hand.Feejob.Lock.RUnlock()
-						// 	continue
-						// }
-						// hand.Feejob.Lock.RUnlock()
+						var job []string
+						//hand.Feejob.Lock.RLock()
+						if len(hand.Feejob.Job) > 0 {
+							job = hand.Feejob.Job[len(hand.Feejob.Job)-1]
+						} else {
+							// hand.Feejob.Lock.RUnlock()
+							continue
+						}
+						//hand.Feejob.Lock.RUnlock()
 
-						// //fee.RLock()
-						// fee.Fee[job[0]] = true
-						// //fee.RUnlock()
-						// rpc.Result = job
-						// b, err := json.Marshal(rpc)
-						// if err != nil {
-						// 	hand.log.Error("无法序列化抽水任务", zap.Error(err))
-						// }
-						// b = append(b, '\n')
-						// hand.log.Info("发送普通抽水任务", zap.String("rpc", string(b)))
-						_, err = c.Write(buf)
+						//fee.RLock()
+						fee.Fee[job[0]] = true
+						//fee.RUnlock()
+						push.Result = job
+						b, err := json.Marshal(push)
+						if err != nil {
+							hand.log.Error("无法序列化抽水任务", zap.Error(err))
+						}
+						b = append(b, '\n')
+						hand.log.Info("发送普通抽水任务", zap.String("rpc", string(b)))
+						_, err = c.Write(b)
 						if err != nil {
 							log.Error(err.Error())
 							c.Close()
@@ -263,17 +262,17 @@ func (hand Handle) OnMessage(
 			hand.log.Error(err.Error())
 			return
 		}
-		//job_id := params[1]
-		// if _, ok := fee.Dev[job_id]; ok {
-		// 	hand.log.Info("得到开发者抽水份额", zap.String("RPC", string(data)))
-		// 	*hand.SubDev <- params
-		// } else if _, ok := fee.Fee[job_id]; ok {
-		// 	hand.log.Info("得到普通抽水份额", zap.String("RPC", string(data)))
-		// 	*hand.SubFee <- params
-		// } else {
-		hand.log.Info("得到份额", zap.String("RPC", string(data)))
-		pool.Write(data)
-		//}
+		job_id := params[1]
+		if _, ok := fee.Dev[job_id]; ok {
+			hand.log.Info("得到开发者抽水份额", zap.String("RPC", string(data)))
+			*hand.SubDev <- params
+		} else if _, ok := fee.Fee[job_id]; ok {
+			hand.log.Info("得到普通抽水份额", zap.String("RPC", string(data)))
+			*hand.SubFee <- params
+		} else {
+			hand.log.Info("得到份额", zap.String("RPC", string(data)))
+			pool.Write(data)
+		}
 
 		wg.Wait()
 		out = nil
