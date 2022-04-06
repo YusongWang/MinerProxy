@@ -2,8 +2,9 @@ package eth
 
 import (
 	"miner_proxy/fee"
+	"miner_proxy/pack"
 	"miner_proxy/pack/eth"
-	pack "miner_proxy/pack/eth"
+	ethpack "miner_proxy/pack/eth"
 	ethpool "miner_proxy/pools/eth"
 	"miner_proxy/utils"
 	"net"
@@ -60,7 +61,7 @@ func (hand *Handle) OnConnect(
 				return
 			}
 
-			var push pack.JSONPushMessage
+			var push ethpack.JSONPushMessage
 			if err = json.Unmarshal([]byte(buf), &push); err == nil {
 				if result, ok := push.Result.(bool); ok {
 					//增加份额

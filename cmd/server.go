@@ -5,6 +5,7 @@ import (
 
 	etcboot "miner_proxy/boot/etc"
 	ethboot "miner_proxy/boot/eth"
+	"miner_proxy/boot/eth_test"
 	"miner_proxy/boot/test"
 	"miner_proxy/utils"
 
@@ -85,6 +86,8 @@ var serverCmd = &cobra.Command{
 				ethboot.BootWithFee(config)
 			case "ETC":
 				etcboot.BootWithFee(config)
+			case "ETH_TEST":
+				eth_test.BootWithFee(config)
 			default:
 				test.BootNoFee(config)
 				// utils.Logger.Error("暂未支持的币种")

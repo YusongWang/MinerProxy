@@ -7,12 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"miner_proxy/pack"
+	ethpack "miner_proxy/pack/eth"
+	"miner_proxy/utils"
 	"net"
 	"strings"
 	"sync"
-
-	pack "miner_proxy/pack/eth"
-	"miner_proxy/utils"
 
 	"go.uber.org/zap"
 )
@@ -91,8 +91,8 @@ func (eth *EthStratumServer) Login(wallet string, worker string) error {
 	var a []string
 	a = append(a, wallet)
 	a = append(a, "x")
-	login := pack.ServerReq{
-		ServerBaseReq: pack.ServerBaseReq{
+	login := ethpack.ServerReq{
+		ServerBaseReq: ethpack.ServerBaseReq{
 			Id:     0,
 			Method: "eth_submitLogin",
 			Params: a,
@@ -181,9 +181,9 @@ func (eth *EthStratumServer) StartLoop() {
 				eth.Conn.Close()
 				return
 			}
-			log.Info("Got RPC "+buf_str, zap.String("Worker", eth.Worker))
+			//log.Info("Got RPC "+buf_str, zap.String("Worker", eth.Worker))
 
-			var push pack.JSONPushMessage
+			var push ethpack.JSONPushMessage
 			if err = json.Unmarshal([]byte(buf_str), &push); err == nil {
 				if result, ok := push.Result.(bool); ok {
 					//增加份额
