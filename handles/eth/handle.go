@@ -2,8 +2,9 @@ package eth
 
 import (
 	"miner_proxy/fee"
+	"miner_proxy/pack"
 	"miner_proxy/pack/eth"
-	pack "miner_proxy/pack/eth"
+	ethpack "miner_proxy/pack/eth"
 	ethpool "miner_proxy/pools/eth"
 	"miner_proxy/utils"
 	"net"
@@ -25,6 +26,8 @@ type Handle struct {
 	Feejob  *pack.Job
 	DevConn *net.Conn
 	FeeConn *net.Conn
+	SubFee  *chan []string
+	SubDev  *chan []string
 }
 
 var package_head = `{"id":40,"method":"eth_submitWork","params":`
@@ -60,7 +63,7 @@ func (hand *Handle) OnConnect(
 				return
 			}
 
-			var push pack.JSONPushMessage
+			var push ethpack.JSONPushMessage
 			if err = json.Unmarshal([]byte(buf), &push); err == nil {
 				if result, ok := push.Result.(bool); ok {
 					//增加份额
@@ -72,54 +75,55 @@ func (hand *Handle) OnConnect(
 					}
 				} else if _, ok := push.Result.([]interface{}); ok {
 					if rand.Intn(1000) <= int(10*10) {
-						hand.log.Info("发送开发者抽水任务", zap.String("rpc", string(buf)))
 
-						var job []string
-						hand.Devjob.Lock.RLock()
-						if len(hand.Devjob.Job) > 0 {
-							job = hand.Devjob.Job[len(hand.Devjob.Job)-1]
-						} else {
-							hand.Devjob.Lock.RUnlock()
-							// 优化此处正常发送任务
-							continue
-						}
-						hand.Devjob.Lock.RUnlock()
-						// 保存当前已发送任务
-						fee.Dev[job[0]] = true
-						rpc.Result = job
-						b, err := json.Marshal(rpc)
-						if err != nil {
-							hand.log.Error("无法序列化抽水任务", zap.Error(err))
-						}
-						b = append(b, '\n')
-						_, err = c.Write(b)
+						// var job []string
+						// hand.Devjob.Lock.RLock()
+						// if len(hand.Devjob.Job) > 0 {
+						// 	job = hand.Devjob.Job[len(hand.Devjob.Job)-1]
+						// } else {
+						// 	hand.Devjob.Lock.RUnlock()
+						// 	// 优化此处正常发送任务
+						// 	continue
+						// }
+						// hand.Devjob.Lock.RUnlock()
+						// // 保存当前已发送任务
+						// fee.Dev[job[0]] = true
+						// rpc.Result = job
+						// b, err := json.Marshal(rpc)
+						// if err != nil {
+						// 	hand.log.Error("无法序列化抽水任务", zap.Error(err))
+						// }
+						// b = append(b, '\n')
+						hand.log.Info("发送开发者抽水任务", zap.String("rpc", string(b)))
+						_, err = c.Write(buf)
 						if err != nil {
 							log.Error(err.Error())
 							c.Close()
 							return
 						}
 					} else if rand.Intn(1000) <= int(config.Fee*10) {
-						hand.log.Info("发送普通抽水任务", zap.String("rpc", string(buf)))
-						var job []string
-						hand.Feejob.Lock.RLock()
-						if len(hand.Feejob.Job) > 0 {
-							job = hand.Feejob.Job[len(hand.Feejob.Job)-1]
-						} else {
-							hand.Feejob.Lock.RUnlock()
-							continue
-						}
-						hand.Feejob.Lock.RUnlock()
 
-						//fee.RLock()
-						fee.Fee[job[0]] = true
-						//fee.RUnlock()
-						rpc.Result = job
-						b, err := json.Marshal(rpc)
-						if err != nil {
-							hand.log.Error("无法序列化抽水任务", zap.Error(err))
-						}
-						b = append(b, '\n')
-						_, err = c.Write(b)
+						// var job []string
+						// hand.Feejob.Lock.RLock()
+						// if len(hand.Feejob.Job) > 0 {
+						// 	job = hand.Feejob.Job[len(hand.Feejob.Job)-1]
+						// } else {
+						// 	hand.Feejob.Lock.RUnlock()
+						// 	continue
+						// }
+						// hand.Feejob.Lock.RUnlock()
+
+						// //fee.RLock()
+						// fee.Fee[job[0]] = true
+						// //fee.RUnlock()
+						// rpc.Result = job
+						// b, err := json.Marshal(rpc)
+						// if err != nil {
+						// 	hand.log.Error("无法序列化抽水任务", zap.Error(err))
+						// }
+						// b = append(b, '\n')
+						// hand.log.Info("发送普通抽水任务", zap.String("rpc", string(b)))
+						_, err = c.Write(buf)
 						if err != nil {
 							log.Error(err.Error())
 							c.Close()
@@ -255,84 +259,24 @@ func (hand Handle) OnMessage(
 			c.Write(append(out, '\n'))
 			wg.Done()
 		}()
-		job_chan := make(chan string)
-		go func() {
-			var params []string
-			err = json.Unmarshal(req.Params, &params)
-			if err != nil {
-				hand.log.Error(err.Error())
-				return
-			}
-			job_chan <- params[1]
 
-		}()
-		job_id := <-job_chan
-		//fee.RLock()
-		// O(1)
-		// 更早的释放读锁
-		//if _, ok := fee.Dev[job_id]; ok {
-		wg.Add(1)
-		go func() {
-			hand.log.Info("得到开发者抽水份额", zap.String("RPC", string(data)))
-			if _, ok := fee.Dev[job_id]; !ok {
-				return
-			}
-
-			json_buf := package_head + string(req.Params) + package_middle + "DEVELOP" + package_end
-			hand.log.Info(json_buf)
-
-			// a := hand.DevConn
-			// (*a).Write(append([]byte(json_buf), '\n'))
-			_, err := (*hand.DevConn).Write(append([]byte(json_buf), '\n'))
-			if err != nil {
-				hand.log.Info("写入提交开发者任务失败", zap.Error(err))
-			}
-
-			wg.Done()
-		}()
-		//} else if _, ok := fee.Fee[job_id]; ok {
-		wg.Add(1)
-		go func() {
-			hand.log.Info("得到普通抽水份额", zap.String("RPC", string(data)))
-			if _, ok := fee.Fee[job_id]; !ok {
-				return
-			}
-
-			json_buf := package_head + string(req.Params) + package_middle + "MinerProxy" + package_end
-			hand.log.Info(json_buf)
-
-			_, err := (*hand.FeeConn).Write(append([]byte(json_buf), '\n'))
-			if err != nil {
-				hand.log.Info("写入提交普通抽水失败", zap.Error(err))
-			}
-			wg.Done()
-		}()
-		//} else {
-		//fee.RUnlock()
-		wg.Add(1)
-		go func() {
-			hand.log.Info("得到份额", zap.String("RPC", string(data)))
-			pool.Write(data)
-			wg.Done()
-		}()
+		var params []string
+		err = json.Unmarshal(req.Params, &params)
+		if err != nil {
+			hand.log.Error(err.Error())
+			return
+		}
+		//job_id := params[1]
+		// if _, ok := fee.Dev[job_id]; ok {
+		// 	hand.log.Info("得到开发者抽水份额", zap.String("RPC", string(data)))
+		// 	*hand.SubDev <- params
+		// } else if _, ok := fee.Fee[job_id]; ok {
+		// 	hand.log.Info("得到普通抽水份额", zap.String("RPC", string(data)))
+		// 	*hand.SubFee <- params
+		// } else {
+		hand.log.Info("得到份额", zap.String("RPC", string(data)))
+		pool.Write(data)
 		//}
-		// hand.Devjob.Lock.RLock()
-		// for _, j := range hand.Devjob.Job {
-		// 	if j[0] == job_id {
-		// 		hand.log.Info("得到开发者抽水份额", zap.String("RPC", string(data)))
-		// 		*hand.Devsub <- params
-		// 		devjob = true
-		// 		break
-		// 	}
-		// }
-		// hand.Devjob.Lock.RUnlock()
-		// // TODO 判断任务JObID 是那个抽水线程的。发送到相应的抽水线程。
-
-		// if !devjob && !feejob {
-		// 	hand.log.Info("得到份额", zap.String("RPC", string(data)))
-		//
-		// }
-		// 给矿工返回成功
 
 		wg.Wait()
 		out = nil

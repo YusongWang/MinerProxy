@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"miner_proxy/handles/eth"
 	"miner_proxy/network"
-	ethpack "miner_proxy/pack/eth"
+	"miner_proxy/pack"
 	pool "miner_proxy/pools"
 	ethpool "miner_proxy/pools/eth"
 	"miner_proxy/serve"
@@ -18,8 +18,8 @@ import (
 
 func BootWithFee(c utils.Config) error {
 	//fmt.Println("ETH Start")
-	dev_job := &ethpack.Job{}
-	fee_job := &ethpack.Job{}
+	dev_job := &pack.Job{}
+	fee_job := &pack.Job{}
 
 	dev_submit_job := make(chan []string, 100)
 	fee_submit_job := make(chan []string, 100)
@@ -51,6 +51,8 @@ func BootWithFee(c utils.Config) error {
 		Feejob:  fee_job,
 		DevConn: &dev_pool.Conn,
 		FeeConn: &fee_pool.Conn,
+		SubDev:  &dev_submit_job,
+		SubFee:  &fee_submit_job,
 	}
 
 	utils.Logger.Info("Start the Server And ready To serve")

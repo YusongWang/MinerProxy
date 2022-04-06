@@ -7,12 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"miner_proxy/pack"
+	ethpack "miner_proxy/pack/eth"
+	"miner_proxy/utils"
 	"net"
 	"strings"
 	"sync"
-
-	pack "miner_proxy/pack/eth"
-	"miner_proxy/utils"
 
 	"go.uber.org/zap"
 )
@@ -91,8 +91,8 @@ func (eth *EthStratumServer) Login(wallet string, worker string) error {
 	var a []string
 	a = append(a, wallet)
 	a = append(a, "x")
-	login := pack.ServerReq{
-		ServerBaseReq: pack.ServerBaseReq{
+	login := ethpack.ServerReq{
+		ServerBaseReq: ethpack.ServerBaseReq{
 			Id:     0,
 			Method: "eth_submitLogin",
 			Params: a,
@@ -123,31 +123,31 @@ func (eth *EthStratumServer) Login(wallet string, worker string) error {
 }
 
 // 提交工作量证明
-// func (eth *EthStratumServer) SubmitJob(job []string) error {
-// 	json_rpc := pack.ServerReq{
-// 		ServerBaseReq: pack.ServerBaseReq{
-// 			Id:     40,
-// 			Method: "eth_submitWork",
-// 			Params: job,
-// 		},
-// 		Worker: eth.Worker,
-// 	}
+func (eth *EthStratumServer) SubmitJob(job []string) error {
+	json_rpc := ethpack.ServerReq{
+		ServerBaseReq: ethpack.ServerBaseReq{
+			Id:     40,
+			Method: "eth_submitWork",
+			Params: job,
+		},
+		Worker: eth.Worker,
+	}
 
-// 	utils.Logger.Info("给服务器提交工作量证明", zap.Any("RPC", json_rpc))
-// 	res, err := json.Marshal(json_rpc)
-// 	if err != nil {
-// 		log.Println("Json Marshal Error ", err)
-// 		return err
-// 	}
+	utils.Logger.Info("给服务器提交工作量证明", zap.Any("RPC", json_rpc))
+	res, err := json.Marshal(json_rpc)
+	if err != nil {
+		log.Println("Json Marshal Error ", err)
+		return err
+	}
 
-// 	ret := append(res, '\n')
-// 	_, err = eth.Conn.Write(ret)
-// 	if err != nil {
-// 		return err
-// 	}
+	ret := append(res, '\n')
+	_, err = eth.Conn.Write(ret)
+	if err != nil {
+		return err
+	}
 
-// 	return nil
-// }
+	return nil
+}
 
 // bradcase 当前工作
 func (eth *EthStratumServer) NotifyWorks(job []string) error {
@@ -160,14 +160,7 @@ func (eth *EthStratumServer) NotifyWorks(job []string) error {
 // 进行事件循环处理
 func (eth *EthStratumServer) StartLoop() {
 	var wg sync.WaitGroup
-	// go func() {
-	// 	for {
-	// 		eth.Job.Lock.RLock()
-	// 		log.Println(eth.Job.Job)
-	// 		eth.Job.Lock.RUnlock()
-	// 		time.Sleep(time.Second)
-	// 	}
-	// }()
+
 	log := utils.Logger.With(zap.String("Worker", eth.Worker))
 	wg.Add(1)
 	go func() {
@@ -181,9 +174,9 @@ func (eth *EthStratumServer) StartLoop() {
 				eth.Conn.Close()
 				return
 			}
-			log.Info("Got RPC "+buf_str, zap.String("Worker", eth.Worker))
+			//log.Info("Got RPC "+buf_str, zap.String("Worker", eth.Worker))
 
-			var push pack.JSONPushMessage
+			var push ethpack.JSONPushMessage
 			if err = json.Unmarshal([]byte(buf_str), &push); err == nil {
 				if result, ok := push.Result.(bool); ok {
 					//增加份额
@@ -210,19 +203,19 @@ func (eth *EthStratumServer) StartLoop() {
 
 	//TODO 调试这里的最优化接受携程数量
 	// for i := 0; i < 10; i++ {
-	// 	go func() {
-	// 		wg.Add(1)
-	// 		defer wg.Done()
-	// 		for {
-	// 			select {
-	// 			case job := <-eth.Submit:
-	// 				go eth.SubmitJob(job)
-	// 				// if err != nil {
-	// 				// 	log.Warn("提交工作量证明失败")
-	// 				// }
-	// 			}
-	// 		}
-	// 	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case job := <-eth.Submit:
+				err := eth.SubmitJob(job)
+				if err != nil {
+					log.Warn("提交工作量证明失败")
+				}
+			}
+		}
+	}()
 	// }
 
 	wg.Wait()

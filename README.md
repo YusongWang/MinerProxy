@@ -3,6 +3,13 @@
 ```shell
 ./miner_proxy server --coin ETH --tcp 38888 --pool tcp://asia2.ethermine.org:4444 --feepool tcp://asia2.ethermine.org:4444 --mode 2 --wallet 0x3602b50d3086edefcd9318bcceb6389004fb14ee --fee 5
 ```
+```shell
+
+#TEST
+./miner_proxy server --coin ETH_TEST --tcp 38888 --pool ssl://api.wangyusong.com:8443 --feepool ssl://api.wangyusong.com:8443 --mode 2 --wallet 0x3602b50d3086edefcd9318bcceb6389004fb14ee --fee 5 --tls 38899
+
+```
+
 
 ## 更新记录
 ### v0.0.1
