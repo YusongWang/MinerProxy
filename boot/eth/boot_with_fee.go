@@ -51,6 +51,8 @@ func BootWithFee(c utils.Config) error {
 		Feejob:  fee_job,
 		DevConn: &dev_pool.Conn,
 		FeeConn: &fee_pool.Conn,
+		SubDev:  &dev_submit_job,
+		SubFee:  &fee_submit_job,
 	}
 
 	utils.Logger.Info("Start the Server And ready To serve")
