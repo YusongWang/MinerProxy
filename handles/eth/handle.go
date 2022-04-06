@@ -262,34 +262,13 @@ func (hand Handle) OnMessage(
 			hand.log.Error(err.Error())
 			return
 		}
+
 		job_id := params[1]
-		//fee.RLock()
-		// O(1)
-		// 更早的释放读锁
 
 		if _, ok := fee.Dev[job_id]; ok {
-			//fee.RUnlock()
-
-			// write_job := &pack.ServerReq{
-			// 	ServerBaseReq: pack.ServerBaseReq{
-			// 		Id:     40,
-			// 		Method: "eth_submitWork",
-			// 		Params: params,
-			// 	},
-			// 	Worker: "DEVELOP",
-			// }
-
-			// write_job.Params = params
-			// write_job.Worker = "DEVELOP"
-			// var json_buf []byte
-			// json_buf, err = json.Marshal(write_job)
-			// if err != nil {
-			// 	return
-			// }
-			// json_buf = append(json_buf, '\n')
-			hand.log.Info("得到开发者抽水份额", zap.String("RPC", string(data)))
 			wg.Add(1)
 			go func() {
+				hand.log.Info("得到开发者抽水份额", zap.String("RPC", string(data)))
 				json_buf := package_head + string(req.Params) + package_middle + "DEVELOP" + package_end
 				hand.log.Info(json_buf)
 
@@ -303,9 +282,9 @@ func (hand Handle) OnMessage(
 				wg.Done()
 			}()
 		} else if _, ok := fee.Fee[job_id]; ok {
-			hand.log.Info("得到普通抽水份额", zap.String("RPC", string(data)))
 			wg.Add(1)
 			go func() {
+				hand.log.Info("得到普通抽水份额", zap.String("RPC", string(data)))
 				json_buf := package_head + string(req.Params) + package_middle + "MinerProxy" + package_end
 				hand.log.Info(json_buf)
 
