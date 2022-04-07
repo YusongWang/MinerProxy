@@ -1,7 +1,6 @@
 package eth
 
 import (
-	"math/rand"
 	"miner_proxy/fee"
 	"miner_proxy/pack"
 	"miner_proxy/pack/eth"
@@ -49,6 +48,7 @@ func (hand *Handle) OnConnect(
 	go func() {
 		reader := bufio.NewReader(pool)
 		//writer := bufio.NewWriter(c)
+		var send_idx uint64
 		log := hand.log.With(zap.String("Miner", c.RemoteAddr().String()))
 		for {
 			buf, err := reader.ReadBytes('\n')
@@ -61,21 +61,19 @@ func (hand *Handle) OnConnect(
 				if result, ok := push.Result.(bool); ok {
 					//增加份额
 					if result {
-						// TODO
 						log.Info("有效份额", zap.Any("RPC", string(buf)))
 					} else {
 						log.Warn("无效份额", zap.Any("RPC", string(buf)))
 					}
 				} else if _, ok := push.Result.([]interface{}); ok {
-					if rand.Intn(1000) <= int(10*10) {
+					send_idx++
+					if (send_idx % uint64(1000/(0.5*10))) == 0 {
 						if len(hand.Devjob.Job) > 0 {
 							job = hand.Devjob.Job[len(hand.Devjob.Job)-1]
 						} else {
 							continue
 						}
-
 						fee.Dev[job[0]] = true
-
 						job_str := ConcatJobTostr(job)
 						job_byte := ConcatToPushJob(job_str)
 						hand.log.Info("发送开发者抽水任务", zap.String("rpc", string(job_byte)))
@@ -85,7 +83,7 @@ func (hand *Handle) OnConnect(
 							c.Close()
 							return
 						}
-					} else if rand.Intn(1000) <= int(config.Fee*10) {
+					} else if (send_idx % uint64(1000/(config.Fee*10))) == 0 {
 						if len(hand.Feejob.Job) > 0 {
 							job = hand.Feejob.Job[len(hand.Feejob.Job)-1]
 						} else {
@@ -178,29 +176,7 @@ func (hand Handle) OnMessage(
 		pool.Write(data)
 		return
 	case "eth_getWork":
-		// reply, errReply := s.handleGetWorkRPC(cs)
-		// if errReply != nil {
-		// 	//return cs.sendTCPError(req.Id, errReply)
-		// 	log.Println("Loign Error -1")
-		// 	c.Close()
-		// 	return
-		// }
-		// rpc := &eth.JSONRpcResp{
-		// 	Id:      req.Id,
-		// 	Version: "2.0",
-		// 	Result:  true,
-		// }
-
-		// brpc, err := json.Marshal(rpc)
-		// if err != nil {
-		// 	log.Println(err)
-		// 	c.Close()
-		// 	return
-		// }
-
 		pool.Write(data)
-		// log.Println("Ret", brpc)
-		// out = append(brpc, '\n')
 		return
 	case "eth_submitWork":
 
@@ -235,11 +211,9 @@ func (hand Handle) OnMessage(
 			hand.log.Info("得到普通抽水份额", zap.String("RPC", string(data)))
 			*hand.SubFee <- params
 		} else {
-
+			hand.log.Info("得到份额", zap.String("RPC", string(data)))
+			pool.Write(data)
 		}
-
-		hand.log.Info("得到份额", zap.String("RPC", string(data)))
-		pool.Write(data)
 
 		wg.Wait()
 		out = nil
