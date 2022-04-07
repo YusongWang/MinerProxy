@@ -5,7 +5,6 @@ import (
 	"miner_proxy/fee"
 	"miner_proxy/pack"
 	ethpack "miner_proxy/pack/eth_stratum"
-	ethpool "miner_proxy/pools/eth"
 	"miner_proxy/utils"
 	"net"
 	"strings"
@@ -30,7 +29,7 @@ func (hand *Handle) OnConnect(
 	addr string,
 ) (net.Conn, error) {
 	hand.log.Info("On Miner Connect To Pool " + config.Pool)
-	pool, err := ethpool.NewPool(config.Pool)
+	pool, err := utils.NewPool(config.Pool)
 	if err != nil {
 		hand.log.Warn("矿池连接失败", zap.Error(err), zap.String("pool", config.Pool))
 		c.Close()

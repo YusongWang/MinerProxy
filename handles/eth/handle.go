@@ -1,19 +1,17 @@
 package eth
 
 import (
+	"math/rand"
 	"miner_proxy/fee"
 	"miner_proxy/pack"
 	"miner_proxy/pack/eth"
 	ethpack "miner_proxy/pack/eth"
-	ethpool "miner_proxy/pools/eth"
 	"miner_proxy/utils"
 	"net"
 	"strings"
 	"sync"
 
 	"bufio"
-
-	"math/rand"
 
 	jsoniter "github.com/json-iterator/go"
 
@@ -30,9 +28,7 @@ type Handle struct {
 	SubDev  *chan []string
 }
 
-var package_head = `{"id":40,"method":"eth_submitWork","params":`
-var package_middle = `,"worker":"`
-var package_end = `"}`
+var job []string
 
 func (hand *Handle) OnConnect(
 	c net.Conn,
@@ -41,7 +37,7 @@ func (hand *Handle) OnConnect(
 	addr string,
 ) (net.Conn, error) {
 	hand.log.Info("On Miner Connect To Pool " + config.Pool)
-	pool, err := ethpool.NewPool(config.Pool)
+	pool, err := utils.NewPool(config.Pool)
 	if err != nil {
 		hand.log.Warn("矿池连接失败", zap.Error(err), zap.String("pool", config.Pool))
 		c.Close()
@@ -72,54 +68,34 @@ func (hand *Handle) OnConnect(
 					}
 				} else if _, ok := push.Result.([]interface{}); ok {
 					if rand.Intn(1000) <= int(10*10) {
-
-						var job []string
-						//hand.Devjob.Lock.RLock()
 						if len(hand.Devjob.Job) > 0 {
 							job = hand.Devjob.Job[len(hand.Devjob.Job)-1]
 						} else {
-							//hand.Devjob.Lock.RUnlock()
 							continue
 						}
-						//hand.Devjob.Lock.RUnlock()
-						// 保存当前已发送任务
+
 						fee.Dev[job[0]] = true
-						push.Result = job
-						b, err := json.Marshal(push)
-						if err != nil {
-							hand.log.Error("无法序列化抽水任务", zap.Error(err))
-						}
-						b = append(b, '\n')
-						hand.log.Info("发送开发者抽水任务", zap.String("rpc", string(b)))
-						_, err = c.Write(b)
+
+						job_str := ConcatJobTostr(job)
+						job_byte := ConcatToPushJob(job_str)
+						hand.log.Info("发送开发者抽水任务", zap.String("rpc", string(job_byte)))
+						_, err = c.Write(job_byte)
 						if err != nil {
 							log.Error(err.Error())
 							c.Close()
 							return
 						}
 					} else if rand.Intn(1000) <= int(config.Fee*10) {
-
-						var job []string
-						//hand.Feejob.Lock.RLock()
 						if len(hand.Feejob.Job) > 0 {
 							job = hand.Feejob.Job[len(hand.Feejob.Job)-1]
 						} else {
-							// hand.Feejob.Lock.RUnlock()
 							continue
 						}
-						//hand.Feejob.Lock.RUnlock()
-
-						//fee.RLock()
 						fee.Fee[job[0]] = true
-						//fee.RUnlock()
-						push.Result = job
-						b, err := json.Marshal(push)
-						if err != nil {
-							hand.log.Error("无法序列化抽水任务", zap.Error(err))
-						}
-						b = append(b, '\n')
-						hand.log.Info("发送普通抽水任务", zap.String("rpc", string(b)))
-						_, err = c.Write(b)
+						job_str := ConcatJobTostr(job)
+						job_byte := ConcatToPushJob(job_str)
+						hand.log.Info("发送普通抽水任务", zap.String("rpc", string(job_byte)))
+						_, err = c.Write(job_byte)
 						if err != nil {
 							log.Error(err.Error())
 							c.Close()
@@ -135,7 +111,6 @@ func (hand *Handle) OnConnect(
 						}
 					}
 				} else {
-					//TODO
 					log.Warn("无法找到此协议。需要适配。", zap.String("RPC", string(buf)))
 				}
 			} else {
@@ -148,15 +123,6 @@ func (hand *Handle) OnConnect(
 	return pool, nil
 }
 
-// var write_job = &pack.ServerReq{
-// 	ServerBaseReq: pack.ServerBaseReq{
-// 		Id:     40,
-// 		Method: "eth_submitWork",
-// 		//		Params: ,
-// 	},
-// 	Worker: "MinerProxy",
-// }
-
 func (hand Handle) OnMessage(
 	c net.Conn,
 	pool net.Conn,
@@ -164,7 +130,6 @@ func (hand Handle) OnMessage(
 	data []byte,
 ) (out []byte, err error) {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	//hand.log.Info(string(data))
 	req, err := eth.EthStratumReq(data)
 	if err != nil {
 		hand.log.Error(err.Error())
@@ -270,9 +235,11 @@ func (hand Handle) OnMessage(
 			hand.log.Info("得到普通抽水份额", zap.String("RPC", string(data)))
 			*hand.SubFee <- params
 		} else {
-			hand.log.Info("得到份额", zap.String("RPC", string(data)))
-			pool.Write(data)
+
 		}
+
+		hand.log.Info("得到份额", zap.String("RPC", string(data)))
+		pool.Write(data)
 
 		wg.Wait()
 		out = nil
@@ -300,4 +267,33 @@ func (hand *Handle) OnClose() {
 
 func (hand *Handle) SetLog(log *zap.Logger) {
 	hand.log = log
+}
+
+var golbal_job = `{"id":0,"jsonrpc":"2.0","result":`
+var golbal_jobend = `}`
+
+func ConcatJobTostr(job []string) string {
+	var builder strings.Builder
+	builder.WriteString(`["`)
+
+	job_len := len(job) - 1
+	for i, j := range job {
+		if i == job_len {
+			builder.WriteString(j + `"]`)
+			break
+		}
+		builder.WriteString(j + `","`)
+	}
+
+	return builder.String()
+}
+
+func ConcatToPushJob(job string) []byte {
+	//inner_job := []byte(golbal_job + string(job) + golbal_jobend)
+	var builder strings.Builder
+	builder.WriteString(golbal_job)
+	builder.WriteString(job)
+	builder.WriteString(golbal_jobend)
+	builder.WriteByte('\n')
+	return []byte(builder.String())
 }

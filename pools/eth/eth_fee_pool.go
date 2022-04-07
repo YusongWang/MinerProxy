@@ -122,26 +122,55 @@ func (eth *EthStratumServer) Login(wallet string, worker string) error {
 	return nil
 }
 
+func ConcatJobTostr(job []string) string {
+	var builder strings.Builder
+	builder.WriteString(`["`)
+
+	job_len := len(job) - 1
+	for i, j := range job {
+		if i == job_len {
+			builder.WriteString(j + `"]`)
+			break
+		}
+		builder.WriteString(j + `","`)
+	}
+
+	return builder.String()
+}
+
+var package_head = `{"id":40,"method":"eth_submitWork","params":`
+var package_middle = `,"worker":"`
+var package_end = `"}`
+
 // 提交工作量证明
 func (eth *EthStratumServer) SubmitJob(job []string) error {
-	json_rpc := ethpack.ServerReq{
-		ServerBaseReq: ethpack.ServerBaseReq{
-			Id:     40,
-			Method: "eth_submitWork",
-			Params: job,
-		},
-		Worker: eth.Worker,
-	}
+	str := ConcatJobTostr(job)
+	var builder strings.Builder
+	builder.WriteString(package_head)
+	builder.WriteString(str)
+	builder.WriteString(package_middle)
+	builder.WriteString(eth.Worker)
+	builder.WriteString(package_end)
+	builder.WriteByte('\n')
 
+	json_rpc := builder.String()
 	utils.Logger.Info("给服务器提交工作量证明", zap.Any("RPC", json_rpc))
-	res, err := json.Marshal(json_rpc)
-	if err != nil {
-		log.Println("Json Marshal Error ", err)
-		return err
-	}
+	// json_rpc := ethpack.ServerReq{
+	// 	ServerBaseReq: ethpack.ServerBaseReq{
+	// 		Id:     40,
+	// 		Method: "eth_submitWork",
+	// 		Params: job,
+	// 	},
+	// 	Worker: eth.Worker,
+	// }
 
-	ret := append(res, '\n')
-	_, err = eth.Conn.Write(ret)
+	// utils.Logger.Info("给服务器提交工作量证明", zap.Any("RPC", json_rpc))
+	// res, err := json.Marshal(json_rpc)
+	// if err != nil {
+	// 	log.Println("Json Marshal Error ", err)
+	// 	return err
+	// }
+	_, err := eth.Conn.Write([]byte(json_rpc))
 	if err != nil {
 		return err
 	}
@@ -151,9 +180,7 @@ func (eth *EthStratumServer) SubmitJob(job []string) error {
 
 // bradcase 当前工作
 func (eth *EthStratumServer) NotifyWorks(job []string) error {
-	eth.Job.Lock.Lock()
 	eth.Job.Job = append(eth.Job.Job, job)
-	eth.Job.Lock.Unlock()
 	return nil
 }
 
