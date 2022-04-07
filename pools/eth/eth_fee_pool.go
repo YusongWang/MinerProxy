@@ -105,8 +105,6 @@ func (eth *EthStratumServer) Login(wallet string, worker string) error {
 		return err
 	}
 
-	log.Println(string(res))
-
 	write := append(res, '\n')
 	len, err := eth.Conn.Write(write)
 	if err != nil {
