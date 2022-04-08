@@ -190,13 +190,16 @@ func (eth *EthStratumServer) StartLoop() {
 				temp, err := New(eth.PoolAddr, eth.Job, eth.Submit)
 				if err != nil {
 					log.Info("矿池关闭->  尝试重新连接失败 ")
+					log.Error(err.Error())
 					os.Exit(1)
 				}
 				err = temp.Login(eth.Wallet, eth.Worker)
 				if err != nil {
 					log.Info("矿池关闭->  尝试重新连接失败 ")
+					log.Error(err.Error())
 					os.Exit(1)
 				}
+
 				eth.Conn = temp.Conn
 				continue
 			}

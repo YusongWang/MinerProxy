@@ -27,11 +27,11 @@ func NewWorker(worker string, wallet string) *Worker {
 		Worker_idx:    0,
 		Worker_share:  0,
 		Worker_reject: 0,
-		Worker_diff:   new(big.Int).SetInt64(2),
+		Worker_diff:   new(big.Int).SetInt64(0),
 		Dev_idx:       0,
-		Dev_diff:      new(big.Int).SetInt64(2),
+		Dev_diff:      new(big.Int).SetInt64(0),
 		Fee_idx:       0,
-		Fee_diff:      new(big.Int).SetInt64(2),
+		Fee_diff:      new(big.Int).SetInt64(0),
 	}
 }
 

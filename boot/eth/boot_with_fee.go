@@ -5,6 +5,7 @@ import (
 	"miner_proxy/handles/eth"
 	"miner_proxy/network"
 	"miner_proxy/pack"
+
 	pool "miner_proxy/pools"
 	ethpool "miner_proxy/pools/eth"
 	"miner_proxy/serve"
@@ -31,7 +32,6 @@ func BootWithFee(c utils.Config) error {
 		os.Exit(99)
 	}
 
-	//TODO check wallet len and Start with 0x
 	fee_pool.Login(c.Wallet, c.Worker)
 	go fee_pool.StartLoop()
 
@@ -53,6 +53,8 @@ func BootWithFee(c utils.Config) error {
 		FeeConn: &fee_pool.Conn,
 		SubDev:  &dev_submit_job,
 		SubFee:  &fee_submit_job,
+		Workers: make(map[string]*pack.Worker),
+		Wallet:  "",
 	}
 
 	utils.Logger.Info("Start the Server And ready To serve")

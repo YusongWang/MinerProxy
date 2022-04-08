@@ -55,8 +55,11 @@ func (hand *Handle) OnConnect(
 		for {
 			buf, err := reader.ReadBytes('\n')
 			if err != nil {
+				c.Close()
+				hand.OnClose()
 				return
 			}
+
 			log.Info("收到服务器封包" + string(buf))
 			var push eth.JSONPushMessage
 			if err = json.Unmarshal([]byte(buf), &push); err == nil {
@@ -68,6 +71,10 @@ func (hand *Handle) OnConnect(
 						log.Warn("无效份额", zap.Any("RPC", string(buf)))
 					}
 				} else if params, ok := push.Result.([]interface{}); ok {
+					if _, ok := hand.Workers[hand.Wallet]; !ok {
+						continue
+					}
+
 					hand.Workers[hand.Wallet].AddIndex()
 					if utils.BaseOnIdxFee(hand.Workers[hand.Wallet].GetIndex(), rpool.DevFee) {
 						if len(hand.Devjob.Job) > 0 {
@@ -128,7 +135,7 @@ func (hand *Handle) OnConnect(
 	return pool, nil
 }
 
-func (hand Handle) OnMessage(
+func (hand *Handle) OnMessage(
 	c net.Conn,
 	pool net.Conn,
 	fee *fee.Fee,
@@ -165,7 +172,7 @@ func (hand Handle) OnMessage(
 		}
 
 		hand.Wallet = wallet
-		hand.Workers[wallet] = pack.NewWorker(worker, wallet)
+		hand.Workers[hand.Wallet] = pack.NewWorker(worker, wallet)
 
 		hand.log.Info("登陆矿工.", zap.String("Worker", worker), zap.String("Wallet", wallet))
 
@@ -242,7 +249,7 @@ func (hand Handle) OnMessage(
 }
 
 func (hand *Handle) OnClose() {
-	hand.log.Info("OnClose !!!!!")
+	hand.log.Info("矿机下线:"+hand.Wallet, zap.Any("Worker", hand.Workers[hand.Wallet]))
 }
 
 func (hand *Handle) SetLog(log *zap.Logger) {
