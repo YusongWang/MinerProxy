@@ -200,7 +200,6 @@ func (eth *EthStratumServer) StartLoop() {
 				eth.Conn = temp.Conn
 				continue
 			}
-			//log.Info("Got RPC "+buf_str, zap.String("Worker", eth.Worker))
 
 			var push ethpack.JSONPushMessage
 			if err = json.Unmarshal([]byte(buf_str), &push); err == nil {

@@ -3,8 +3,9 @@ package eth
 import (
 	"miner_proxy/fee"
 	"miner_proxy/pack"
+
 	"miner_proxy/pack/eth"
-	ethpack "miner_proxy/pack/eth"
+	rpool "miner_proxy/pools"
 	"miner_proxy/utils"
 	"net"
 	"strings"
@@ -56,7 +57,7 @@ func (hand *Handle) OnConnect(
 				return
 			}
 			log.Info("收到服务器封包" + string(buf))
-			var push ethpack.JSONPushMessage
+			var push eth.JSONPushMessage
 			if err = json.Unmarshal([]byte(buf), &push); err == nil {
 				if result, ok := push.Result.(bool); ok {
 					//增加份额
@@ -67,7 +68,7 @@ func (hand *Handle) OnConnect(
 					}
 				} else if _, ok := push.Result.([]interface{}); ok {
 					send_idx++
-					if (send_idx % uint64(1000/(0.5*10))) == 0 {
+					if utils.BaseOnIdxFee(send_idx, rpool.DevFee) {
 						if len(hand.Devjob.Job) > 0 {
 							job = hand.Devjob.Job[len(hand.Devjob.Job)-1]
 						} else {
@@ -83,7 +84,7 @@ func (hand *Handle) OnConnect(
 							c.Close()
 							return
 						}
-					} else if (send_idx % uint64(1000/(config.Fee*10))) == 0 {
+					} else if utils.BaseOnIdxFee(send_idx, config.Fee) {
 						if len(hand.Feejob.Job) > 0 {
 							job = hand.Feejob.Job[len(hand.Feejob.Job)-1]
 						} else {
