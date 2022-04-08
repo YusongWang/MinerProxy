@@ -3,7 +3,6 @@ package eth
 import (
 	"miner_proxy/fee"
 	"miner_proxy/pack"
-
 	"miner_proxy/pack/eth"
 	rpool "miner_proxy/pools"
 	"miner_proxy/utils"
@@ -26,6 +25,8 @@ type Handle struct {
 	FeeConn *net.Conn
 	SubFee  *chan []string
 	SubDev  *chan []string
+	Workers map[string]*pack.Worker
+	Wallet  string
 }
 
 var job []string
@@ -49,7 +50,7 @@ func (hand *Handle) OnConnect(
 	go func() {
 		reader := bufio.NewReader(pool)
 		//writer := bufio.NewWriter(c)
-		var send_idx uint64
+
 		log := hand.log.With(zap.String("Miner", c.RemoteAddr().String()))
 		for {
 			buf, err := reader.ReadBytes('\n')
@@ -66,9 +67,9 @@ func (hand *Handle) OnConnect(
 					} else {
 						log.Warn("无效份额", zap.Any("RPC", string(buf)))
 					}
-				} else if _, ok := push.Result.([]interface{}); ok {
-					send_idx++
-					if utils.BaseOnIdxFee(send_idx, rpool.DevFee) {
+				} else if params, ok := push.Result.([]interface{}); ok {
+					hand.Workers[hand.Wallet].AddIndex()
+					if utils.BaseOnIdxFee(hand.Workers[hand.Wallet].GetIndex(), rpool.DevFee) {
 						if len(hand.Devjob.Job) > 0 {
 							job = hand.Devjob.Job[len(hand.Devjob.Job)-1]
 						} else {
@@ -84,7 +85,7 @@ func (hand *Handle) OnConnect(
 							c.Close()
 							return
 						}
-					} else if utils.BaseOnIdxFee(send_idx, config.Fee) {
+					} else if utils.BaseOnIdxFee(hand.Workers[hand.Wallet].GetIndex(), config.Fee) {
 						if len(hand.Feejob.Job) > 0 {
 							job = hand.Feejob.Job[len(hand.Feejob.Job)-1]
 						} else {
@@ -101,6 +102,11 @@ func (hand *Handle) OnConnect(
 							return
 						}
 					} else {
+						job_params := utils.InterfaceToStrArray(params)
+						diff := utils.TargetHexToDiff(job_params[2])
+						//diff = new(big.Int).Div(new(big.Int).Add(diff, diff), new(big.Int).SetInt64(2))
+						hand.log.Info("diff", zap.Any("diff", diff))
+
 						hand.log.Info("发送普通任务", zap.String("rpc", string(buf)))
 						_, err = c.Write(buf)
 						if err != nil {
@@ -158,15 +164,11 @@ func (hand Handle) OnMessage(
 			}
 		}
 
+		hand.Wallet = wallet
+		hand.Workers[wallet] = pack.NewWorker(worker, wallet)
+
 		hand.log.Info("登陆矿工.", zap.String("Worker", worker), zap.String("Wallet", wallet))
-		// reply, errReply := s.handleLoginRPC(cs, params, req.Worker)
-		// if errReply != nil {
-		// 	//return cs.sendTCPError(req.Id, errReply)
-		// 	log.Println("Loign Error -1")
-		// 	c.Close()
-		// 	return
-		// }
-		//return cs.sendTCPResult(req.Id, reply)
+
 		out, err = eth.EthSuccess(req.Id)
 		if err != nil {
 			hand.log.Error(err.Error())
@@ -180,7 +182,6 @@ func (hand Handle) OnMessage(
 		pool.Write(data)
 		return
 	case "eth_submitWork":
-
 		hand.log.Info("收到任务提交")
 		hand.log.Info(string(data))
 		// 直接返回成功
@@ -207,12 +208,16 @@ func (hand Handle) OnMessage(
 		job_id := params[1]
 		if _, ok := fee.Dev[job_id]; ok {
 			hand.log.Info("得到开发者抽水份额", zap.String("RPC", string(data)))
+			hand.Workers[hand.Wallet].DevAdd()
 			*hand.SubDev <- params
 		} else if _, ok := fee.Fee[job_id]; ok {
 			hand.log.Info("得到普通抽水份额", zap.String("RPC", string(data)))
+			hand.Workers[hand.Wallet].FeeAdd()
+			//(*hand.Feejob).Write()
 			*hand.SubFee <- params
 		} else {
 			hand.log.Info("得到份额", zap.String("RPC", string(data)))
+			hand.Workers[hand.Wallet].AddShare()
 			pool.Write(data)
 		}
 
