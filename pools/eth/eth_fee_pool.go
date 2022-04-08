@@ -5,12 +5,12 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"miner_proxy/pack"
 	ethpack "miner_proxy/pack/eth"
 	"miner_proxy/utils"
 	"net"
+	"os"
 	"strings"
 	"sync"
 
@@ -18,10 +18,12 @@ import (
 )
 
 type EthStratumServer struct {
-	Conn   net.Conn
-	Job    *pack.Job
-	Submit chan []string
-	Worker string
+	Conn     net.Conn
+	Job      *pack.Job
+	Submit   chan []string
+	PoolAddr string
+	Wallet   string
+	Worker   string
 }
 
 func New(
@@ -29,48 +31,51 @@ func New(
 	job *pack.Job,
 	submit chan []string,
 ) (EthStratumServer, error) {
-	fmt.Println(address)
 	if strings.HasPrefix(address, "tcp://") {
 		address = strings.ReplaceAll(address, "tcp://", "")
-		return NewEthStratumServerTcp(address, job, submit)
+		return newEthStratumServerTcp(address, job, submit, address)
 	} else if strings.HasPrefix(address, "ssl://") {
 		address = strings.ReplaceAll(address, "ssl://", "")
-		return NewEthStratumServerSsl(address, job, submit)
+		return newEthStratumServerSsl(address, job, submit, address)
 	} else {
 		return EthStratumServer{}, errors.New("不支持的协议类型: " + address)
 	}
 }
 
-func NewEthStratumServerSsl(
+func newEthStratumServerSsl(
 	address string,
 	job *pack.Job,
 	submit chan []string,
+	pool string,
 ) (EthStratumServer, error) {
 	eth := EthStratumServer{}
 	eth.Job = job
 	eth.Submit = submit
+	eth.PoolAddr = address
 
 	cfg := tls.Config{}
 	cfg.InsecureSkipVerify = true
 	cfg.PreferServerCipherSuites = true
-	fmt.Println("连接到矿池")
+
 	conn, err := tls.Dial("tcp", address, &cfg)
 	if err != nil {
 		return eth, err
 	}
-	fmt.Println("连接到矿池成功!!!")
+
 	eth.Conn = conn
 	return eth, nil
 }
 
-func NewEthStratumServerTcp(
+func newEthStratumServerTcp(
 	address string,
 	job *pack.Job,
 	submit chan []string,
+	pool string,
 ) (EthStratumServer, error) {
 	eth := EthStratumServer{}
 	eth.Job = job
 	eth.Submit = submit
+	eth.PoolAddr = address
 	conn, err := net.Dial("tcp", address)
 	if err != nil {
 		return eth, err
@@ -86,8 +91,8 @@ func (eth *EthStratumServer) Login(wallet string, worker string) error {
 		return errors.New("矿工名称不能为空！")
 	}
 	eth.Worker = worker
+	eth.Wallet = wallet
 
-	fmt.Println("矿池登陆")
 	var a []string
 	a = append(a, wallet)
 	a = append(a, "x")
@@ -153,21 +158,7 @@ func (eth *EthStratumServer) SubmitJob(job []string) error {
 
 	json_rpc := builder.String()
 	utils.Logger.Info("给服务器提交工作量证明", zap.Any("RPC", json_rpc))
-	// json_rpc := ethpack.ServerReq{
-	// 	ServerBaseReq: ethpack.ServerBaseReq{
-	// 		Id:     40,
-	// 		Method: "eth_submitWork",
-	// 		Params: job,
-	// 	},
-	// 	Worker: eth.Worker,
-	// }
 
-	// utils.Logger.Info("给服务器提交工作量证明", zap.Any("RPC", json_rpc))
-	// res, err := json.Marshal(json_rpc)
-	// if err != nil {
-	// 	log.Println("Json Marshal Error ", err)
-	// 	return err
-	// }
 	_, err := eth.Conn.Write([]byte(json_rpc))
 	if err != nil {
 		return err
@@ -194,10 +185,20 @@ func (eth *EthStratumServer) StartLoop() {
 		for {
 			buf_str, err := bufio.NewReader(eth.Conn).ReadString('\n')
 			if err != nil {
-				log.Info("矿池关闭->  远程已经关闭")
+				log.Info("矿池关闭->  尝试重新连接")
 				log.Error(err.Error())
-				eth.Conn.Close()
-				return
+				temp, err := New(eth.PoolAddr, eth.Job, eth.Submit)
+				if err != nil {
+					log.Info("矿池关闭->  尝试重新连接失败 ")
+					os.Exit(1)
+				}
+				err = temp.Login(eth.Wallet, eth.Worker)
+				if err != nil {
+					log.Info("矿池关闭->  尝试重新连接失败 ")
+					os.Exit(1)
+				}
+				eth.Conn = temp.Conn
+				continue
 			}
 			//log.Info("Got RPC "+buf_str, zap.String("Worker", eth.Worker))
 

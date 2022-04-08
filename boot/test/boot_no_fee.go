@@ -14,11 +14,10 @@ import (
 )
 
 func BootNoFee(c utils.Config) error {
-
 	// wait
 	var wg sync.WaitGroup
 	handle := test.Test{}
-	fmt.Println("Start the Server And ready To serve")
+
 	if c.Tcp > 0 {
 		port := fmt.Sprintf(":%v", c.Tcp)
 		net, err := network.NewTcp(port)

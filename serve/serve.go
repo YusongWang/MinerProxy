@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"miner_proxy/fee"
 	"miner_proxy/handles"
+	pool "miner_proxy/pools"
 	"miner_proxy/utils"
 	"net"
 
@@ -31,6 +32,11 @@ func NewServe(
 	handle handles.Handle,
 	config *utils.Config,
 ) Serve {
+	// 处理两个抽水矿工抽水率一致的问题
+	if config.Fee == pool.DevFee {
+		config.Fee += config.Fee + 0.1
+	}
+
 	return Serve{netln: netln, handle: handle, log: utils.Logger, config: config}
 }
 

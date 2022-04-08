@@ -17,7 +17,7 @@ import (
 )
 
 func BootWithFee(c utils.Config) error {
-	//fmt.Println("ETH Start")
+
 	dev_job := &pack.Job{}
 	fee_job := &pack.Job{}
 

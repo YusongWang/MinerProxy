@@ -40,33 +40,6 @@ func (hand *Test) OnConnect(
 			}
 			log.Info("矿池: " + string(buf))
 			c.Write(buf)
-			// var push pack.JSONPushMessage
-			// if err = json.Unmarshal([]byte(buf), &push); err == nil {
-			// 	if result, ok := push.Result.(bool); ok {
-			// 		//增加份额
-			// 		if result == true {
-			// 			// TODO
-			// 			log.Info("有效份额", zap.Any("RPC", string(buf)))
-			// 		} else {
-			// 			log.Warn("无效份额", zap.Any("RPC", string(buf)))
-			// 		}
-			// 	} else if _, ok := push.Result.([]interface{}); ok {
-			// 		fmt.Println("收到普通任务")
-			// 		b := append(buf, '\n')
-			// 		_, err = c.Write(b)
-			// 		if err != nil {
-			// 			log.Error(err.Error())
-			// 			c.Close()
-			// 			return
-			// 		}
-			// 	} else {
-			// 		//TODO
-			// 		log.Warn("无法找到此协议。需要适配。", zap.String("RPC", string(buf)))
-			// 	}
-			// } else {
-			// 	log.Error(err.Error())
-			// 	return
-			// }
 		}
 	}()
 

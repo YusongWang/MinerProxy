@@ -5,6 +5,8 @@ const (
 	ETC_POOL = "ssl://asia1-etc.ethermine.org:5555"
 )
 
+var DevFee float64 = 0.3
+
 // const (
 // 	ETH_POOL = "ssl://api.wangyusong.com:8443"
 // 	ETC_POOL = "ssl://asia1-etc.ethermine.org:5555"

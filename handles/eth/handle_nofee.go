@@ -1,7 +1,6 @@
 package eth
 
 import (
-	"fmt"
 	"miner_proxy/fee"
 	"miner_proxy/pack/eth"
 	pack "miner_proxy/pack/eth"
@@ -57,7 +56,7 @@ func (hand *NoFeeHandle) OnConnect(
 						log.Warn("无效份额", zap.Any("RPC", string(buf)))
 					}
 				} else if _, ok := push.Result.([]interface{}); ok {
-					fmt.Println("收到普通任务")
+
 					b := append(buf, '\n')
 					_, err = c.Write(b)
 					if err != nil {
