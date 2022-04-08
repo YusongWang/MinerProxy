@@ -104,8 +104,8 @@ func (hand *Handle) OnConnect(
 					} else {
 						job_params := utils.InterfaceToStrArray(params)
 						diff := utils.TargetHexToDiff(job_params[2])
-						//diff = new(big.Int).Div(new(big.Int).Add(diff, diff), new(big.Int).SetInt64(2))
-						hand.log.Info("diff", zap.Any("diff", diff))
+						hand.Workers[hand.Wallet].SetDiff(utils.DivTheDiff(diff, hand.Workers[hand.Wallet].GetDiff()))
+						hand.log.Info("diff", zap.Any("diff", hand.Workers[hand.Wallet]))
 
 						hand.log.Info("发送普通任务", zap.String("rpc", string(buf)))
 						_, err = c.Write(buf)

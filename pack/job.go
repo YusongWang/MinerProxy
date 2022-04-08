@@ -42,7 +42,7 @@ func (w *Worker) SetFeeDiff(diff *big.Int) {
 	w.Fee_diff = diff
 }
 
-func (w *Worker) GetFeeDiff(diff *big.Int) *big.Int {
+func (w *Worker) GetFeeDiff() *big.Int {
 	return w.Fee_diff
 }
 
@@ -50,7 +50,7 @@ func (w *Worker) SetDevDiff(diff *big.Int) {
 	w.Dev_diff = diff
 }
 
-func (w *Worker) GetDevDiff(diff *big.Int) *big.Int {
+func (w *Worker) GetDevDiff() *big.Int {
 	return w.Dev_diff
 }
 
@@ -58,7 +58,7 @@ func (w *Worker) SetDiff(diff *big.Int) {
 	w.Worker_diff = diff
 }
 
-func (w *Worker) GetDiff(diff *big.Int) *big.Int {
+func (w *Worker) GetDiff() *big.Int {
 	return w.Worker_diff
 }
 

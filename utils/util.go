@@ -94,5 +94,8 @@ func InterfaceToStrArray(list []interface{}) []string {
 }
 
 func DivTheDiff(newdiff *big.Int, olddiff *big.Int) *big.Int {
+	if olddiff == new(big.Int).SetInt64(0) {
+		return newdiff
+	}
 	return new(big.Int).Div(new(big.Int).Add(newdiff, olddiff), new(big.Int).SetInt64(2))
 }
