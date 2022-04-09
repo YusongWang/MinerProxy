@@ -69,7 +69,9 @@ func (w *Worker) DevAdd() {
 func (w *Worker) AddShare() {
 	w.Worker_share++
 }
-
+func (w *Worker) AddReject() {
+	w.Worker_share++
+}
 func (w *Worker) AddIndex() {
 	w.Worker_idx++
 }

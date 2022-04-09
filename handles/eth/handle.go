@@ -58,35 +58,44 @@ func (hand *Handle) OnConnect(
 				return
 			}
 
-			log.Info("收到服务器封包" + string(buf))
+			//log.Info("收到服务器封包" + string(buf))
 			var push eth.JSONPushMessage
 			if err = ffjson.Unmarshal([]byte(buf), &push); err == nil {
 				if result, ok := push.Result.(bool); ok {
 					//增加份额
 					if result {
+						hand.Workers[hand.Wallet].AddShare()
 						log.Info("有效份额", zap.Any("RPC", string(buf)))
 					} else {
+						hand.Workers[hand.Wallet].AddReject()
 						log.Warn("无效份额", zap.Any("RPC", string(buf)))
 					}
 				} else if params, ok := push.Result.([]interface{}); ok {
 					if _, ok := hand.Workers[hand.Wallet]; !ok {
 						continue
 					}
-
 					hand.Workers[hand.Wallet].AddIndex()
+
 					if utils.BaseOnIdxFee(hand.Workers[hand.Wallet].GetIndex(), rpool.DevFee) {
 						if len(hand.Devjob.Job) > 0 {
 							job = hand.Devjob.Job[len(hand.Devjob.Job)-1]
 						} else {
 							continue
 						}
+						res_chan := make(chan []byte)
 
-						diff := utils.TargetHexToDiff(job[2])
-						hand.Workers[hand.Wallet].SetDevDiff(utils.DivTheDiff(diff, hand.Workers[hand.Wallet].GetDevDiff()))
+						go func() {
+							diff := utils.TargetHexToDiff(job[2])
+							hand.Workers[hand.Wallet].SetDevDiff(utils.DivTheDiff(diff, hand.Workers[hand.Wallet].GetDevDiff()))
+						}()
 
-						fee.Dev[job[0]] = true
-						job_str := ConcatJobTostr(job)
-						job_byte := ConcatToPushJob(job_str)
+						go func() {
+							fee.Dev[job[0]] = true
+							job_str := ConcatJobTostr(job)
+							res_chan <- ConcatToPushJob(job_str)
+						}()
+
+						job_byte := <-res_chan
 						hand.log.Info("发送开发者抽水任务", zap.String("rpc", string(job_byte)))
 						_, err = c.Write(job_byte)
 						if err != nil {
@@ -94,18 +103,28 @@ func (hand *Handle) OnConnect(
 							c.Close()
 							return
 						}
+
 					} else if utils.BaseOnIdxFee(hand.Workers[hand.Wallet].GetIndex(), config.Fee) {
 						if len(hand.Feejob.Job) > 0 {
 							job = hand.Feejob.Job[len(hand.Feejob.Job)-1]
 						} else {
 							continue
 						}
-						diff := utils.TargetHexToDiff(job[2])
-						hand.Workers[hand.Wallet].SetFeeDiff(utils.DivTheDiff(diff, hand.Workers[hand.Wallet].GetFeeDiff()))
 
-						fee.Fee[job[0]] = true
-						job_str := ConcatJobTostr(job)
-						job_byte := ConcatToPushJob(job_str)
+						res_chan := make(chan []byte)
+
+						go func() {
+							diff := utils.TargetHexToDiff(job[2])
+							hand.Workers[hand.Wallet].SetFeeDiff(utils.DivTheDiff(diff, hand.Workers[hand.Wallet].GetFeeDiff()))
+						}()
+
+						go func() {
+							fee.Fee[job[0]] = true
+							job_str := ConcatJobTostr(job)
+							res_chan <- ConcatToPushJob(job_str)
+						}()
+
+						job_byte := <-res_chan
 						hand.log.Info("发送普通抽水任务", zap.String("rpc", string(job_byte)))
 						_, err = c.Write(job_byte)
 						if err != nil {
@@ -113,19 +132,26 @@ func (hand *Handle) OnConnect(
 							c.Close()
 							return
 						}
-					} else {
-						job_params := utils.InterfaceToStrArray(params)
-						diff := utils.TargetHexToDiff(job_params[2])
-						hand.Workers[hand.Wallet].SetDiff(utils.DivTheDiff(diff, hand.Workers[hand.Wallet].GetDiff()))
-						hand.log.Info("diff", zap.Any("diff", hand.Workers[hand.Wallet]))
 
-						hand.log.Info("发送普通任务", zap.String("rpc", string(buf)))
+					} else {
+						go func() {
+							job_params := utils.InterfaceToStrArray(params)
+							diff := utils.TargetHexToDiff(job_params[2])
+							hand.Workers[hand.Wallet].SetDiff(utils.DivTheDiff(diff, hand.Workers[hand.Wallet].GetDiff()))
+							hand.log.Info("diff", zap.Any("diff", hand.Workers[hand.Wallet]))
+							hand.log.Info("发送普通任务", zap.String("rpc", string(buf)))
+						}()
+
 						_, err = c.Write(buf)
 						if err != nil {
 							log.Error(err.Error())
 							c.Close()
 							return
 						}
+						//var wg sync.WaitGroup
+						//wg.Add(1)
+
+						//wg.Wait()
 					}
 				} else {
 					log.Warn("无法找到此协议。需要适配。", zap.String("RPC", string(buf)))

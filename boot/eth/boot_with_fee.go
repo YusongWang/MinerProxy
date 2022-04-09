@@ -5,6 +5,7 @@ import (
 	"miner_proxy/handles/eth"
 	"miner_proxy/network"
 	"miner_proxy/pack"
+	"time"
 
 	pool "miner_proxy/pools"
 	ethpool "miner_proxy/pools/eth"
@@ -14,6 +15,8 @@ import (
 	"os"
 	"sync"
 
+	ipc "github.com/james-barrow/golang-ipc"
+	"github.com/pquerna/ffjson/ffjson"
 	"go.uber.org/zap"
 )
 
@@ -56,7 +59,37 @@ func BootWithFee(c utils.Config) error {
 		Workers: make(map[string]*pack.Worker),
 		Wallet:  "",
 	}
+	wg.Add(1)
 
+	go func() {
+		for {
+			cc, err := ipc.StartClient("MinerProxy", nil)
+			if err != nil {
+				utils.Logger.Error(err.Error())
+				time.Sleep(time.Second * 10)
+				continue
+			}
+			utils.Logger.Info("链接到manage成功")
+
+			for {
+				for _, hand := range handle.Workers {
+					b, err := ffjson.Marshal(hand)
+					if err != nil {
+						utils.Logger.Error(err.Error())
+						time.Sleep(time.Second * 10)
+						continue
+					}
+					err = cc.Write(1, b)
+					if err == nil {
+						utils.Logger.Info("发送成功!")
+					}
+				}
+				time.Sleep(time.Second * 10)
+			}
+		}
+
+		wg.Done()
+	}()
 	utils.Logger.Info("Start the Server And ready To serve")
 
 	if c.Tcp > 0 {
