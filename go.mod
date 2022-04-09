@@ -18,6 +18,7 @@ require (
 require (
 	github.com/BurntSushi/toml v1.1.0 // indirect
 	github.com/ethereum/go-ethereum v1.10.17
+	github.com/pquerna/ffjson v0.0.0-20190930134022-aa0246cd15f7
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/sys v0.0.0-20220224120231-95c6836cb0e7 // indirect

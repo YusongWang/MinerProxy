@@ -12,8 +12,7 @@ import (
 
 	"bufio"
 
-	jsoniter "github.com/json-iterator/go"
-
+	"github.com/pquerna/ffjson/ffjson"
 	"go.uber.org/zap"
 )
 
@@ -45,7 +44,6 @@ func (hand *Handle) OnConnect(
 		return nil, err
 	}
 
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	// 处理上游矿池。如果连接失败。矿工线程直接退出并关闭
 	go func() {
 		reader := bufio.NewReader(pool)
@@ -62,7 +60,7 @@ func (hand *Handle) OnConnect(
 
 			log.Info("收到服务器封包" + string(buf))
 			var push eth.JSONPushMessage
-			if err = json.Unmarshal([]byte(buf), &push); err == nil {
+			if err = ffjson.Unmarshal([]byte(buf), &push); err == nil {
 				if result, ok := push.Result.(bool); ok {
 					//增加份额
 					if result {
@@ -82,6 +80,10 @@ func (hand *Handle) OnConnect(
 						} else {
 							continue
 						}
+
+						diff := utils.TargetHexToDiff(job[2])
+						hand.Workers[hand.Wallet].SetDevDiff(utils.DivTheDiff(diff, hand.Workers[hand.Wallet].GetDevDiff()))
+
 						fee.Dev[job[0]] = true
 						job_str := ConcatJobTostr(job)
 						job_byte := ConcatToPushJob(job_str)
@@ -98,6 +100,9 @@ func (hand *Handle) OnConnect(
 						} else {
 							continue
 						}
+						diff := utils.TargetHexToDiff(job[2])
+						hand.Workers[hand.Wallet].SetFeeDiff(utils.DivTheDiff(diff, hand.Workers[hand.Wallet].GetFeeDiff()))
+
 						fee.Fee[job[0]] = true
 						job_str := ConcatJobTostr(job)
 						job_byte := ConcatToPushJob(job_str)
@@ -141,7 +146,6 @@ func (hand *Handle) OnMessage(
 	fee *fee.Fee,
 	data []byte,
 ) (out []byte, err error) {
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	req, err := eth.EthStratumReq(data)
 	if err != nil {
 		hand.log.Error(err.Error())
@@ -152,7 +156,7 @@ func (hand *Handle) OnMessage(
 	switch req.Method {
 	case "eth_submitLogin":
 		var params []string
-		err = json.Unmarshal(req.Params, &params)
+		err = ffjson.Unmarshal(req.Params, &params)
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()
@@ -207,7 +211,7 @@ func (hand *Handle) OnMessage(
 		}()
 
 		var params []string
-		err = json.Unmarshal(req.Params, &params)
+		err = ffjson.Unmarshal(req.Params, &params)
 		if err != nil {
 			hand.log.Error(err.Error())
 			return

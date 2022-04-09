@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	jsoniter "github.com/json-iterator/go"
+	"github.com/pquerna/ffjson/ffjson"
 )
 
 type JSONRpcReq struct {
@@ -55,9 +55,9 @@ type ServerReq struct {
 }
 
 func EthStratumReq(data []byte) (StratumReq, error) {
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+
 	var req StratumReq
-	err := json.Unmarshal(data, &req)
+	err := ffjson.Unmarshal(data, &req)
 	if err != nil {
 		return req, err
 	}
@@ -66,14 +66,13 @@ func EthStratumReq(data []byte) (StratumReq, error) {
 
 // Return Success
 func EthSuccess(id json.RawMessage) (out []byte, err error) {
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	rpc := &JSONRpcResp{
 		Id:      id,
 		Version: "2.0",
 		Result:  true,
 	}
 
-	out, err = json.Marshal(rpc)
+	out, err = ffjson.Marshal(rpc)
 	if err != nil {
 		return nil, err
 	}

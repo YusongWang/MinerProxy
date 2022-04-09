@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	jsoniter "github.com/json-iterator/go"
+	"github.com/pquerna/ffjson/ffjson"
 
 	"bufio"
 
@@ -44,9 +45,8 @@ func (hand *NoFeeHandle) OnConnect(
 			if err != nil {
 				return
 			}
-			var json = jsoniter.ConfigCompatibleWithStandardLibrary
 			var push pack.JSONPushMessage
-			if err = json.Unmarshal([]byte(buf), &push); err == nil {
+			if err = ffjson.Unmarshal([]byte(buf), &push); err == nil {
 				if result, ok := push.Result.(bool); ok {
 					//增加份额
 					if result == true {

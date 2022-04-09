@@ -1,13 +1,14 @@
 package eth_stratum
 
 import (
-	"encoding/json"
 	"miner_proxy/fee"
 	"miner_proxy/pack"
 	ethpack "miner_proxy/pack/eth_stratum"
 	"miner_proxy/utils"
 	"net"
 	"strings"
+
+	"github.com/pquerna/ffjson/ffjson"
 
 	"bufio"
 
@@ -48,7 +49,7 @@ func (hand *Handle) OnConnect(
 			}
 
 			var push ethpack.JSONPushMessage
-			if err = json.Unmarshal([]byte(buf), &push); err == nil {
+			if err = ffjson.Unmarshal([]byte(buf), &push); err == nil {
 				if result, ok := push.Result.(bool); ok {
 					//增加份额
 					if result {
@@ -106,7 +107,7 @@ func (hand *Handle) OnMessage(
 		return
 	case "mining.authorize":
 		var params []string
-		err = json.Unmarshal(req.Params, &params)
+		err = ffjson.Unmarshal(req.Params, &params)
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()
