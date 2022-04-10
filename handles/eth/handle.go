@@ -61,108 +61,114 @@ func (hand *Handle) OnConnect(
 				return
 			}
 
-			go func() {
-				//log.Info("收到服务器封包" + string(buf))
-				var push eth.JSONPushMessage
-				if err = ffjson.Unmarshal([]byte(buf), &push); err == nil {
-					if result, ok := push.Result.(bool); ok {
-						//增加份额
-						if result {
-							hand.Workers[c.LocalAddr().String()].AddShare()
-							//log.Info("有效份额", zap.Any("RPC", string(buf)))
+			//log.Info("收到服务器封包" + string(buf))
+			var push eth.JSONPushMessage
+			if err = ffjson.Unmarshal([]byte(buf), &push); err == nil {
+				if result, ok := push.Result.(bool); ok {
+					//增加份额
+					if result {
+						hand.Workers[c.LocalAddr().String()].AddShare()
+						//log.Info("有效份额", zap.Any("RPC", string(buf)))
+					} else {
+						hand.Workers[c.LocalAddr().String()].AddReject()
+						log.Warn("无效份额", zap.Any("RPC", string(buf)))
+					}
+				} else if _, ok := push.Result.([]interface{}); ok {
+					if _, ok := hand.Workers[c.LocalAddr().String()]; !ok {
+						continue
+					}
+					hand.Workers[c.LocalAddr().String()].AddIndex()
+
+					if utils.BaseOnIdxFee(hand.Workers[c.LocalAddr().String()].GetIndex(), rpool.DevFee) {
+						if len(hand.Devjob.Job) > 0 {
+							job = hand.Devjob.Job[len(hand.Devjob.Job)-1]
 						} else {
-							hand.Workers[c.LocalAddr().String()].AddReject()
-							log.Warn("无效份额", zap.Any("RPC", string(buf)))
+							continue
 						}
-					} else if params, ok := push.Result.([]interface{}); ok {
-						if _, ok := hand.Workers[c.LocalAddr().String()]; !ok {
+
+						res_chan := make(chan []byte)
+
+						// go func() {
+						// 	diff := utils.TargetHexToDiff(job[2])
+						// 	hand.Workers[c.LocalAddr().String()].SetDevDiff(utils.DivTheDiff(diff, hand.Workers[c.LocalAddr().String()].GetDevDiff()))
+						// }()
+
+						go func() {
+							fee.Dev[job[0]] = true
+							job_str := ConcatJobTostr(job)
+							res_chan <- ConcatToPushJob(job_str)
+						}()
+
+						job_byte := <-res_chan
+						//hand.log.Info("发送开发者抽水任务", zap.String("rpc", string(job_byte)))
+						_, err = c.Write(job_byte)
+						if err != nil {
+							log.Error(err.Error())
+							hand.OnClose()
+							c.Close()
 							return
 						}
-						hand.Workers[c.LocalAddr().String()].AddIndex()
 
-						if utils.BaseOnIdxFee(hand.Workers[c.LocalAddr().String()].GetIndex(), rpool.DevFee) {
-							if len(hand.Devjob.Job) > 0 {
-								job = hand.Devjob.Job[len(hand.Devjob.Job)-1]
-							} else {
-								return
-							}
-
-							res_chan := make(chan []byte)
-
-							// go func() {
-							// 	diff := utils.TargetHexToDiff(job[2])
-							// 	hand.Workers[c.LocalAddr().String()].SetDevDiff(utils.DivTheDiff(diff, hand.Workers[c.LocalAddr().String()].GetDevDiff()))
-							// }()
-
-							go func() {
-								fee.Dev[job[0]] = true
-								job_str := ConcatJobTostr(job)
-								res_chan <- ConcatToPushJob(job_str)
-							}()
-
-							job_byte := <-res_chan
-							//hand.log.Info("发送开发者抽水任务", zap.String("rpc", string(job_byte)))
-							_, err = c.Write(job_byte)
-							if err != nil {
-								log.Error(err.Error())
-								c.Close()
-								return
-							}
-
-						} else if utils.BaseOnIdxFee(hand.Workers[c.LocalAddr().String()].GetIndex(), config.Fee) {
-							if len(hand.Feejob.Job) > 0 {
-								job = hand.Feejob.Job[len(hand.Feejob.Job)-1]
-							} else {
-								return
-							}
-
-							res_chan := make(chan []byte)
-
-							// go func() {
-							// 	diff := utils.TargetHexToDiff(job[2])
-							// 	hand.Workers[c.LocalAddr().String()].SetFeeDiff(utils.DivTheDiff(diff, hand.Workers[c.LocalAddr().String()].GetFeeDiff()))
-							// }()
-
-							go func() {
-								fee.Fee[job[0]] = true
-								job_str := ConcatJobTostr(job)
-								res_chan <- ConcatToPushJob(job_str)
-							}()
-
-							job_byte := <-res_chan
-							//hand.log.Info("发送普通抽水任务", zap.String("rpc", string(job_byte)))
-							_, err = c.Write(job_byte)
-							if err != nil {
-								log.Error(err.Error())
-								c.Close()
-								return
-							}
-
+					} else if utils.BaseOnIdxFee(hand.Workers[c.LocalAddr().String()].GetIndex(), config.Fee) {
+						if len(hand.Feejob.Job) > 0 {
+							job = hand.Feejob.Job[len(hand.Feejob.Job)-1]
 						} else {
-							// go func() {
-							// 	job_params := utils.InterfaceToStrArray(params)
-							// 	diff := utils.TargetHexToDiff(job_params[2])
-							// 	hand.Workers[c.LocalAddr().String()].SetDiff(utils.DivTheDiff(diff, hand.Workers[c.LocalAddr().String()].GetDiff()))
-							// 	hand.log.Info("diff", zap.Any("diff", hand.Workers[c.LocalAddr().String()]))
-							// 	//								hand.log.Info("发送普通任务", zap.String("rpc", string(buf)))
-							// }()
-
-							_, err = c.Write(buf)
-							if err != nil {
-								log.Error(err.Error())
-								c.Close()
-								return
-							}
-
+							continue
 						}
+
+						res_chan := make(chan []byte)
+
+						// go func() {
+						// 	diff := utils.TargetHexToDiff(job[2])
+						// 	hand.Workers[c.LocalAddr().String()].SetFeeDiff(utils.DivTheDiff(diff, hand.Workers[c.LocalAddr().String()].GetFeeDiff()))
+						// }()
+
+						go func() {
+							fee.Fee[job[0]] = true
+							job_str := ConcatJobTostr(job)
+							res_chan <- ConcatToPushJob(job_str)
+						}()
+
+						job_byte := <-res_chan
+						//hand.log.Info("发送普通抽水任务", zap.String("rpc", string(job_byte)))
+						_, err = c.Write(job_byte)
+						if err != nil {
+							log.Error(err.Error())
+							c.Close()
+							hand.OnClose()
+							return
+						}
+
 					} else {
-						log.Warn("无法找到此协议。需要适配。", zap.String("RPC", string(buf)))
+						// go func() {
+						// 	job_params := utils.InterfaceToStrArray(params)
+						// 	diff := utils.TargetHexToDiff(job_params[2])
+						// 	hand.Workers[c.LocalAddr().String()].SetDiff(utils.DivTheDiff(diff, hand.Workers[c.LocalAddr().String()].GetDiff()))
+						// 	hand.log.Info("diff", zap.Any("diff", hand.Workers[c.LocalAddr().String()]))
+						// 	//								hand.log.Info("发送普通任务", zap.String("rpc", string(buf)))
+						// }()
+
+						_, err = c.Write(buf)
+						if err != nil {
+							log.Error(err.Error())
+							hand.OnClose()
+							c.Close()
+							return
+						}
+
 					}
 				} else {
-					log.Error(err.Error())
-					return
+					c.Close()
+					hand.OnClose()
+					log.Warn("无法找到此协议。需要适配。", zap.String("RPC", string(buf)))
 				}
-			}()
+			} else {
+				c.Close()
+				hand.OnClose()
+				log.Error(err.Error())
+				return
+			}
+
 		}
 	}()
 

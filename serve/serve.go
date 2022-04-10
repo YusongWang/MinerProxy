@@ -89,7 +89,6 @@ func (s *Serve) serve(conn net.Conn, pool net.Conn, fee *fee.Fee) {
 			_, err = conn.Write(ret)
 			if err != nil {
 				s.log.Error(err.Error())
-
 				s.handle.OnClose()
 				return
 			}
