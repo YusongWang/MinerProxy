@@ -36,10 +36,10 @@ func Manage(wg *sync.WaitGroup) {
 	for {
 		msg, err := sc.Read()
 		if err == nil {
-			utils.Logger.Info("Server recieved: " + string(msg.Data) + " - Message type: ")
+			utils.Logger.Info("Server recieved: " + string(msg.Data))
 		} else {
 			utils.Logger.Error(err.Error())
-			time.Sleep(time.Second * 10)
+			time.Sleep(time.Second)
 			break
 		}
 	}

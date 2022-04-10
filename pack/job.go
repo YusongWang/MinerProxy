@@ -17,6 +17,7 @@ type Worker struct {
 	Dev_diff      *big.Int
 	Fee_idx       uint64
 	Fee_diff      *big.Int
+	IsOnline      bool
 }
 
 func NewWorker(worker string, wallet string) *Worker {
@@ -32,12 +33,14 @@ func NewWorker(worker string, wallet string) *Worker {
 		Dev_diff:      new(big.Int).SetInt64(0),
 		Fee_idx:       0,
 		Fee_diff:      new(big.Int).SetInt64(0),
+		IsOnline:      false,
 	}
 }
 
 func (w *Worker) FeeAdd() {
 	w.Fee_idx++
 }
+
 func (w *Worker) SetFeeDiff(diff *big.Int) {
 	w.Fee_diff = diff
 }
@@ -69,13 +72,25 @@ func (w *Worker) DevAdd() {
 func (w *Worker) AddShare() {
 	w.Worker_share++
 }
+
 func (w *Worker) AddReject() {
 	w.Worker_share++
 }
+
 func (w *Worker) AddIndex() {
 	w.Worker_idx++
 }
 
 func (w *Worker) GetIndex() uint64 {
 	return w.Worker_idx
+}
+
+func (w *Worker) Logind(worker, wallet string) {
+	w.Wallet = wallet
+	w.Worker_name = worker
+	w.IsOnline = true
+}
+
+func (w *Worker) Logout() {
+	w.IsOnline = false
 }

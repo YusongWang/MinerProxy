@@ -19,6 +19,7 @@ require (
 	github.com/BurntSushi/toml v1.1.0 // indirect
 	github.com/ethereum/go-ethereum v1.10.17
 	github.com/gin-gonic/gin v1.7.7
+	github.com/google/uuid v1.2.0
 	github.com/james-barrow/golang-ipc v0.0.0-20210227130457-95e7cc81f5e2
 	github.com/pquerna/ffjson v0.0.0-20190930134022-aa0246cd15f7
 	go.uber.org/atomic v1.9.0 // indirect

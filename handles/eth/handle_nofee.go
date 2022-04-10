@@ -25,6 +25,7 @@ func (hand *NoFeeHandle) OnConnect(
 	config *utils.Config,
 	fee *fee.Fee,
 	addr string,
+	id *string,
 ) (net.Conn, error) {
 	hand.log.Info("On Miner Connect To Pool " + config.Pool)
 	pool, err := utils.NewPool(config.Pool)
@@ -84,6 +85,7 @@ func (hand *NoFeeHandle) OnMessage(
 	pool net.Conn,
 	fee *fee.Fee,
 	data []byte,
+	id *string,
 ) (out []byte, err error) {
 	hand.log.Info(string(data))
 	req, err := eth.EthStratumReq(data)
@@ -194,7 +196,7 @@ func (hand *NoFeeHandle) OnMessage(
 	}
 }
 
-func (hand *NoFeeHandle) OnClose() {
+func (hand *NoFeeHandle) OnClose(id *string) {
 	hand.log.Info("OnClose !!!!!")
 }
 
