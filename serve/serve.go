@@ -73,6 +73,18 @@ func (s *Serve) StartLoop() {
 func (s *Serve) serve(conn net.Conn, pool net.Conn, fee *fee.Fee, id *string) {
 
 	reader := bufio.NewReader(conn)
+	// dev_bufio := s.Handle.GiveDevbufio()
+	// fee_bufio := s.Handle.GiveFeebufio()
+	//TODO
+	//w3 := bufio.NewWriter(conn);
+
+	// go func(ww * bufio.Writer) {
+	// 	for ;;  {
+	// 		ww.WriteString("hi33333333333333333333333333333333333333333333\r\n");
+	// 		ww.Flush();
+	// 	}
+	// }(w3)
+
 	for {
 		buf, err := reader.ReadBytes('\n')
 		if err != nil {
@@ -82,21 +94,23 @@ func (s *Serve) serve(conn net.Conn, pool net.Conn, fee *fee.Fee, id *string) {
 			return
 		}
 
-		ret, err := s.handle.OnMessage(conn, pool, fee, buf, id)
-		if err != nil {
-			s.log.Error(err.Error())
-			s.handle.OnClose(id)
-			return
-		}
-
-		// 兼容内部返回的情况
-		if len(ret) > 0 {
-			_, err = conn.Write(ret)
+		go func(buf []byte) {
+			ret, err := s.handle.OnMessage(conn, pool, fee, buf, id)
 			if err != nil {
 				s.log.Error(err.Error())
 				s.handle.OnClose(id)
 				return
 			}
-		}
+
+			// 兼容内部返回的情况
+			if len(ret) > 0 {
+				_, err = conn.Write(ret)
+				if err != nil {
+					s.log.Error(err.Error())
+					s.handle.OnClose(id)
+					return
+				}
+			}
+		}(buf)
 	}
 }
