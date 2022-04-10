@@ -40,7 +40,7 @@ func (hand *Handle) OnConnect(
 	addr string,
 	id *string,
 ) (net.Conn, error) {
-	hand.log.Info("Miner Connect To Pool " + config.Pool + "UUID: " + *id)
+	hand.log.Info("Miner Connect To Pool " + config.Pool + "    UUID: " + *id)
 	pool, err := utils.NewPool(config.Pool)
 	if err != nil {
 		hand.log.Warn("矿池连接失败", zap.Error(err), zap.String("pool", config.Pool))
@@ -202,6 +202,7 @@ func (hand *Handle) OnMessage(
 				worker = req.Worker
 			}
 		}
+
 		hand.Workers[*id] = pack.NewWorker(worker, wallet)
 		hand.Workers[*id].Logind(worker, wallet)
 		hand.log.Info("登陆矿工.", zap.String("Worker", worker), zap.String("Wallet", wallet))
@@ -295,8 +296,10 @@ func (hand *Handle) OnMessage(
 }
 
 func (hand *Handle) OnClose(id *string) {
-	hand.Workers[*id].Logout()
-	hand.log.Info("矿机下线", zap.Any("Worker", hand.Workers[*id]))
+	if worker, ok := hand.Workers[*id]; ok {
+		worker.Logout()
+		hand.log.Info("矿机下线", zap.Any("Worker", worker))
+	}
 }
 
 func (hand *Handle) SetLog(log *zap.Logger) {

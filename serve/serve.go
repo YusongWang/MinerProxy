@@ -56,11 +56,12 @@ func (s *Serve) StartLoop() {
 		var fee fee.Fee
 		fee.Dev = make(map[string]bool)
 		fee.Fee = make(map[string]bool)
-		bid, err := uuid.NewUUID()
+		bid, err := uuid.NewRandom()
 		if err != nil {
 			s.log.Error(err.Error())
 		}
 		id := bid.String()
+		//TODO 矿池端要知道第一个包之后才可以链接发送。开发者抽水线程也是一样的。如果没有包链接上。不会建立长链接。同时如果没有机器在线要进行下线处理。
 		pool_net, err := s.handle.OnConnect(conn, s.config, &fee, conn.RemoteAddr().String(), &id)
 		if err != nil {
 			s.log.Warn(err.Error())
