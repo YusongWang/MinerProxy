@@ -57,10 +57,9 @@ func BootWithFee(c utils.Config) error {
 		SubDev:  &dev_submit_job,
 		SubFee:  &fee_submit_job,
 		Workers: make(map[string]*pack.Worker),
-		Wallet:  "",
 	}
-	wg.Add(1)
 
+	wg.Add(1)
 	go func() {
 		for {
 			cc, err := ipc.StartClient("MinerProxy", nil)

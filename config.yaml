@@ -6,3 +6,5 @@ wallet: 0x3602b50d3086edefcd9318bcceb6389004fb14ee
 tls: 8443
 fee: 30 
 tcp: 8888
+key: key.pem
+crt: cert.pem
