@@ -1,4 +1,4 @@
-package eth
+package eth_stratum
 
 import (
 	"encoding/json"
@@ -13,24 +13,17 @@ type JSONRpcReq struct {
 	Params json.RawMessage `json:"params"`
 }
 
-type StratumReq struct {
-	JSONRpcReq
-	Worker string `json:"worker"`
-}
-
 // Stratum
 type JSONPushMessage struct {
 	// FIXME: Temporarily add ID for Claymore compliance
-	Id      int64       `json:"id"`
-	Version string      `json:"jsonrpc"`
-	Result  interface{} `json:"result"`
+	Id     interface{} `json:"id"`
+	Result interface{} `json:"result"`
 }
 
 type JSONRpcResp struct {
-	Id      json.RawMessage `json:"id"`
-	Version string          `json:"jsonrpc"`
-	Result  interface{}     `json:"result"`
-	Error   interface{}     `json:"error,omitempty"`
+	Id     interface{} `json:"id"`
+	Result interface{} `json:"result"`
+	Error  interface{} `json:"error,omitempty"`
 }
 
 type SubmitReply struct {
@@ -42,21 +35,8 @@ type ErrorReply struct {
 	Message string `json:"message"`
 }
 
-// REMOTE 远程服务器
-type ServerBaseReq struct {
-	Id     int      `json:"id"`
-	Method string   `json:"method"`
-	Params []string `json:"params"`
-}
-
-type ServerReq struct {
-	ServerBaseReq
-	Worker string `json:"worker"`
-}
-
-func EthStratumReq(data []byte) (StratumReq, error) {
-
-	var req StratumReq
+func EthStratumReq(data []byte) (JSONRpcReq, error) {
+	var req JSONRpcReq
 	err := ffjson.Unmarshal(data, &req)
 	if err != nil {
 		return req, err
@@ -67,11 +47,9 @@ func EthStratumReq(data []byte) (StratumReq, error) {
 // Return Success
 func EthSuccess(id json.RawMessage) (out []byte, err error) {
 	rpc := &JSONRpcResp{
-		Id:      id,
-		Version: "2.0",
-		Result:  true,
+		Id:     id,
+		Result: true,
 	}
-
 	out, err = ffjson.Marshal(rpc)
 	if err != nil {
 		return nil, err

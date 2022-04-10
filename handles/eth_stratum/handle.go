@@ -1,14 +1,13 @@
-package eth
+package eth_stratum
 
 import (
 	"miner_proxy/fee"
-	"miner_proxy/pack/eth"
-	pack "miner_proxy/pack/eth"
+	"miner_proxy/pack"
+	ethpack "miner_proxy/pack/eth_stratum"
 	"miner_proxy/utils"
 	"net"
 	"strings"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/pquerna/ffjson/ffjson"
 
 	"bufio"
@@ -16,11 +15,15 @@ import (
 	"go.uber.org/zap"
 )
 
-type NoFeeHandle struct {
-	log *zap.Logger
+type Handle struct {
+	log     *zap.Logger
+	Devjob  *pack.Job
+	Feejob  *pack.Job
+	DevConn *net.Conn
+	FeeConn *net.Conn
 }
 
-func (hand *NoFeeHandle) OnConnect(
+func (hand *Handle) OnConnect(
 	c net.Conn,
 	config *utils.Config,
 	fee *fee.Fee,
@@ -40,32 +43,29 @@ func (hand *NoFeeHandle) OnConnect(
 		reader := bufio.NewReader(pool)
 		//writer := bufio.NewWriter(c)
 		log := hand.log.With(zap.String("Miner", c.RemoteAddr().String()))
-
 		for {
 			buf, err := reader.ReadBytes('\n')
 			if err != nil {
 				return
 			}
-			var push pack.JSONPushMessage
+
+			var push ethpack.JSONPushMessage
 			if err = ffjson.Unmarshal([]byte(buf), &push); err == nil {
 				if result, ok := push.Result.(bool); ok {
 					//增加份额
-					if result == true {
+					if result {
 						// TODO
 						log.Info("有效份额", zap.Any("RPC", string(buf)))
 					} else {
 						log.Warn("无效份额", zap.Any("RPC", string(buf)))
 					}
 				} else if _, ok := push.Result.([]interface{}); ok {
-
-					b := append(buf, '\n')
-					_, err = c.Write(b)
+					_, err = c.Write(buf)
 					if err != nil {
 						log.Error(err.Error())
 						c.Close()
 						return
 					}
-
 				} else {
 					//TODO
 					log.Warn("无法找到此协议。需要适配。", zap.String("RPC", string(buf)))
@@ -80,7 +80,7 @@ func (hand *NoFeeHandle) OnConnect(
 	return pool, nil
 }
 
-func (hand *NoFeeHandle) OnMessage(
+func (hand *Handle) OnMessage(
 	c net.Conn,
 	pool net.Conn,
 	fee *fee.Fee,
@@ -88,7 +88,7 @@ func (hand *NoFeeHandle) OnMessage(
 	id *string,
 ) (out []byte, err error) {
 	hand.log.Info(string(data))
-	req, err := eth.EthStratumReq(data)
+	req, err := ethpack.EthStratumReq(data)
 	if err != nil {
 		hand.log.Error(err.Error())
 		c.Close()
@@ -96,10 +96,20 @@ func (hand *NoFeeHandle) OnMessage(
 	}
 
 	switch req.Method {
-	case "eth_submitLogin":
-		var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	case "mining.hello":
+		fallthrough
+	case "mining.subscribe":
+		pool.Write(data)
+		out, err = ethpack.EthSuccess(req.Id)
+		if err != nil {
+			hand.log.Error(err.Error())
+			c.Close()
+			return
+		}
+		return
+	case "mining.authorize":
 		var params []string
-		err = json.Unmarshal(req.Params, &params)
+		err = ffjson.Unmarshal(req.Params, &params)
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()
@@ -112,21 +122,11 @@ func (hand *NoFeeHandle) OnMessage(
 		wallet = params_zero[0]
 		if len(params_zero) > 1 {
 			worker = params_zero[1]
-		} else {
-			if req.Worker != "" {
-				worker = req.Worker
-			}
 		}
+
 		hand.log.Info("登陆矿工.", zap.String("Worker", worker), zap.String("Wallet", wallet))
-		// reply, errReply := s.handleLoginRPC(cs, params, req.Worker)
-		// if errReply != nil {
-		// 	//return cs.sendTCPError(req.Id, errReply)
-		// 	log.Println("Loign Error -1")
-		// 	c.Close()
-		// 	return
-		// }
-		//return cs.sendTCPResult(req.Id, reply)
-		out, err = eth.EthSuccess(req.Id)
+
+		out, err = ethpack.EthSuccess(req.Id)
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()
@@ -135,71 +135,27 @@ func (hand *NoFeeHandle) OnMessage(
 
 		pool.Write(data)
 		return
-	case "eth_getWork":
-		// reply, errReply := s.handleGetWorkRPC(cs)
-		// if errReply != nil {
-		// 	//return cs.sendTCPError(req.Id, errReply)
-		// 	log.Println("Loign Error -1")
-		// 	c.Close()
-		// 	return
-		// }
-		// rpc := &eth.JSONRpcResp{
-		// 	Id:      req.Id,
-		// 	Version: "2.0",
-		// 	Result:  true,
-		// }
-
-		// brpc, err := json.Marshal(rpc)
-		// if err != nil {
-		// 	log.Println(err)
-		// 	c.Close()
-		// 	return
-		// }
-		pool.Write(data)
-		// log.Println("Ret", brpc)
-		// out = append(brpc, '\n')
-		return
-	case "eth_submitWork":
-		var json = jsoniter.ConfigCompatibleWithStandardLibrary
-		var params []string
-		err = json.Unmarshal(req.Params, &params)
-		if err != nil {
-			hand.log.Error(err.Error())
-			return
-		}
-
-		out, err = eth.EthSuccess(req.Id)
-		if err != nil {
-			hand.log.Error(err.Error())
-			c.Close()
-			return
-		}
-
+	case "mining.submit":
 		hand.log.Info("得到份额", zap.String("RPC", string(data)))
 		pool.Write(data)
-		return
-	case "eth_submitHashrate":
-		// 直接返回
-		out, err = eth.EthSuccess(req.Id)
+
+		out, err = ethpack.EthSuccess(req.Id)
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()
 			return
 		}
-
-		b := append(data, '\n')
-		pool.Write(b)
 		return
 	default:
-		hand.log.Info("KnownRpc")
+		hand.log.Info("KnownRpc", zap.String("RPC", string(data)))
 		return
 	}
 }
 
-func (hand *NoFeeHandle) OnClose(id *string) {
+func (hand *Handle) OnClose(id *string) {
 	hand.log.Info("OnClose !!!!!")
 }
 
-func (hand *NoFeeHandle) SetLog(log *zap.Logger) {
+func (hand *Handle) SetLog(log *zap.Logger) {
 	hand.log = log
 }

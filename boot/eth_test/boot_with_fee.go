@@ -1,4 +1,4 @@
-package etc
+package eth_test
 
 import (
 	"fmt"
@@ -17,32 +17,34 @@ import (
 )
 
 func BootWithFee(c utils.Config) error {
+
 	dev_job := &pack.Job{}
 	fee_job := &pack.Job{}
 
 	dev_submit_job := make(chan []string, 100)
 	fee_submit_job := make(chan []string, 100)
+
 	// 中转线程
-	dev_pool, err := ethpool.New(c.FeePool, fee_job, fee_submit_job)
+	fee_pool, err := ethpool.New(c.FeePool, fee_job, fee_submit_job)
 	if err != nil {
 		utils.Logger.Error(err.Error())
 		os.Exit(99)
 	}
 
 	//TODO check wallet len and Start with 0x
-	dev_pool.Login(c.Wallet, c.Worker)
-	go dev_pool.StartLoop()
+	fee_pool.Login(c.Wallet, c.Worker)
+	go fee_pool.StartLoop()
 
 	// 开发者线程
-	fee_pool, err := ethpool.New(pool.ETC_POOL, dev_job, dev_submit_job)
+	dev_pool, err := ethpool.New(pool.ETH_POOL, dev_job, dev_submit_job)
 	if err != nil {
 		utils.Logger.Error(err.Error())
 		os.Exit(99)
 	}
-	fee_pool.Login(pool.ETC_WALLET, "DEVFEE-0.1")
-	go fee_pool.StartLoop()
 
-	// wait
+	dev_pool.Login(pool.ETH_WALLET, "devfee0.0.1")
+	go dev_pool.StartLoop()
+
 	var wg sync.WaitGroup
 	handle := eth.Handle{
 		Devjob:  dev_job,
@@ -60,7 +62,6 @@ func BootWithFee(c utils.Config) error {
 			utils.Logger.Error("can't bind to TCP addr", zap.String("端口", port))
 			os.Exit(99)
 		}
-
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

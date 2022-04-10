@@ -3,25 +3,28 @@ package eth
 import (
 	"bufio"
 	"crypto/tls"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
+	"miner_proxy/pack"
+	ethpack "miner_proxy/pack/eth"
+	"miner_proxy/utils"
 	"net"
+	"os"
 	"strings"
 	"sync"
 
-	pack "miner_proxy/pack/eth"
-	"miner_proxy/utils"
+	"github.com/pquerna/ffjson/ffjson"
 
 	"go.uber.org/zap"
 )
 
 type EthStratumServer struct {
-	Conn   net.Conn
-	Job    *pack.Job
-	Submit chan []string
-	Worker string
+	Conn     net.Conn
+	Job      *pack.Job
+	Submit   chan []string
+	PoolAddr string
+	Wallet   string
+	Worker   string
 }
 
 func New(
@@ -29,48 +32,51 @@ func New(
 	job *pack.Job,
 	submit chan []string,
 ) (EthStratumServer, error) {
-	fmt.Println(address)
 	if strings.HasPrefix(address, "tcp://") {
 		address = strings.ReplaceAll(address, "tcp://", "")
-		return NewEthStratumServerTcp(address, job, submit)
+		return newEthStratumServerTcp(address, job, submit, address)
 	} else if strings.HasPrefix(address, "ssl://") {
 		address = strings.ReplaceAll(address, "ssl://", "")
-		return NewEthStratumServerSsl(address, job, submit)
+		return newEthStratumServerSsl(address, job, submit, address)
 	} else {
 		return EthStratumServer{}, errors.New("不支持的协议类型: " + address)
 	}
 }
 
-func NewEthStratumServerSsl(
+func newEthStratumServerSsl(
 	address string,
 	job *pack.Job,
 	submit chan []string,
+	pool string,
 ) (EthStratumServer, error) {
 	eth := EthStratumServer{}
 	eth.Job = job
 	eth.Submit = submit
+	eth.PoolAddr = address
 
 	cfg := tls.Config{}
 	cfg.InsecureSkipVerify = true
 	cfg.PreferServerCipherSuites = true
-	fmt.Println("连接到矿池")
+
 	conn, err := tls.Dial("tcp", address, &cfg)
 	if err != nil {
 		return eth, err
 	}
-	fmt.Println("连接到矿池成功!!!")
+
 	eth.Conn = conn
 	return eth, nil
 }
 
-func NewEthStratumServerTcp(
+func newEthStratumServerTcp(
 	address string,
 	job *pack.Job,
 	submit chan []string,
+	pool string,
 ) (EthStratumServer, error) {
 	eth := EthStratumServer{}
 	eth.Job = job
 	eth.Submit = submit
+	eth.PoolAddr = address
 	conn, err := net.Dial("tcp", address)
 	if err != nil {
 		return eth, err
@@ -86,13 +92,13 @@ func (eth *EthStratumServer) Login(wallet string, worker string) error {
 		return errors.New("矿工名称不能为空！")
 	}
 	eth.Worker = worker
+	eth.Wallet = wallet
 
-	fmt.Println("矿池登陆")
 	var a []string
 	a = append(a, wallet)
 	a = append(a, "x")
-	login := pack.ServerReq{
-		ServerBaseReq: pack.ServerBaseReq{
+	login := ethpack.ServerReq{
+		ServerBaseReq: ethpack.ServerBaseReq{
 			Id:     0,
 			Method: "eth_submitLogin",
 			Params: a,
@@ -100,12 +106,10 @@ func (eth *EthStratumServer) Login(wallet string, worker string) error {
 		Worker: worker,
 	}
 
-	res, err := json.Marshal(login)
+	res, err := ffjson.Marshal(login)
 	if err != nil {
 		return err
 	}
-
-	log.Println(string(res))
 
 	write := append(res, '\n')
 	len, err := eth.Conn.Write(write)
@@ -122,26 +126,41 @@ func (eth *EthStratumServer) Login(wallet string, worker string) error {
 	return nil
 }
 
+func ConcatJobTostr(job []string) string {
+	var builder strings.Builder
+	builder.WriteString(`["`)
+
+	job_len := len(job) - 1
+	for i, j := range job {
+		if i == job_len {
+			builder.WriteString(j + `"]`)
+			break
+		}
+		builder.WriteString(j + `","`)
+	}
+
+	return builder.String()
+}
+
+var package_head = `{"id":40,"method":"eth_submitWork","params":`
+var package_middle = `,"worker":"`
+var package_end = `"}`
+
 // 提交工作量证明
 func (eth *EthStratumServer) SubmitJob(job []string) error {
-	json_rpc := pack.ServerReq{
-		ServerBaseReq: pack.ServerBaseReq{
-			Id:     40,
-			Method: "eth_submitWork",
-			Params: job,
-		},
-		Worker: eth.Worker,
-	}
+	str := ConcatJobTostr(job)
+	var builder strings.Builder
+	builder.WriteString(package_head)
+	builder.WriteString(str)
+	builder.WriteString(package_middle)
+	builder.WriteString(eth.Worker)
+	builder.WriteString(package_end)
+	builder.WriteByte('\n')
 
-	log.Println("给服务器提交工作量证明", json_rpc)
-	res, err := json.Marshal(json_rpc)
-	if err != nil {
-		log.Println("Json Marshal Error ", err)
-		return err
-	}
+	json_rpc := builder.String()
+	utils.Logger.Info("给服务器提交工作量证明", zap.Any("RPC", json_rpc))
 
-	ret := append(res, '\n')
-	_, err = eth.Conn.Write(ret)
+	_, err := eth.Conn.Write([]byte(json_rpc))
 	if err != nil {
 		return err
 	}
@@ -151,43 +170,48 @@ func (eth *EthStratumServer) SubmitJob(job []string) error {
 
 // bradcase 当前工作
 func (eth *EthStratumServer) NotifyWorks(job []string) error {
-	eth.Job.Lock.Lock()
 	eth.Job.Job = append(eth.Job.Job, job)
-	eth.Job.Lock.Unlock()
 	return nil
 }
 
 // 进行事件循环处理
 func (eth *EthStratumServer) StartLoop() {
 	var wg sync.WaitGroup
-	// go func() {
-	// 	for {
-	// 		eth.Job.Lock.RLock()
-	// 		log.Println(eth.Job.Job)
-	// 		eth.Job.Lock.RUnlock()
-	// 		time.Sleep(time.Second)
-	// 	}
-	// }()
-	log := utils.Logger.With(zap.String("Worker", eth.Worker))
 
+	log := utils.Logger.With(zap.String("Worker", eth.Worker))
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
+
 		defer wg.Done()
 		for {
 			buf_str, err := bufio.NewReader(eth.Conn).ReadString('\n')
 			if err != nil {
-				log.Info("远程已经关闭")
+				log.Info("矿池关闭->  尝试重新连接")
 				log.Error(err.Error())
-				eth.Conn.Close()
-				return
+				temp, err := New(eth.PoolAddr, eth.Job, eth.Submit)
+				if err != nil {
+					log.Info("矿池关闭->  尝试重新连接失败 ")
+					log.Error(err.Error())
+					os.Exit(1)
+				}
+				err = temp.Login(eth.Wallet, eth.Worker)
+				if err != nil {
+					log.Info("矿池关闭->  尝试重新连接失败 ")
+					log.Error(err.Error())
+					os.Exit(1)
+				}
+
+				eth.Conn = temp.Conn
+				continue
 			}
-			var push pack.JSONPushMessage
-			if err = json.Unmarshal([]byte(buf_str), &push); err == nil {
+
+			var push ethpack.JSONPushMessage
+			if err = ffjson.Unmarshal([]byte(buf_str), &push); err == nil {
 				if result, ok := push.Result.(bool); ok {
 					//增加份额
-					if result == true {
+					if result {
 						// TODO
-						log.Info("有效份额", zap.Any("RPC", buf_str))
+						//log.Info("有效份额", zap.Any("RPC", buf_str))
 					} else {
 						log.Warn("无效份额", zap.Any("RPC", buf_str))
 					}
@@ -207,21 +231,21 @@ func (eth *EthStratumServer) StartLoop() {
 	}()
 
 	//TODO 调试这里的最优化接受携程数量
-	for i := 0; i < 10; i++ {
-		go func() {
-			wg.Add(1)
-			defer wg.Done()
-			for {
-				select {
-				case job := <-eth.Submit:
-					err := eth.SubmitJob(job)
-					if err != nil {
-						log.Warn("提交工作量证明失败")
-					}
-				}
-			}
-		}()
-	}
+	// for i := 0; i < 10; i++ {
+	// wg.Add(1)
+	// go func() {
+	// 	defer wg.Done()
+	// 	for {
+	// 		select {
+	// 		case job := <-eth.Submit:
+	// 			err := eth.SubmitJob(job)
+	// 			if err != nil {
+	// 				log.Warn("提交工作量证明失败")
+	// 			}
+	// 		}
+	// 	}
+	// }()
+	// }
 
 	wg.Wait()
 }

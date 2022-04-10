@@ -3,7 +3,6 @@ package test
 import (
 	"bufio"
 	"miner_proxy/fee"
-	ethpool "miner_proxy/pools/eth"
 	"miner_proxy/utils"
 	"net"
 
@@ -19,9 +18,10 @@ func (hand *Test) OnConnect(
 	config *utils.Config,
 	fee *fee.Fee,
 	addr string,
+	id *string,
 ) (net.Conn, error) {
 	hand.log.Info("On Miner Connect To Pool " + config.Pool)
-	pool, err := ethpool.NewPool(config.Pool)
+	pool, err := utils.NewPool(config.Pool)
 	if err != nil {
 		hand.log.Warn("矿池连接失败", zap.Error(err), zap.String("pool", config.Pool))
 		c.Close()
@@ -41,33 +41,6 @@ func (hand *Test) OnConnect(
 			}
 			log.Info("矿池: " + string(buf))
 			c.Write(buf)
-			// var push pack.JSONPushMessage
-			// if err = json.Unmarshal([]byte(buf), &push); err == nil {
-			// 	if result, ok := push.Result.(bool); ok {
-			// 		//增加份额
-			// 		if result == true {
-			// 			// TODO
-			// 			log.Info("有效份额", zap.Any("RPC", string(buf)))
-			// 		} else {
-			// 			log.Warn("无效份额", zap.Any("RPC", string(buf)))
-			// 		}
-			// 	} else if _, ok := push.Result.([]interface{}); ok {
-			// 		fmt.Println("收到普通任务")
-			// 		b := append(buf, '\n')
-			// 		_, err = c.Write(b)
-			// 		if err != nil {
-			// 			log.Error(err.Error())
-			// 			c.Close()
-			// 			return
-			// 		}
-			// 	} else {
-			// 		//TODO
-			// 		log.Warn("无法找到此协议。需要适配。", zap.String("RPC", string(buf)))
-			// 	}
-			// } else {
-			// 	log.Error(err.Error())
-			// 	return
-			// }
 		}
 	}()
 
@@ -79,6 +52,7 @@ func (hand *Test) OnMessage(
 	pool net.Conn,
 	fee *fee.Fee,
 	data []byte,
+	id *string,
 ) (out []byte, err error) {
 	hand.log.Info("矿机: " + string(data))
 	pool.Write(data)
@@ -191,7 +165,7 @@ func (hand *Test) OnMessage(
 	return
 }
 
-func (hand *Test) OnClose() {
+func (hand *Test) OnClose(id *string) {
 	hand.log.Info("OnClose !!!!!")
 }
 
