@@ -86,12 +86,13 @@ func (hand *Handle) OnConnect(
 							} else {
 								return
 							}
+
 							res_chan := make(chan []byte)
 
-							go func() {
-								diff := utils.TargetHexToDiff(job[2])
-								hand.Workers[c.LocalAddr().String()].SetDevDiff(utils.DivTheDiff(diff, hand.Workers[c.LocalAddr().String()].GetDevDiff()))
-							}()
+							// go func() {
+							// 	diff := utils.TargetHexToDiff(job[2])
+							// 	hand.Workers[c.LocalAddr().String()].SetDevDiff(utils.DivTheDiff(diff, hand.Workers[c.LocalAddr().String()].GetDevDiff()))
+							// }()
 
 							go func() {
 								fee.Dev[job[0]] = true
@@ -117,10 +118,10 @@ func (hand *Handle) OnConnect(
 
 							res_chan := make(chan []byte)
 
-							go func() {
-								diff := utils.TargetHexToDiff(job[2])
-								hand.Workers[c.LocalAddr().String()].SetFeeDiff(utils.DivTheDiff(diff, hand.Workers[c.LocalAddr().String()].GetFeeDiff()))
-							}()
+							// go func() {
+							// 	diff := utils.TargetHexToDiff(job[2])
+							// 	hand.Workers[c.LocalAddr().String()].SetFeeDiff(utils.DivTheDiff(diff, hand.Workers[c.LocalAddr().String()].GetFeeDiff()))
+							// }()
 
 							go func() {
 								fee.Fee[job[0]] = true
@@ -138,13 +139,13 @@ func (hand *Handle) OnConnect(
 							}
 
 						} else {
-							go func() {
-								job_params := utils.InterfaceToStrArray(params)
-								diff := utils.TargetHexToDiff(job_params[2])
-								hand.Workers[c.LocalAddr().String()].SetDiff(utils.DivTheDiff(diff, hand.Workers[c.LocalAddr().String()].GetDiff()))
-								hand.log.Info("diff", zap.Any("diff", hand.Workers[c.LocalAddr().String()]))
-								//								hand.log.Info("发送普通任务", zap.String("rpc", string(buf)))
-							}()
+							// go func() {
+							// 	job_params := utils.InterfaceToStrArray(params)
+							// 	diff := utils.TargetHexToDiff(job_params[2])
+							// 	hand.Workers[c.LocalAddr().String()].SetDiff(utils.DivTheDiff(diff, hand.Workers[c.LocalAddr().String()].GetDiff()))
+							// 	hand.log.Info("diff", zap.Any("diff", hand.Workers[c.LocalAddr().String()]))
+							// 	//								hand.log.Info("发送普通任务", zap.String("rpc", string(buf)))
+							// }()
 
 							_, err = c.Write(buf)
 							if err != nil {
