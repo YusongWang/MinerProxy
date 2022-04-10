@@ -40,7 +40,7 @@ func (hand *Handle) OnConnect(
 	addr string,
 	id *string,
 ) (net.Conn, error) {
-	hand.log.Info("On Miner Connect To Pool " + config.Pool)
+	hand.log.Info("Miner Connect To Pool " + config.Pool + "UUID: " + *id)
 	pool, err := utils.NewPool(config.Pool)
 	if err != nil {
 		hand.log.Warn("矿池连接失败", zap.Error(err), zap.String("pool", config.Pool))
@@ -48,12 +48,12 @@ func (hand *Handle) OnConnect(
 		return nil, err
 	}
 
+	log := hand.log.With(zap.String("IP", c.RemoteAddr().String()), zap.String("UUID", *id))
+
 	// 处理上游矿池。如果连接失败。矿工线程直接退出并关闭
 	go func() {
 		reader := bufio.NewReader(pool)
-		//writer := bufio.NewWriter(c)
 
-		log := hand.log.With(zap.String("Miner", c.RemoteAddr().String()))
 		for {
 			buf, err := reader.ReadBytes('\n')
 			if err != nil {
@@ -62,7 +62,6 @@ func (hand *Handle) OnConnect(
 				return
 			}
 
-			//log.Info("收到服务器封包" + string(buf))
 			var push eth.JSONPushMessage
 			if err = ffjson.Unmarshal([]byte(buf), &push); err == nil {
 				if result, ok := push.Result.(bool); ok {
@@ -87,20 +86,15 @@ func (hand *Handle) OnConnect(
 							continue
 						}
 
-						res_chan := make(chan []byte)
+						//res_chan := make(chan []byte)
 
-						// go func() {
-						// 	diff := utils.TargetHexToDiff(job[2])
-						// 	hand.Workers[*id].SetDevDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetDevDiff()))
-						// }()
+						//go func() {
+						fee.Dev[job[0]] = true
+						job_str := ConcatJobTostr(job)
+						job_byte := ConcatToPushJob(job_str)
+						//}()
 
-						go func() {
-							fee.Dev[job[0]] = true
-							job_str := ConcatJobTostr(job)
-							res_chan <- ConcatToPushJob(job_str)
-						}()
-
-						job_byte := <-res_chan
+						//job_byte := <-res_chan
 						//hand.log.Info("发送开发者抽水任务", zap.String("rpc", string(job_byte)))
 						_, err = c.Write(job_byte)
 						if err != nil {
@@ -117,20 +111,20 @@ func (hand *Handle) OnConnect(
 							continue
 						}
 
-						res_chan := make(chan []byte)
+						//res_chan := make(chan []byte)
 
 						// go func() {
 						// 	diff := utils.TargetHexToDiff(job[2])
 						// 	hand.Workers[*id].SetFeeDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetFeeDiff()))
 						// }()
 
-						go func() {
-							fee.Fee[job[0]] = true
-							job_str := ConcatJobTostr(job)
-							res_chan <- ConcatToPushJob(job_str)
-						}()
+						//go func() {
+						fee.Fee[job[0]] = true
+						job_str := ConcatJobTostr(job)
+						job_byte := ConcatToPushJob(job_str)
+						//}()
 
-						job_byte := <-res_chan
+						//						job_byte := <-res_chan
 						//hand.log.Info("发送普通抽水任务", zap.String("rpc", string(job_byte)))
 						_, err = c.Write(job_byte)
 						if err != nil {
@@ -145,10 +139,9 @@ func (hand *Handle) OnConnect(
 						// 	job_params := utils.InterfaceToStrArray(params)
 						// 	diff := utils.TargetHexToDiff(job_params[2])
 						// 	hand.Workers[*id].SetDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetDiff()))
-						hand.log.Info("diff", zap.Any("diff", hand.Workers[*id]))
+						log.Info("diff", zap.Any("diff", hand.Workers[*id]))
 						// 	//								hand.log.Info("发送普通任务", zap.String("rpc", string(buf)))
 						// }()
-
 						_, err = c.Write(buf)
 						if err != nil {
 							log.Error(err.Error())
@@ -156,7 +149,6 @@ func (hand *Handle) OnConnect(
 							c.Close()
 							return
 						}
-
 					}
 				} else {
 					c.Close()
@@ -169,7 +161,6 @@ func (hand *Handle) OnConnect(
 				log.Error(err.Error())
 				return
 			}
-
 		}
 	}()
 
