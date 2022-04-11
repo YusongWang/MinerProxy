@@ -1,8 +1,8 @@
 #!/bin/bash
 build() {
-    # VERSION ?= $(shell cat version.txt)
-    # COMMIT = $(shell git rev-parse HEAD)
-    # LDFLAGS = -ldflags "-X cmd.version=${VERSION} -X cmd.commit=${COMMIT}"
+    VERSION ?= $(cat version.txt)
+    COMMIT = $(git rev-parse HEAD)
+    LDFLAGS = "-X cmd.version=${VERSION} -X cmd.commit=${COMMIT}"
 
     os="$1"
     if [ "$os" == "darwin" ]; then os="macos"; fi

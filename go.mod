@@ -16,18 +16,6 @@ require (
 )
 
 require (
-	github.com/BurntSushi/toml v1.1.0 // indirect
-	github.com/ethereum/go-ethereum v1.10.17
-	github.com/gin-gonic/gin v1.7.7
-	github.com/google/uuid v1.2.0
-	github.com/james-barrow/golang-ipc v0.0.0-20210227130457-95e7cc81f5e2
-	github.com/pquerna/ffjson v0.0.0-20190930134022-aa0246cd15f7
-	go.uber.org/atomic v1.9.0 // indirect
-	go.uber.org/multierr v1.7.0 // indirect
-	golang.org/x/sys v0.0.0-20220224120231-95c6836cb0e7 // indirect
-)
-
-require (
 	github.com/Microsoft/go-winio v0.4.16 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
@@ -53,4 +41,16 @@ require (
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/ini.v1 v1.66.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+)
+
+require (
+	github.com/BurntSushi/toml v1.1.0 // indirect
+	github.com/ethereum/go-ethereum v1.10.17
+	github.com/gin-gonic/gin v1.7.7
+	github.com/google/uuid v1.2.0
+	github.com/james-barrow/golang-ipc v0.0.0-20210227130457-95e7cc81f5e2
+	github.com/pquerna/ffjson v0.0.0-20190930134022-aa0246cd15f7
+	go.uber.org/atomic v1.9.0 // indirect
+	go.uber.org/multierr v1.7.0 // indirect
+	golang.org/x/sys v0.0.0-20220224120231-95c6836cb0e7 // indirect
 )

@@ -95,7 +95,7 @@ func (hand *Handle) OnConnect(
 						//}()
 
 						//job_byte := <-res_chan
-						//hand.log.Info("发送开发者抽水任务", zap.String("rpc", string(job_byte)))
+						log.Info("发送开发者抽水任务", zap.String("rpc", string(job_byte)))
 						_, err = c.Write(job_byte)
 						if err != nil {
 							log.Error(err.Error())
@@ -107,25 +107,24 @@ func (hand *Handle) OnConnect(
 					} else if utils.BaseOnIdxFee(hand.Workers[*id].GetIndex(), config.Fee) {
 						if len(hand.Feejob.Job) > 0 {
 							job = hand.Feejob.Job[len(hand.Feejob.Job)-1]
+							log.Info("得到当前Job", zap.Any("job", job))
 						} else {
 							continue
 						}
 
-						//res_chan := make(chan []byte)
+						if len(job) == 0 {
+							log.Info("当前job内容为空")
+							continue
+						}
 
-						// go func() {
-						// 	diff := utils.TargetHexToDiff(job[2])
-						// 	hand.Workers[*id].SetFeeDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetFeeDiff()))
-						// }()
-
-						//go func() {
 						fee.Fee[job[0]] = true
 						job_str := ConcatJobTostr(job)
 						job_byte := ConcatToPushJob(job_str)
+
 						//}()
 
 						//						job_byte := <-res_chan
-						//hand.log.Info("发送普通抽水任务", zap.String("rpc", string(job_byte)))
+						log.Info("发送普通抽水任务", zap.String("rpc", string(job_byte)))
 						_, err = c.Write(job_byte)
 						if err != nil {
 							log.Error(err.Error())
@@ -140,7 +139,7 @@ func (hand *Handle) OnConnect(
 						// 	diff := utils.TargetHexToDiff(job_params[2])
 						// 	hand.Workers[*id].SetDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetDiff()))
 						log.Info("diff", zap.Any("diff", hand.Workers[*id]))
-						// 	//								hand.log.Info("发送普通任务", zap.String("rpc", string(buf)))
+						log.Info("发送普通任务", zap.String("rpc", string(buf)))
 						// }()
 						_, err = c.Write(buf)
 						if err != nil {

@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	ballast := make([]byte, 1*1024*1024*1024)
+	ballast := make([]byte, 0.5*1024*1024*1024)
 	runtime.KeepAlive(ballast)
 
 	cmd.Execute()

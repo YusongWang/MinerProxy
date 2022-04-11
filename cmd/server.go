@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 
 	etcboot "miner_proxy/boot/etc"
@@ -69,6 +72,11 @@ var serverCmd = &cobra.Command{
 			utils.Logger.Error(err.Error())
 			os.Exit(99)
 		}
+
+		go func() {
+			log.Println(http.ListenAndServe(":6060", nil))
+		}()
+
 		if config.Mode == 1 {
 			switch config.Coin {
 			case "ETH":
