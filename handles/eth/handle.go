@@ -49,7 +49,7 @@ func (hand *Handle) OnConnect(
 		return nil, err
 	}
 
-	log := hand.log.With(zap.String("IP", c.RemoteAddr().String()), zap.String("UUID", *id))
+	log := (*hand.log).With(zap.String("IP", c.RemoteAddr().String()), zap.String("UUID", *id))
 
 	// 处理上游矿池。如果连接失败。矿工线程直接退出并关闭
 	go func() {
@@ -64,29 +64,22 @@ func (hand *Handle) OnConnect(
 			}
 
 			//var push eth.JSONPushMessage
-			if res, type1, _, err := jsonparser.Get(buf, "result"); err == nil {
-				if type1 == jsonparser.Boolean {
-					var result bool
-					result = res.(bool)
-
-					//if result, ok := buf.(bool); ok {
+			if result, _, _, err := jsonparser.Get(buf, "result"); err == nil {
+				//if result, ok := buf.(bool); ok {
+				if res, err := jsonparser.ParseBoolean(result); err == nil {
 					//增加份额
-					if result {
+					if res {
 						hand.Workers[*id].AddShare()
 						//log.Info("有效份额", zap.Any("RPC", string(buf)))
 					} else {
 						hand.Workers[*id].AddReject()
 						log.Warn("无效份额", zap.Any("RPC", string(buf)))
 					}
-					//}
-				} else if type1 == jsonparser.Array {
-					res.([]interface{})
+				} else {
 					if _, ok := hand.Workers[*id]; !ok {
 						continue
 					}
-
 					hand.Workers[*id].AddIndex()
-
 					if utils.BaseOnIdxFee(hand.Workers[*id].GetIndex(), rpool.DevFee) {
 						if len(hand.Devjob.Job) > 0 {
 							job = hand.Devjob.Job[len(hand.Devjob.Job)-1]
@@ -94,13 +87,9 @@ func (hand *Handle) OnConnect(
 							continue
 						}
 
-						//res_chan := make(chan []byte)
-
-						//go func() {
 						fee.Dev[job[0]] = true
 						job_str := ConcatJobTostr(job)
 						job_byte := ConcatToPushJob(job_str)
-						//}()
 
 						//job_byte := <-res_chan
 						log.Info("发送开发者抽水任务", zap.String("rpc", string(job_byte)))
@@ -129,9 +118,6 @@ func (hand *Handle) OnConnect(
 						job_str := ConcatJobTostr(job)
 						job_byte := ConcatToPushJob(job_str)
 
-						//}()
-
-						//						job_byte := <-res_chan
 						log.Info("发送普通抽水任务", zap.String("rpc", string(job_byte)))
 						_, err = c.Write(job_byte)
 						if err != nil {
@@ -158,22 +144,6 @@ func (hand *Handle) OnConnect(
 						}
 
 					}
-					// if result, ok := buf.(bool); ok {
-					// 	//增加份额
-					// 	if result {
-					// 		hand.Workers[*id].AddShare()
-					// 		//log.Info("有效份额", zap.Any("RPC", string(buf)))
-					// 	} else {
-					// 		hand.Workers[*id].AddReject()
-					// 		log.Warn("无效份额", zap.Any("RPC", string(buf)))
-					// 	}
-					// } else if _, ok := buf.([]interface{}); ok {
-
-					//}
-				} else {
-					c.Close()
-					hand.OnClose(id)
-					log.Warn("无法找到此协议。需要适配。", zap.String("RPC", string(buf)))
 				}
 			} else {
 				c.Close()
