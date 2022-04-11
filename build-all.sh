@@ -1,8 +1,8 @@
 #!/bin/bash
 build() {
-    VERSION ?= $(cat version.txt)
-    COMMIT = $(git rev-parse HEAD)
-    LDFLAGS = "-X cmd.version=${VERSION} -X cmd.commit=${COMMIT}"
+    VERSION=$(cat version.txt)
+    COMMIT=$(git rev-parse HEAD)
+    LDFLAGS="-X cmd.version.version=${VERSION} -X cmd.version.commit=${COMMIT}"
 
     os="$1"
     if [ "$os" == "darwin" ]; then os="macos"; fi
@@ -18,7 +18,7 @@ build() {
     if [ "$1" == "windows" ]; then ext=".exe"; fi
 
     echo "build for $os $arch..."
-    CGO_ENABLED=0 GOOS="$1" GOARCH="$2" go build -a -ldflags '-extldflags "-static"' -o "build/MinerProxy-$os-$arch$ext" main.go
+    CGO_ENABLED=0 GOOS="$1" GOARCH="$2" go build -a -ldflags "$LDFLAGS -extldflags \"-static\"" -o "build/MinerProxy-$os-$arch$ext" main.go
 }
 
 cd "$(dirname "$0")"

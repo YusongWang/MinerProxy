@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	pool "miner_proxy/pools"
 	"miner_proxy/utils"
 	"sync"
 	"time"
@@ -27,7 +28,7 @@ var ManagerCmd = &cobra.Command{
 }
 
 func Manage(wg *sync.WaitGroup) {
-	sc, err := ipc.StartServer("MinerProxy", nil)
+	sc, err := ipc.StartServer(pool.ManageCmdPipeline, nil)
 	if err != nil {
 		utils.Logger.Error(err.Error())
 		return

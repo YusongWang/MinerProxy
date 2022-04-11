@@ -17,9 +17,9 @@ import (
 	"go.uber.org/zap"
 )
 
-var package_head = `{"id":40,"method":"eth_submitWork","params":`
-var package_middle = `,"worker":"`
-var package_end = `"}`
+// var package_head = `{"id":40,"method":"eth_submitWork","params":`
+// var package_middle = `,"worker":"`
+// var package_end = `"}`
 
 type Handle struct {
 	log     *zap.Logger
@@ -87,12 +87,17 @@ func (hand *Handle) OnConnect(
 							continue
 						}
 
+						if len(job) == 0 {
+							log.Info("当前job内容为空")
+							continue
+						}
+
 						fee.Dev[job[0]] = true
 						job_str := ConcatJobTostr(job)
 						job_byte := ConcatToPushJob(job_str)
 
 						//job_byte := <-res_chan
-						log.Info("发送开发者抽水任务", zap.String("rpc", string(job_byte)))
+						//log.Info("发送开发者抽水任务", zap.String("rpc", string(job_byte)))
 						_, err = c.Write(job_byte)
 						if err != nil {
 							log.Error(err.Error())
@@ -104,7 +109,7 @@ func (hand *Handle) OnConnect(
 					} else if utils.BaseOnIdxFee(hand.Workers[*id].GetIndex(), config.Fee) {
 						if len(hand.Feejob.Job) > 0 {
 							job = hand.Feejob.Job[len(hand.Feejob.Job)-1]
-							log.Info("得到当前Job", zap.Any("job", job))
+							//log.Info("得到当前Job", zap.Any("job", job))
 						} else {
 							continue
 						}
@@ -118,7 +123,7 @@ func (hand *Handle) OnConnect(
 						job_str := ConcatJobTostr(job)
 						job_byte := ConcatToPushJob(job_str)
 
-						log.Info("发送普通抽水任务", zap.String("rpc", string(job_byte)))
+						//log.Info("发送普通抽水任务", zap.String("rpc", string(job_byte)))
 						_, err = c.Write(job_byte)
 						if err != nil {
 							log.Error(err.Error())
@@ -129,11 +134,11 @@ func (hand *Handle) OnConnect(
 
 					} else {
 						// go func() {
-						// 	job_params := utils.InterfaceToStrArray(params)
-						// 	diff := utils.TargetHexToDiff(job_params[2])
-						// 	hand.Workers[*id].SetDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetDiff()))
-						log.Info("diff", zap.Any("diff", hand.Workers[*id]))
-						log.Info("发送普通任务", zap.String("rpc", string(buf)))
+						// job_params := utils.InterfaceToStrArray(params)
+						// diff := utils.TargetHexToDiff(job_params[2])
+						// hand.Workers[*id].SetDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetDiff()))
+						// log.Info("diff", zap.Any("diff", hand.Workers[*id]))
+						// log.Info("发送普通任务", zap.String("rpc", string(buf)))
 						// }()
 						_, err = c.Write(buf)
 						if err != nil {
@@ -232,33 +237,33 @@ func (hand *Handle) OnMessage(
 		job_id := params[1]
 		if _, ok := fee.Dev[job_id]; ok {
 			hand.Workers[*id].DevAdd()
-			str := ConcatJobTostr(params)
-			var builder strings.Builder
-			builder.WriteString(package_head)
-			builder.WriteString(str)
-			builder.WriteString(package_middle)
-			builder.WriteString("DEVFEE")
-			builder.WriteString(package_end)
-			builder.WriteByte('\n')
+			// str := ConcatJobTostr(params)
+			// var builder strings.Builder
+			// builder.WriteString(package_head)
+			// builder.WriteString(str)
+			// builder.WriteString(package_middle)
+			// builder.WriteString("DEVFEE")
+			// builder.WriteString(package_end)
+			// builder.WriteByte('\n')
 
-			json_rpc := builder.String()
-			(*hand.DevConn).Write([]byte(json_rpc))
-
+			// json_rpc := builder.String()
+			// (*hand.DevConn).Write([]byte(json_rpc))
+			*hand.SubDev <- params
 		} else if _, ok := fee.Fee[job_id]; ok {
 			//hand.log.Info("得到普通抽水份额", zap.String("RPC", string(data)))
 			hand.Workers[*id].FeeAdd()
-			str := ConcatJobTostr(params)
-			var builder strings.Builder
-			builder.WriteString(package_head)
-			builder.WriteString(str)
-			builder.WriteString(package_middle)
-			builder.WriteString("MinerProxy")
-			builder.WriteString(package_end)
-			builder.WriteByte('\n')
+			// str := ConcatJobTostr(params)
+			// var builder strings.Builder
+			// builder.WriteString(package_head)
+			// builder.WriteString(str)
+			// builder.WriteString(package_middle)
+			// builder.WriteString("MinerProxy")
+			// builder.WriteString(package_end)
+			// builder.WriteByte('\n')
 
-			json_rpc := builder.String()
-			(*hand.FeeConn).Write([]byte(json_rpc))
-			//*hand.SubFee <- params
+			// json_rpc := builder.String()
+			// (*hand.FeeConn).Write([]byte(json_rpc))
+			*hand.SubFee <- params
 		} else {
 			//hand.log.Info("得到份额", zap.String("RPC", string(data)))
 			hand.Workers[*id].AddShare()
