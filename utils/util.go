@@ -99,3 +99,21 @@ func DivTheDiff(newdiff *big.Int, olddiff *big.Int) *big.Int {
 	}
 	return new(big.Int).Div(new(big.Int).Add(newdiff, olddiff), new(big.Int).SetInt64(2))
 }
+
+// ETH 的结果parse
+// func EthJsonParseResult(buf []byte) (buf []byte, int, error){
+// 	buf, type1, _, err := jsonparser.Get(buf, "result")
+// 	if err != nil {
+// 		return (buf,nil,err)
+// 	}
+
+// 	switch type1 {
+// 	case jsonparser.Boolean:
+// 		return buf,type1,nil
+// 	case jsonparser.Array:
+// 		return buf,type1,nil
+// 	default:
+// 		return buf,nil,errors.New("不支持的类型")
+// 	}
+
+// }

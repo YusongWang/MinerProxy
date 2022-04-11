@@ -13,6 +13,7 @@ import (
 
 	"bufio"
 
+	"github.com/buger/jsonparser"
 	"go.uber.org/zap"
 )
 
@@ -62,9 +63,13 @@ func (hand *Handle) OnConnect(
 				return
 			}
 
-			var push eth.JSONPushMessage
-			if err = json.Unmarshal(buf, "result"); err == nil {
-				if result, ok := push.Result.(bool); ok {
+			//var push eth.JSONPushMessage
+			if res, type1, _, err := jsonparser.Get(buf, "result"); err == nil {
+				if type1 == jsonparser.Boolean {
+					var result bool
+					result = res.(bool)
+
+					//if result, ok := buf.(bool); ok {
 					//增加份额
 					if result {
 						hand.Workers[*id].AddShare()
@@ -73,10 +78,13 @@ func (hand *Handle) OnConnect(
 						hand.Workers[*id].AddReject()
 						log.Warn("无效份额", zap.Any("RPC", string(buf)))
 					}
-				} else if _, ok := push.Result.([]interface{}); ok {
+					//}
+				} else if type1 == jsonparser.Array {
+					res.([]interface{})
 					if _, ok := hand.Workers[*id]; !ok {
 						continue
 					}
+
 					hand.Workers[*id].AddIndex()
 
 					if utils.BaseOnIdxFee(hand.Workers[*id].GetIndex(), rpool.DevFee) {
@@ -148,7 +156,20 @@ func (hand *Handle) OnConnect(
 							c.Close()
 							return
 						}
+
 					}
+					// if result, ok := buf.(bool); ok {
+					// 	//增加份额
+					// 	if result {
+					// 		hand.Workers[*id].AddShare()
+					// 		//log.Info("有效份额", zap.Any("RPC", string(buf)))
+					// 	} else {
+					// 		hand.Workers[*id].AddReject()
+					// 		log.Warn("无效份额", zap.Any("RPC", string(buf)))
+					// 	}
+					// } else if _, ok := buf.([]interface{}); ok {
+
+					//}
 				} else {
 					c.Close()
 					hand.OnClose(id)
