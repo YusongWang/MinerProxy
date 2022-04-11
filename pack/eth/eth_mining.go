@@ -3,8 +3,6 @@ package eth
 import (
 	"encoding/json"
 	"errors"
-
-	"github.com/pquerna/ffjson/ffjson"
 )
 
 type JSONRpcReq struct {
@@ -57,7 +55,7 @@ type ServerReq struct {
 func EthStratumReq(data []byte) (StratumReq, error) {
 
 	var req StratumReq
-	err := ffjson.Unmarshal(data, &req)
+	err := json.Unmarshal(data, &req)
 	if err != nil {
 		return req, err
 	}
@@ -72,7 +70,7 @@ func EthSuccess(id json.RawMessage) (out []byte, err error) {
 		Result:  true,
 	}
 
-	out, err = ffjson.Marshal(rpc)
+	out, err = json.Marshal(rpc)
 	if err != nil {
 		return nil, err
 	}

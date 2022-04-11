@@ -1,6 +1,7 @@
 package eth
 
 import (
+	"encoding/json"
 	"miner_proxy/fee"
 	"miner_proxy/pack"
 	"miner_proxy/pack/eth"
@@ -12,7 +13,6 @@ import (
 
 	"bufio"
 
-	"github.com/pquerna/ffjson/ffjson"
 	"go.uber.org/zap"
 )
 
@@ -63,7 +63,7 @@ func (hand *Handle) OnConnect(
 			}
 
 			var push eth.JSONPushMessage
-			if err = ffjson.Unmarshal([]byte(buf), &push); err == nil {
+			if err = json.Unmarshal(buf, "result"); err == nil {
 				if result, ok := push.Result.(bool); ok {
 					//增加份额
 					if result {
@@ -183,7 +183,7 @@ func (hand *Handle) OnMessage(
 	switch req.Method {
 	case "eth_submitLogin":
 		var params []string
-		err = ffjson.Unmarshal(req.Params, &params)
+		err = json.Unmarshal(req.Params, &params)
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()
@@ -233,7 +233,7 @@ func (hand *Handle) OnMessage(
 		}()
 
 		var params []string
-		err = ffjson.Unmarshal(req.Params, &params)
+		err = json.Unmarshal(req.Params, &params)
 		if err != nil {
 			hand.log.Error(err.Error())
 			return

@@ -8,8 +8,9 @@ import (
 	"net"
 	"strings"
 
+	"encoding/json"
+
 	jsoniter "github.com/json-iterator/go"
-	"github.com/pquerna/ffjson/ffjson"
 
 	"bufio"
 
@@ -47,7 +48,7 @@ func (hand *NoFeeHandle) OnConnect(
 				return
 			}
 			var push pack.JSONPushMessage
-			if err = ffjson.Unmarshal([]byte(buf), &push); err == nil {
+			if err = json.Unmarshal([]byte(buf), &push); err == nil {
 				if result, ok := push.Result.(bool); ok {
 					//增加份额
 					if result == true {

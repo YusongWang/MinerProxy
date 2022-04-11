@@ -3,6 +3,7 @@ package eth
 import (
 	"bufio"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"log"
 	"miner_proxy/pack"
@@ -12,8 +13,6 @@ import (
 	"os"
 	"strings"
 	"sync"
-
-	"github.com/pquerna/ffjson/ffjson"
 
 	"go.uber.org/zap"
 )
@@ -106,7 +105,7 @@ func (eth *EthStratumServer) Login(wallet string, worker string) error {
 		Worker: worker,
 	}
 
-	res, err := ffjson.Marshal(login)
+	res, err := json.Marshal(login)
 	if err != nil {
 		return err
 	}
@@ -210,7 +209,7 @@ func (eth *EthStratumServer) StartLoop() {
 			}
 
 			var push ethpack.JSONPushMessage
-			if err = ffjson.Unmarshal([]byte(buf_str), &push); err == nil {
+			if err = json.Unmarshal([]byte(buf_str), &push); err == nil {
 				if result, ok := push.Result.(bool); ok {
 					//增加份额
 					if result {

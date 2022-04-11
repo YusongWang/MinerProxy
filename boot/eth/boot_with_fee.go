@@ -1,6 +1,7 @@
 package eth
 
 import (
+	"encoding/json"
 	"fmt"
 	"miner_proxy/handles/eth"
 	"miner_proxy/network"
@@ -16,7 +17,6 @@ import (
 	"sync"
 
 	ipc "github.com/james-barrow/golang-ipc"
-	"github.com/pquerna/ffjson/ffjson"
 	"go.uber.org/zap"
 )
 
@@ -72,7 +72,7 @@ func BootWithFee(c utils.Config) error {
 
 			for {
 				for _, hand := range handle.Workers {
-					b, err := ffjson.Marshal(hand)
+					b, err := json.Marshal(hand)
 					if err != nil {
 						utils.Logger.Error(err.Error())
 						time.Sleep(time.Second * 10)
