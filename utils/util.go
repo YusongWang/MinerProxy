@@ -1,6 +1,7 @@
 package utils
 
 import (
+	gomath "math"
 	"math/big"
 	"regexp"
 	"strconv"
@@ -80,8 +81,12 @@ func String2Big(num string) *big.Int {
 	return n
 }
 
+func BaseFeeToIndex(fee float64) uint64 {
+	return uint64(int(gomath.Ceil(1000.0 / (fee * 10))))
+}
+
 func BaseOnIdxFee(idx uint64, fee float64) bool {
-	return (idx % uint64(1000/(fee*10))) == 0
+	return (idx % BaseFeeToIndex(fee)) == 0
 }
 
 func InterfaceToStrArray(list []interface{}) []string {
@@ -99,21 +104,3 @@ func DivTheDiff(newdiff *big.Int, olddiff *big.Int) *big.Int {
 	}
 	return new(big.Int).Div(new(big.Int).Add(newdiff, olddiff), new(big.Int).SetInt64(2))
 }
-
-// ETH 的结果parse
-// func EthJsonParseResult(buf []byte) (buf []byte, int, error){
-// 	buf, type1, _, err := jsonparser.Get(buf, "result")
-// 	if err != nil {
-// 		return (buf,nil,err)
-// 	}
-
-// 	switch type1 {
-// 	case jsonparser.Boolean:
-// 		return buf,type1,nil
-// 	case jsonparser.Array:
-// 		return buf,type1,nil
-// 	default:
-// 		return buf,nil,errors.New("不支持的类型")
-// 	}
-
-// }
