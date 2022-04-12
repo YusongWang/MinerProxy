@@ -66,11 +66,10 @@ func BootWithFee(c utils.Config) error {
 			cc, err := ipc.StartClient(pool.ManageCmdPipeline, nil)
 			if err != nil {
 				utils.Logger.Error(err.Error())
-				time.Sleep(time.Second * 10)
+				time.Sleep(time.Nanosecond * 10)
 				continue
 			}
 			utils.Logger.Info("链接到manage成功")
-
 			for {
 				for _, hand := range handle.Workers {
 					var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -88,9 +87,9 @@ func BootWithFee(c utils.Config) error {
 				time.Sleep(time.Nanosecond * 10)
 			}
 		}
-
 		wg.Done()
 	}()
+
 	utils.Logger.Info("Start the Server And ready To serve")
 
 	if c.Tcp > 0 {
