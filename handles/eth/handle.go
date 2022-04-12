@@ -1,7 +1,6 @@
 package eth
 
 import (
-	"encoding/json"
 	"miner_proxy/fee"
 	"miner_proxy/pack"
 	"miner_proxy/pack/eth"
@@ -14,6 +13,7 @@ import (
 	"bufio"
 
 	"github.com/buger/jsonparser"
+	jsoniter "github.com/json-iterator/go"
 	"go.uber.org/zap"
 )
 
@@ -169,6 +169,8 @@ func (hand *Handle) OnMessage(
 	data []byte,
 	id *string,
 ) (out []byte, err error) {
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+
 	req, err := eth.EthStratumReq(data)
 	if err != nil {
 		hand.log.Error(err.Error())

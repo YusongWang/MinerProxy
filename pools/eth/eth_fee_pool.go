@@ -3,7 +3,6 @@ package eth
 import (
 	"bufio"
 	"crypto/tls"
-	"encoding/json"
 	"errors"
 	"log"
 	"miner_proxy/pack"
@@ -14,6 +13,7 @@ import (
 	"strings"
 	"sync"
 
+	jsoniter "github.com/json-iterator/go"
 	"go.uber.org/zap"
 )
 
@@ -105,7 +105,7 @@ func (eth *EthStratumServer) Login(wallet string, worker string) error {
 		},
 		Worker: worker,
 	}
-
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	res, err := json.Marshal(login)
 	if err != nil {
 		return err
@@ -208,7 +208,7 @@ func (eth *EthStratumServer) StartLoop() {
 				eth.Conn = temp.Conn
 				continue
 			}
-
+			var json = jsoniter.ConfigCompatibleWithStandardLibrary
 			var push ethpack.JSONPushMessage
 			if err = json.Unmarshal([]byte(buf_str), &push); err == nil {
 				if result, ok := push.Result.(bool); ok {

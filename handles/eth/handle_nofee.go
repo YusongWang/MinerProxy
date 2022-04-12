@@ -8,8 +8,6 @@ import (
 	"net"
 	"strings"
 
-	"encoding/json"
-
 	jsoniter "github.com/json-iterator/go"
 
 	"bufio"
@@ -35,6 +33,7 @@ func (hand *NoFeeHandle) OnConnect(
 		c.Close()
 		return nil, err
 	}
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 	// 处理上游矿池。如果连接失败。矿工线程直接退出并关闭
 	go func() {

@@ -1,12 +1,13 @@
 package eth
 
 import (
-	"encoding/json"
 	"fmt"
 	"miner_proxy/handles/eth"
 	"miner_proxy/network"
 	"miner_proxy/pack"
 	"time"
+
+	jsoniter "github.com/json-iterator/go"
 
 	pool "miner_proxy/pools"
 	ethpool "miner_proxy/pools/eth"
@@ -72,6 +73,7 @@ func BootWithFee(c utils.Config) error {
 
 			for {
 				for _, hand := range handle.Workers {
+					var json = jsoniter.ConfigCompatibleWithStandardLibrary
 					b, err := json.Marshal(hand)
 					if err != nil {
 						utils.Logger.Error(err.Error())

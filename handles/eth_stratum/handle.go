@@ -1,7 +1,6 @@
 package eth_stratum
 
 import (
-	"encoding/json"
 	"miner_proxy/fee"
 	"miner_proxy/pack"
 	ethpack "miner_proxy/pack/eth_stratum"
@@ -11,6 +10,7 @@ import (
 
 	"bufio"
 
+	jsoniter "github.com/json-iterator/go"
 	"go.uber.org/zap"
 )
 
@@ -36,7 +36,7 @@ func (hand *Handle) OnConnect(
 		c.Close()
 		return nil, err
 	}
-
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	// 处理上游矿池。如果连接失败。矿工线程直接退出并关闭
 	go func() {
 		reader := bufio.NewReader(pool)
@@ -86,6 +86,8 @@ func (hand *Handle) OnMessage(
 	data []byte,
 	id *string,
 ) (out []byte, err error) {
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	
 	hand.log.Info(string(data))
 	req, err := ethpack.EthStratumReq(data)
 	if err != nil {

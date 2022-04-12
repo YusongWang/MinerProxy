@@ -3,6 +3,8 @@ package eth
 import (
 	"encoding/json"
 	"errors"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 type JSONRpcReq struct {
@@ -53,7 +55,7 @@ type ServerReq struct {
 }
 
 func EthStratumReq(data []byte) (StratumReq, error) {
-
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	var req StratumReq
 	err := json.Unmarshal(data, &req)
 	if err != nil {
@@ -69,7 +71,7 @@ func EthSuccess(id json.RawMessage) (out []byte, err error) {
 		Version: "2.0",
 		Result:  true,
 	}
-
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	out, err = json.Marshal(rpc)
 	if err != nil {
 		return nil, err
