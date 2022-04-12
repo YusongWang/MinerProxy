@@ -51,7 +51,7 @@ func newEthStratumServerSsl(
 	eth := EthStratumServer{}
 	eth.Job = job
 	eth.Submit = submit
-	eth.PoolAddr = address
+	eth.PoolAddr = "ssl://" + address
 
 	cfg := tls.Config{}
 	cfg.InsecureSkipVerify = true
@@ -75,7 +75,8 @@ func newEthStratumServerTcp(
 	eth := EthStratumServer{}
 	eth.Job = job
 	eth.Submit = submit
-	eth.PoolAddr = address
+	eth.PoolAddr = "tcp://" + address
+
 	conn, err := net.Dial("tcp", address)
 	if err != nil {
 		return eth, err
