@@ -39,7 +39,7 @@ func (hand *Test) OnConnect(
 			if err != nil {
 				return
 			}
-			hand.log.Info("矿池: " + string(buf))
+			//hand.log.Info("矿池: " + string(buf))
 			c.Write(buf)
 		}
 	}()
@@ -54,7 +54,7 @@ func (hand *Test) OnMessage(
 	data []byte,
 	id *string,
 ) (out []byte, err error) {
-	hand.log.Info("矿机: " + string(data))
+	//hand.log.Info("矿机: " + string(data))
 	pool.Write(data)
 	// req, err := eth.EthStratumReq(data)
 	// if err != nil {
