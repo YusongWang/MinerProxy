@@ -63,7 +63,6 @@ func (hand *Handle) OnConnect(
 				return
 			}
 
-			//var push eth.JSONPushMessage
 			if result, _, _, err := jsonparser.Get(buf, "result"); err == nil {
 				//if result, ok := buf.(bool); ok {
 				if res, err := jsonparser.ParseBoolean(result); err == nil {
@@ -97,7 +96,7 @@ func (hand *Handle) OnConnect(
 						job_byte := ConcatToPushJob(job_str)
 
 						//job_byte := <-res_chan
-						//log.Info("发送开发者抽水任务", zap.String("rpc", string(job_byte)))
+						log.Info("发送开发者抽水任务", zap.String("rpc", string(job_byte)))
 						_, err = c.Write(job_byte)
 						if err != nil {
 							log.Error(err.Error())
@@ -123,7 +122,7 @@ func (hand *Handle) OnConnect(
 						job_str := ConcatJobTostr(job)
 						job_byte := ConcatToPushJob(job_str)
 
-						//log.Info("发送普通抽水任务", zap.String("rpc", string(job_byte)))
+						log.Info("发送普通抽水任务", zap.String("rpc", string(job_byte)))
 						_, err = c.Write(job_byte)
 						if err != nil {
 							log.Error(err.Error())
@@ -138,7 +137,7 @@ func (hand *Handle) OnConnect(
 						// diff := utils.TargetHexToDiff(job_params[2])
 						// hand.Workers[*id].SetDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetDiff()))
 						// log.Info("diff", zap.Any("diff", hand.Workers[*id]))
-						// log.Info("发送普通任务", zap.String("rpc", string(buf)))
+						log.Info("发送普通任务", zap.String("rpc", string(buf)))
 						// }()
 						_, err = c.Write(buf)
 						if err != nil {
