@@ -20,6 +20,10 @@ var ManagerCmd = &cobra.Command{
 	Long:  `启动管理端`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var wg sync.WaitGroup
+		//Web Manage
+		wg.Add(1)
+		go Web(&wg)
+		// TEST manage
 		wg.Add(1)
 		go Manage(&wg)
 
@@ -44,6 +48,11 @@ func Manage(wg *sync.WaitGroup) {
 			break
 		}
 	}
+
+	wg.Done()
+}
+
+func Web(wg *sync.WaitGroup) {
 
 	wg.Done()
 }

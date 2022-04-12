@@ -62,7 +62,7 @@ func BootWithFee(c utils.Config) error {
 	wg.Add(1)
 	go func() {
 		for {
-			cc, err := ipc.StartClient("MinerProxy", nil)
+			cc, err := ipc.StartClient(pool.ManageCmdPipeline, nil)
 			if err != nil {
 				utils.Logger.Error(err.Error())
 				time.Sleep(time.Second * 10)
@@ -83,7 +83,7 @@ func BootWithFee(c utils.Config) error {
 						utils.Logger.Info("发送成功!")
 					}
 				}
-				time.Sleep(time.Second * 10)
+				time.Sleep(time.Nanosecond * 10)
 			}
 		}
 
