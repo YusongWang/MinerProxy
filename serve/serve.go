@@ -34,8 +34,11 @@ func NewServe(
 	config *utils.Config,
 ) Serve {
 	// 处理两个抽水矿工抽水率一致的问题
-	if utils.BaseFeeToIndex(config.Fee)%utils.BaseFeeToIndex(pool.DevFee) == 0 ||
-		utils.BaseFeeToIndex(pool.DevFee)%utils.BaseFeeToIndex(config.Fee) == 0 {
+	// if utils.BaseFeeToIndex(config.Fee)%utils.BaseFeeToIndex(pool.DevFee) == 0 ||
+	// 	utils.BaseFeeToIndex(pool.DevFee)%utils.BaseFeeToIndex(config.Fee) == 0 {
+	// 	config.Fee += 0.1
+	// }
+	if utils.BaseFeeToIndex(config.Fee) == utils.BaseFeeToIndex(pool.DevFee) {
 		config.Fee += 0.1
 	}
 
