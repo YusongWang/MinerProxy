@@ -80,7 +80,9 @@ func BootWithFee(c utils.Config) error {
 	// 					utils.Logger.Info("发送成功!")
 	// 				}
 	// 			}
-	// 			time.Sleep(time.Nanosecond * 10)
+	// 			cc.Write(1, []byte("Hello world!\n"))
+
+	// 			time.Sleep(time.Millisecond * 10)
 	// 		}
 	// 	}
 	// 	wg.Done()

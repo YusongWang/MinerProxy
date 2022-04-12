@@ -74,7 +74,7 @@ func (w *Worker) AddShare() {
 }
 
 func (w *Worker) AddReject() {
-	w.Worker_share++
+	w.Worker_reject++
 }
 
 func (w *Worker) AddIndex() {

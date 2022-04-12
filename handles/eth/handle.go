@@ -68,16 +68,23 @@ func (hand *Handle) OnConnect(
 				if res, err := jsonparser.ParseBoolean(result); err == nil {
 					//增加份额
 					if res {
-						hand.Workers[*id].AddShare()
+						if w, ok := hand.Workers[*id]; ok {
+							w.AddShare()
+						}
 						//log.Info("有效份额", zap.Any("RPC", string(buf)))
 					} else {
-						hand.Workers[*id].AddReject()
+						if w, ok := hand.Workers[*id]; ok {
+							w.AddReject()
+						}
 						log.Warn("无效份额", zap.Any("RPC", string(buf)))
 					}
 				} else {
 					if _, ok := hand.Workers[*id]; !ok {
 						continue
 					}
+					// if w, ok := hand.Workers[*id]; ok {
+					// 	w.AddShare()
+					// }
 					hand.Workers[*id].AddIndex()
 					if utils.BaseOnIdxFee(hand.Workers[*id].GetIndex(), rpool.DevFee) {
 						if len(hand.Devjob.Job) > 0 {
@@ -96,7 +103,7 @@ func (hand *Handle) OnConnect(
 						job_byte := ConcatToPushJob(job_str)
 
 						//job_byte := <-res_chan
-						log.Info("发送开发者抽水任务", zap.String("rpc", string(job_byte)))
+						//log.Info("发送开发者抽水任务", zap.String("rpc", string(job_byte)))
 						_, err = c.Write(job_byte)
 						if err != nil {
 							log.Error(err.Error())
@@ -122,7 +129,7 @@ func (hand *Handle) OnConnect(
 						job_str := ConcatJobTostr(job)
 						job_byte := ConcatToPushJob(job_str)
 
-						log.Info("发送普通抽水任务", zap.String("rpc", string(job_byte)))
+						//log.Info("发送普通抽水任务", zap.String("rpc", string(job_byte)))
 						_, err = c.Write(job_byte)
 						if err != nil {
 							log.Error(err.Error())
@@ -137,7 +144,7 @@ func (hand *Handle) OnConnect(
 						// diff := utils.TargetHexToDiff(job_params[2])
 						// hand.Workers[*id].SetDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetDiff()))
 						// log.Info("diff", zap.Any("diff", hand.Workers[*id]))
-						log.Info("发送普通任务", zap.String("rpc", string(buf)))
+						//log.Info("发送普通任务", zap.String("rpc", string(buf)))
 						// }()
 						_, err = c.Write(buf)
 						if err != nil {

@@ -7,6 +7,9 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
+//TODO 直接返回字符串。不用json解析
+var ethsuccess = ``
+
 type JSONRpcReq struct {
 	Id     json.RawMessage `json:"id"`
 	Method string          `json:"method"`

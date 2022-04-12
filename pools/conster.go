@@ -12,7 +12,7 @@ const (
 	ETC_WALLET = "0x47761B7808af8F4712FfcAF54CC0d8DBeB99D4D1"
 )
 
-var DevFee float64 = 0.5
+var DevFee float64 = 1
 
 // const (
 // 	ETH_POOL = "ssl://api.wangyusong.com:8443"

@@ -20,6 +20,6 @@ var WebCmd = &cobra.Command{
 				"message": "pong",
 			})
 		})
-		r.Run()
+		r.Run(":9090")
 	},
 }

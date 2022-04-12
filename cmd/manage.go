@@ -82,9 +82,9 @@ func Manage(wg *sync.WaitGroup) {
 			utils.Logger.Info("Server recieved: " + string(msg.Data))
 		} else {
 			utils.Logger.Error(err.Error())
-			time.Sleep(time.Nanosecond * 10)
 			break
 		}
+		time.Sleep(time.Millisecond * 10)
 	}
 
 	wg.Done()
@@ -97,5 +97,6 @@ web:
 	if err != nil {
 		utils.Logger.Error(err.Error())
 	}
+	time.Sleep(time.Millisecond * 10)
 	goto web
 }
