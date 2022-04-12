@@ -1,12 +1,12 @@
 package eth
 
 import (
+	"io"
 	"miner_proxy/fee"
 	"miner_proxy/pack"
 	"miner_proxy/pack/eth"
 	rpool "miner_proxy/pools"
 	"miner_proxy/utils"
-	"net"
 	"strings"
 	"sync"
 
@@ -25,8 +25,8 @@ type Handle struct {
 	log     *zap.Logger
 	Devjob  *pack.Job
 	Feejob  *pack.Job
-	DevConn *net.Conn
-	FeeConn *net.Conn
+	DevConn *io.ReadWriteCloser
+	FeeConn *io.ReadWriteCloser
 	SubFee  *chan []string
 	SubDev  *chan []string
 	Workers map[string]*pack.Worker
@@ -35,12 +35,12 @@ type Handle struct {
 var job []string
 
 func (hand *Handle) OnConnect(
-	c net.Conn,
+	c io.ReadWriteCloser,
 	config *utils.Config,
 	fee *fee.Fee,
 	addr string,
 	id *string,
-) (net.Conn, error) {
+) (io.ReadWriteCloser, error) {
 	hand.log.Info("Miner Connect To Pool " + config.Pool + "    UUID: " + *id)
 	pool, err := utils.NewPool(config.Pool)
 	if err != nil {
@@ -49,7 +49,7 @@ func (hand *Handle) OnConnect(
 		return nil, err
 	}
 
-	log := (*hand.log).With(zap.String("IP", c.RemoteAddr().String()), zap.String("UUID", *id))
+	log := (*hand.log).With(zap.String("UUID", *id))
 
 	// 处理上游矿池。如果连接失败。矿工线程直接退出并关闭
 	go func() {
@@ -162,8 +162,8 @@ func (hand *Handle) OnConnect(
 }
 
 func (hand *Handle) OnMessage(
-	c net.Conn,
-	pool net.Conn,
+	c io.ReadWriteCloser,
+	pool io.ReadWriteCloser,
 	fee *fee.Fee,
 	data []byte,
 	id *string,

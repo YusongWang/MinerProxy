@@ -1,11 +1,11 @@
 package eth
 
 import (
+	"io"
 	"miner_proxy/fee"
 	"miner_proxy/pack/eth"
 	pack "miner_proxy/pack/eth"
 	"miner_proxy/utils"
-	"net"
 	"strings"
 
 	jsoniter "github.com/json-iterator/go"
@@ -20,12 +20,12 @@ type NoFeeHandle struct {
 }
 
 func (hand *NoFeeHandle) OnConnect(
-	c net.Conn,
+	c io.ReadWriteCloser,
 	config *utils.Config,
 	fee *fee.Fee,
 	addr string,
 	id *string,
-) (net.Conn, error) {
+) (io.ReadWriteCloser, error) {
 	hand.log.Info("On Miner Connect To Pool " + config.Pool)
 	pool, err := utils.NewPool(config.Pool)
 	if err != nil {
@@ -39,7 +39,7 @@ func (hand *NoFeeHandle) OnConnect(
 	go func() {
 		reader := bufio.NewReader(pool)
 		//writer := bufio.NewWriter(c)
-		log := hand.log.With(zap.String("Miner", c.RemoteAddr().String()))
+		log := hand.log
 
 		for {
 			buf, err := reader.ReadBytes('\n')
@@ -81,8 +81,8 @@ func (hand *NoFeeHandle) OnConnect(
 }
 
 func (hand *NoFeeHandle) OnMessage(
-	c net.Conn,
-	pool net.Conn,
+	c io.ReadWriteCloser,
+	pool io.ReadWriteCloser,
 	fee *fee.Fee,
 	data []byte,
 	id *string,

@@ -2,9 +2,9 @@ package test
 
 import (
 	"bufio"
+	"io"
 	"miner_proxy/fee"
 	"miner_proxy/utils"
-	"net"
 
 	"go.uber.org/zap"
 )
@@ -14,12 +14,12 @@ type Test struct {
 }
 
 func (hand *Test) OnConnect(
-	c net.Conn,
+	c io.ReadWriteCloser,
 	config *utils.Config,
 	fee *fee.Fee,
 	addr string,
 	id *string,
-) (net.Conn, error) {
+) (io.ReadWriteCloser, error) {
 	hand.log.Info("On Miner Connect To Pool " + config.Pool)
 	pool, err := utils.NewPool(config.Pool)
 	if err != nil {
@@ -32,14 +32,14 @@ func (hand *Test) OnConnect(
 	go func() {
 		reader := bufio.NewReader(pool)
 		//writer := bufio.NewWriter(c)
-		log := hand.log.With(zap.String("Miner", c.RemoteAddr().String()))
+		//log := hand.log.With(zap.String()
 
 		for {
 			buf, err := reader.ReadBytes('\n')
 			if err != nil {
 				return
 			}
-			log.Info("矿池: " + string(buf))
+			hand.log.Info("矿池: " + string(buf))
 			c.Write(buf)
 		}
 	}()
@@ -48,8 +48,8 @@ func (hand *Test) OnConnect(
 }
 
 func (hand *Test) OnMessage(
-	c net.Conn,
-	pool net.Conn,
+	c io.ReadWriteCloser,
+	pool io.ReadWriteCloser,
 	fee *fee.Fee,
 	data []byte,
 	id *string,

@@ -2,13 +2,13 @@ package utils
 
 import (
 	"errors"
-	"net"
+	"io"
 	"strings"
 )
 
 func NewPool(
 	address string,
-) (net.Conn, error) {
+) (io.ReadWriteCloser, error) {
 	if strings.HasPrefix(address, "tcp://") {
 		address = strings.ReplaceAll(address, "tcp://", "")
 		return Tcp(address)

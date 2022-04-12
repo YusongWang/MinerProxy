@@ -2,6 +2,7 @@ package serve
 
 import (
 	"bufio"
+	"io"
 	"miner_proxy/fee"
 	"miner_proxy/handles"
 	pool "miner_proxy/pools"
@@ -75,7 +76,7 @@ func (s *Serve) StartLoop() {
 }
 
 //接受请求
-func (s *Serve) serve(conn net.Conn, pool net.Conn, fee *fee.Fee, id *string) {
+func (s *Serve) serve(conn io.ReadWriteCloser, pool io.ReadWriteCloser, fee *fee.Fee, id *string) {
 
 	reader := bufio.NewReader(conn)
 	// dev_bufio := s.Handle.GiveDevbufio()

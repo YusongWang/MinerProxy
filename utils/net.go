@@ -2,10 +2,15 @@ package utils
 
 import (
 	"crypto/tls"
+	"io"
 	"net"
 )
 
-func Tcp(address string) (net.Conn, error) {
+type setNoDelayer interface {
+	SetNoDelay(bool) error
+}
+
+func Tcp(address string) (io.ReadWriteCloser, error) {
 	tcpAddr, err := net.ResolveTCPAddr("tcp", address)
 	if err != nil {
 		return nil, err
@@ -20,14 +25,19 @@ func Tcp(address string) (net.Conn, error) {
 	return conn, nil
 }
 
-func Tls(address string) (net.Conn, error) {
+func Tls(address string) (io.ReadWriteCloser, error) {
+	var rw io.ReadWriteCloser
+
 	cfg := tls.Config{}
 	cfg.InsecureSkipVerify = true
 	cfg.PreferServerCipherSuites = true
-	conn, err := tls.Dial("tcp", address, &cfg)
+	rw, err := tls.Dial("tcp", address, &cfg)
 	if err != nil {
 		return nil, err
 	}
+	if c, ok := rw.(setNoDelayer); ok {
+		c.SetNoDelay(true)
+	}
 
-	return conn, nil
+	return rw, nil
 }

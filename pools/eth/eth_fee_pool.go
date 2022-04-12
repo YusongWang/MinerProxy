@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"crypto/tls"
 	"errors"
+	"io"
 	"log"
 	"miner_proxy/pack"
 	ethpack "miner_proxy/pack/eth"
@@ -17,8 +18,12 @@ import (
 	"go.uber.org/zap"
 )
 
+type setNoDelayer interface {
+	SetNoDelay(bool) error
+}
+
 type EthStratumServer struct {
-	Conn     net.Conn
+	Conn     io.ReadWriteCloser
 	Job      *pack.Job
 	Submit   chan []string
 	PoolAddr string
@@ -56,13 +61,14 @@ func newEthStratumServerSsl(
 	cfg := tls.Config{}
 	cfg.InsecureSkipVerify = true
 	cfg.PreferServerCipherSuites = true
-
-	conn, err := tls.Dial("tcp", address, &cfg)
+	var err error
+	eth.Conn, err = tls.Dial("tcp", address, &cfg)
 	if err != nil {
 		return eth, err
 	}
-
-	eth.Conn = conn
+	if c, ok := eth.Conn.(setNoDelayer); ok {
+		c.SetNoDelay(true)
+	}
 	return eth, nil
 }
 
@@ -76,12 +82,20 @@ func newEthStratumServerTcp(
 	eth.Job = job
 	eth.Submit = submit
 	eth.PoolAddr = "tcp://" + address
-
-	conn, err := net.Dial("tcp", address)
+	tcpAddr, err := net.ResolveTCPAddr("tcp", address)
 	if err != nil {
 		return eth, err
 	}
-	eth.Conn = conn
+
+	eth.Conn, err = net.DialTCP("tcp", nil, tcpAddr)
+	if err != nil {
+		return eth, err
+	}
+
+	if c, ok := eth.Conn.(setNoDelayer); ok {
+		c.SetNoDelay(true)
+	}
+
 	return eth, nil
 }
 
