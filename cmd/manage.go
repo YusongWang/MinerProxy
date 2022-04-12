@@ -3,6 +3,8 @@ package cmd
 import (
 	pool "miner_proxy/pools"
 	"miner_proxy/utils"
+	"os"
+	"os/exec"
 	"sync"
 	"time"
 
@@ -16,8 +18,8 @@ func init() {
 
 var ManagerCmd = &cobra.Command{
 	Use:   "manage",
-	Short: "启动管理端",
-	Long:  `启动管理端`,
+	Short: "m",
+	Long:  `manage`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var wg sync.WaitGroup
 		//Web Manage
@@ -53,6 +55,13 @@ func Manage(wg *sync.WaitGroup) {
 }
 
 func Web(wg *sync.WaitGroup) {
+web:
+	web := exec.Command(os.Args[0], "web")
+	err := web.Run()
+	if err != nil {
+		utils.Logger.Error(err.Error())
+	}
+	goto web
 
 	wg.Done()
 }

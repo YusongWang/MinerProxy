@@ -10,8 +10,8 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "MinerProxy",
-	Short: "高性能矿工代理工具",
-	Long:  `提供高性能的矿工服务转发`,
+	Short: "",
+	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		// deamon the watch dog.
 
