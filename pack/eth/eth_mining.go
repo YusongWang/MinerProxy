@@ -8,7 +8,9 @@ import (
 )
 
 //TODO 直接返回字符串。不用json解析
-var ethsuccess = `{"id":1,"jsonrpc":"2.0","result":true}`
+
+var ethsuccess = `{"id":`
+var ethsuccess_end = `,"jsonrpc":"2.0","result":true}`
 
 type JSONRpcReq struct {
 	Id     json.RawMessage `json:"id"`
@@ -80,7 +82,7 @@ func EthSuccess(id json.RawMessage) (out []byte, err error) {
 	// 	return nil, err
 	// }
 
-	out = []byte(ethsuccess)
+	out = []byte(ethsuccess + string(id) + ethsuccess_end)
 	out = append(out, '\n')
 	return
 }
