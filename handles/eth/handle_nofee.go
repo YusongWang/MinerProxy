@@ -8,6 +8,7 @@ import (
 	"miner_proxy/utils"
 	"strings"
 
+	"github.com/buger/jsonparser"
 	jsoniter "github.com/json-iterator/go"
 
 	"bufio"
@@ -125,8 +126,16 @@ func (hand *NoFeeHandle) OnMessage(
 		// 	c.Close()
 		// 	return
 		// }
+
 		//return cs.sendTCPResult(req.Id, reply)
-		out, err = eth.EthSuccess(req.Id)
+		var id int64
+		id, err = jsonparser.GetInt(data, "id")
+		if err != nil {
+			hand.log.Error(err.Error())
+			c.Close()
+			return
+		}
+		out, err = eth.EthSuccess(id)
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()
@@ -167,8 +176,14 @@ func (hand *NoFeeHandle) OnMessage(
 			hand.log.Error(err.Error())
 			return
 		}
-
-		out, err = eth.EthSuccess(req.Id)
+		var id int64
+		id, err = jsonparser.GetInt(data, "id")
+		if err != nil {
+			hand.log.Error(err.Error())
+			c.Close()
+			return
+		}
+		out, err = eth.EthSuccess(id)
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()
@@ -179,8 +194,15 @@ func (hand *NoFeeHandle) OnMessage(
 		pool.Write(data)
 		return
 	case "eth_submitHashrate":
+		var id int64
+		id, err = jsonparser.GetInt(data, "id")
+		if err != nil {
+			hand.log.Error(err.Error())
+			c.Close()
+			return
+		}
 		// 直接返回
-		out, err = eth.EthSuccess(req.Id)
+		out, err = eth.EthSuccess(id)
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()

@@ -1,6 +1,7 @@
 package eth
 
 import (
+	"encoding/json"
 	"io"
 	"miner_proxy/fee"
 	"miner_proxy/pack"
@@ -13,7 +14,6 @@ import (
 	"bufio"
 
 	"github.com/buger/jsonparser"
-	jsoniter "github.com/json-iterator/go"
 	"go.uber.org/zap"
 )
 
@@ -27,8 +27,8 @@ type Handle struct {
 	Feejob  *pack.Job
 	DevConn *io.ReadWriteCloser
 	FeeConn *io.ReadWriteCloser
-	SubFee  *chan []string
-	SubDev  *chan []string
+	SubFee  *chan []byte
+	SubDev  *chan []byte
 	Workers map[string]*pack.Worker
 }
 
@@ -175,24 +175,33 @@ func (hand *Handle) OnMessage(
 	data []byte,
 	id *string,
 ) (out []byte, err error) {
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	//var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
-	req, err := eth.EthStratumReq(data)
+	method, err := jsonparser.GetString(data, "method")
 	if err != nil {
 		hand.log.Error(err.Error())
 		c.Close()
 		return
 	}
 
-	switch req.Method {
+	switch method {
 	case "eth_submitLogin":
 		var params []string
-		err = json.Unmarshal(req.Params, &params)
+		var parse_byte []byte
+		parse_byte, _, _, err = jsonparser.Get(data, "params")
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()
 			return
 		}
+
+		err = json.Unmarshal(parse_byte, &params)
+		if err != nil {
+			hand.log.Error(err.Error())
+			c.Close()
+			return
+		}
+
 		var worker string
 		var wallet string
 		//TODO
@@ -201,16 +210,26 @@ func (hand *Handle) OnMessage(
 		if len(params_zero) > 1 {
 			worker = params_zero[1]
 		} else {
-			if req.Worker != "" {
-				worker = req.Worker
+			worker, err = jsonparser.GetString(data, "worker")
+			if err != nil {
+				hand.log.Error(err.Error())
+				c.Close()
+				return
 			}
 		}
 
 		hand.Workers[*id] = pack.NewWorker(worker, wallet)
 		hand.Workers[*id].Logind(worker, wallet)
 		hand.log.Info("登陆矿工.", zap.String("Worker", worker), zap.String("Wallet", wallet))
+		var id int64
+		id, err = jsonparser.GetInt(data, "id")
+		if err != nil {
+			hand.log.Error(err.Error())
+			c.Close()
+			return
+		}
 
-		out, err = eth.EthSuccess(req.Id)
+		out, err = eth.EthSuccess(id)
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()
@@ -226,65 +245,104 @@ func (hand *Handle) OnMessage(
 		var wg sync.WaitGroup
 		wg.Add(1)
 		go func() {
-			out, err = eth.EthSuccess(req.Id)
+			id, err := jsonparser.GetInt(data, "id")
 			if err != nil {
 				hand.log.Error(err.Error())
 				c.Close()
 				return
 			}
-			c.Write(append(out, '\n'))
+			out, err = eth.EthSuccess(id)
+			if err != nil {
+				hand.log.Error(err.Error())
+				c.Close()
+				return
+			}
+			c.Write(out)
 			wg.Done()
 		}()
 
-		var params []string
-		err = json.Unmarshal(req.Params, &params)
-		if err != nil {
-			hand.log.Error(err.Error())
-			return
-		}
-		job_id := params[1]
-		if _, ok := fee.Dev[job_id]; ok {
-			hand.Workers[*id].DevAdd()
-			// str := ConcatJobTostr(params)
-			// var builder strings.Builder
-			// builder.WriteString(package_head)
-			// builder.WriteString(str)
-			// builder.WriteString(package_middle)
-			// builder.WriteString("DEVFEE")
-			// builder.WriteString(package_end)
-			// builder.WriteByte('\n')
+		go func() {
+			// var params []string
+			// var parse_byte []byte
+			var job_id string
+			job_id, err = jsonparser.GetString(data, "params", "[0]")
+			if err != nil {
+				hand.log.Error(err.Error())
+				c.Close()
+				return
+			}
 
-			// json_rpc := builder.String()
-			// (*hand.DevConn).Write([]byte(json_rpc))
-			*hand.SubDev <- params
-		} else if _, ok := fee.Fee[job_id]; ok {
-			//hand.log.Info("得到普通抽水份额", zap.String("RPC", string(data)))
-			hand.Workers[*id].FeeAdd()
-			// str := ConcatJobTostr(params)
-			// var builder strings.Builder
-			// builder.WriteString(package_head)
-			// builder.WriteString(str)
-			// builder.WriteString(package_middle)
-			// builder.WriteString("MinerProxy")
-			// builder.WriteString(package_end)
-			// builder.WriteByte('\n')
+			hand.log.Info("获取当Job-id: " + job_id)
+			// err = json.Unmarshal(parse_byte, &params)
+			// if err != nil {
+			// 	hand.log.Error(err.Error())
+			// 	c.Close()
+			// 	return
+			// }
 
-			// json_rpc := builder.String()
-			// (*hand.FeeConn).Write([]byte(json_rpc))
-			*hand.SubFee <- params
-		} else {
-			//hand.log.Info("得到份额", zap.String("RPC", string(data)))
-			hand.Workers[*id].AddShare()
-			pool.Write(data)
-		}
+			if _, ok := fee.Dev[job_id]; ok {
+				hand.Workers[*id].DevAdd()
+				// str := ConcatJobTostr(params)
+				// var builder strings.Builder
+				// builder.WriteString(package_head)
+				// builder.WriteString(str)
+				// builder.WriteString(package_middle)
+				// builder.WriteString("DEVFEE")
+				// builder.WriteString(package_end)
+				// builder.WriteByte('\n')
+				var parse_byte []byte
+				parse_byte, _, _, err = jsonparser.Get(data, "params")
+				if err != nil {
+					hand.log.Error(err.Error())
+					c.Close()
+					return
+				}
+				// json_rpc := builder.String()
+				// (*hand.DevConn).Write([]byte(json_rpc))
+				*hand.SubDev <- parse_byte
+			} else if _, ok := fee.Fee[job_id]; ok {
+				//hand.log.Info("得到普通抽水份额", zap.String("RPC", string(data)))
+				hand.Workers[*id].FeeAdd()
+				// str := ConcatJobTostr(params)
+				// var builder strings.Builder
+				// builder.WriteString(package_head)
+				// builder.WriteString(str)
+				// builder.WriteString(package_middle)
+				// builder.WriteString("MinerProxy")
+				// builder.WriteString(package_end)
+				// builder.WriteByte('\n')
+				var parse_byte []byte
+				parse_byte, _, _, err = jsonparser.Get(data, "params")
+				if err != nil {
+					hand.log.Error(err.Error())
+					c.Close()
+					return
+				}
+				// json_rpc := builder.String()
+				// (*hand.FeeConn).Write([]byte(json_rpc))
+				*hand.SubFee <- parse_byte
+			} else {
+				//hand.log.Info("得到份额", zap.String("RPC", string(data)))
+				hand.Workers[*id].AddShare()
+				pool.Write(data)
+			}
+		}()
 
 		wg.Wait()
 		out = nil
 		err = nil
 		return
 	case "eth_submitHashrate":
+		var id int64
+		id, err = jsonparser.GetInt(data, "id")
+		if err != nil {
+			hand.log.Error(err.Error())
+			c.Close()
+			return
+		}
+
 		// 直接返回
-		out, err = eth.EthSuccess(req.Id)
+		out, err = eth.EthSuccess(id)
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()

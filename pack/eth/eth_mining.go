@@ -3,6 +3,7 @@ package eth
 import (
 	"encoding/json"
 	"errors"
+	"strconv"
 
 	jsoniter "github.com/json-iterator/go"
 )
@@ -16,6 +17,12 @@ type JSONRpcReq struct {
 	Id     json.RawMessage `json:"id"`
 	Method string          `json:"method"`
 	Params json.RawMessage `json:"params"`
+}
+
+type JSONRpcReqType struct {
+	Id     int      `json:"id"`
+	Method string   `json:"method"`
+	Params []string `json:"params"`
 }
 
 type StratumReq struct {
@@ -70,7 +77,7 @@ func EthStratumReq(data []byte) (StratumReq, error) {
 }
 
 // Return Success
-func EthSuccess(id json.RawMessage) (out []byte, err error) {
+func EthSuccess(id int64) (out []byte, err error) {
 	// rpc := &JSONRpcResp{
 	// 	Id:      id,
 	// 	Version: "2.0",
@@ -82,7 +89,7 @@ func EthSuccess(id json.RawMessage) (out []byte, err error) {
 	// 	return nil, err
 	// }
 
-	out = []byte(ethsuccess + string(id) + ethsuccess_end)
+	out = []byte(ethsuccess + strconv.Itoa(int(id)) + ethsuccess_end)
 	out = append(out, '\n')
 	return
 }

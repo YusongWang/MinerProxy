@@ -25,7 +25,7 @@ type setNoDelayer interface {
 type EthStratumServer struct {
 	Conn     io.ReadWriteCloser
 	Job      *pack.Job
-	Submit   chan []string
+	Submit   chan []byte
 	PoolAddr string
 	Wallet   string
 	Worker   string
@@ -34,7 +34,7 @@ type EthStratumServer struct {
 func New(
 	address string,
 	job *pack.Job,
-	submit chan []string,
+	submit chan []byte,
 ) (EthStratumServer, error) {
 	if strings.HasPrefix(address, "tcp://") {
 		address = strings.ReplaceAll(address, "tcp://", "")
@@ -50,7 +50,7 @@ func New(
 func newEthStratumServerSsl(
 	address string,
 	job *pack.Job,
-	submit chan []string,
+	submit chan []byte,
 	pool string,
 ) (EthStratumServer, error) {
 	eth := EthStratumServer{}
@@ -75,7 +75,7 @@ func newEthStratumServerSsl(
 func newEthStratumServerTcp(
 	address string,
 	job *pack.Job,
-	submit chan []string,
+	submit chan []byte,
 	pool string,
 ) (EthStratumServer, error) {
 	eth := EthStratumServer{}
@@ -161,16 +161,15 @@ var package_middle = `,"worker":"`
 var package_end = `"}`
 
 // 提交工作量证明
-func (eth *EthStratumServer) SubmitJob(job []string) error {
-	str := ConcatJobTostr(job)
+func (eth *EthStratumServer) SubmitJob(job []byte) error {
+	//str := ConcatJobTostr(job)
 	var builder strings.Builder
 	builder.WriteString(package_head)
-	builder.WriteString(str)
+	builder.WriteString(string(job))
 	builder.WriteString(package_middle)
 	builder.WriteString(eth.Worker)
 	builder.WriteString(package_end)
 	builder.WriteByte('\n')
-
 	json_rpc := builder.String()
 	utils.Logger.Info("给服务器提交工作量证明", zap.Any("RPC", json_rpc))
 
@@ -229,7 +228,7 @@ func (eth *EthStratumServer) StartLoop() {
 					//增加份额
 					if result {
 						// TODO
-						//log.Info("有效份额", zap.Any("RPC", buf_str))
+						log.Info("有效份额", zap.Any("RPC", buf_str))
 					} else {
 						log.Warn("无效份额", zap.Any("RPC", buf_str))
 					}
