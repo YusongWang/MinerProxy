@@ -19,6 +19,7 @@ const (
 
 type Config struct {
 	Coin    string
+	Id int
 	Tcp     int
 	Tls     int
 	Enport  int

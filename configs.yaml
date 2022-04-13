@@ -1,4 +1,5 @@
 - coin: ETH
+  id: 1
   pool: ssl://asia2.ethermine.org:5555 
   feepool: ssl://asia2.ethermine.org:5555 
   mode: 2 
@@ -9,6 +10,7 @@
   key: key.pem
   crt: cert.pem
 - coin: ETH
+  id: 2
   pool: ssl://asia2.ethermine.org:5555 
   feepool: ssl://asia2.ethermine.org:5555 
   mode: 2 

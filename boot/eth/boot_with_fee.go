@@ -5,6 +5,7 @@ import (
 	"miner_proxy/handles/eth"
 	"miner_proxy/network"
 	"miner_proxy/pack"
+	"time"
 
 	pool "miner_proxy/pools"
 	ethpool "miner_proxy/pools/eth"
@@ -14,6 +15,8 @@ import (
 	"os"
 	"sync"
 
+	ipc "github.com/james-barrow/golang-ipc"
+	jsoniter "github.com/json-iterator/go"
 	"go.uber.org/zap"
 )
 
@@ -56,37 +59,38 @@ func BootWithFee(c utils.Config) error {
 		Workers: make(map[string]*pack.Worker),
 	}
 
-	// wg.Add(1)
-	// go func() {
-	// 	for {
-	// 		cc, err := ipc.StartClient(pool.ManageCmdPipeline, nil)
-	// 		if err != nil {
-	// 			utils.Logger.Error(err.Error())
-	// 			time.Sleep(time.Nanosecond * 10)
-	// 			continue
-	// 		}
-	// 		utils.Logger.Info("链接到manage成功")
-	// 		for {
-	// 			for _, hand := range handle.Workers {
-	// 				var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	// 				b, err := json.Marshal(hand)
-	// 				if err != nil {
-	// 					utils.Logger.Error(err.Error())
-	// 					time.Sleep(time.Second * 10)
-	// 					continue
-	// 				}
-	// 				err = cc.Write(1, b)
-	// 				if err == nil {
-	// 					utils.Logger.Info("发送成功!")
-	// 				}
-	// 			}
-	// 			cc.Write(1, []byte("Hello world!\n"))
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 
-	// 			time.Sleep(time.Millisecond * 10)
-	// 		}
-	// 	}
-	// 	wg.Done()
-	// }()
+		for {
+			cc, err := ipc.StartClient(pool.WebCmdPipeline, nil)
+			if err != nil {
+				utils.Logger.Error(err.Error())
+				time.Sleep(time.Second * 60)
+				continue
+			}
+
+			utils.Logger.Info("链接到manage成功")
+
+			for {
+				for _, hand := range handle.Workers {
+					var json = jsoniter.ConfigCompatibleWithStandardLibrary
+					b, err := json.Marshal(hand)
+					if err != nil {
+						utils.Logger.Error(err.Error())
+						time.Sleep(time.Second * 60)
+						continue
+					}
+					err = cc.Write(1, b)
+					if err == nil {
+						utils.Logger.Info("发送成功!")
+					}
+				}
+				time.Sleep(time.Second * 60)
+			}
+		}
+	}()
 
 	utils.Logger.Info("Start the Server And ready To serve")
 

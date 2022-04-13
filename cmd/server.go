@@ -1,9 +1,7 @@
 package cmd
 
 import (
-	"log"
-	"net/http"
-	_ "net/http/pprof"
+	//_ "net/http/pprof"
 	"os"
 
 	etcboot "miner_proxy/boot/etc"
@@ -23,6 +21,9 @@ func init() {
 
 	serverCmd.Flags().String("coin", "ETH", "指定需要代理的币种")
 	viper.BindPFlag("coin", serverCmd.Flags().Lookup("coin"))
+
+	serverCmd.Flags().Int("id", 0, "指定当前代理编号")
+	viper.BindPFlag("id", serverCmd.Flags().Lookup("id"))
 
 	serverCmd.Flags().String("crt", "cert.pem", "指定SSL服务器证书")
 	viper.BindPFlag("crt", serverCmd.Flags().Lookup("crt"))
@@ -56,14 +57,12 @@ func init() {
 
 	serverCmd.Flags().Float64("fee", 0.0, "抽水率(%)默认 2% 支持一位小数点。")
 	viper.BindPFlag("fee", serverCmd.Flags().Lookup("fee"))
-	// serverCmd.Flags().String("config", "./config.yaml", "指定配置文件")
-	// viper.BindPFlag("config", serverCmd.Flags().Lookup("config"))
 }
 
 var serverCmd = &cobra.Command{
 	Use:   "server",
-	Short: "s",
-	Long:  `server`,
+	Short: "开启纯转发模式，不启动web界面。",
+	Long:  `开启纯转发模式，不启动web界面。`,
 	Run: func(cmd *cobra.Command, args []string) {
 		viper.BindPFlags(pflag.CommandLine)
 		config := parseConfig()
@@ -73,9 +72,9 @@ var serverCmd = &cobra.Command{
 			os.Exit(99)
 		}
 
-		go func() {
-			log.Println(http.ListenAndServe(":6060", nil))
-		}()
+		// go func() {
+		// 	log.Println(http.ListenAndServe(":6060", nil))
+		// }()
 
 		if config.Mode == 1 {
 			switch config.Coin {
@@ -85,8 +84,6 @@ var serverCmd = &cobra.Command{
 				etcboot.BootNoFee(config)
 			default:
 				test.BootNoFee(config)
-				// utils.Logger.Error("暂未支持的币种")
-				// os.Exit(99)
 			}
 		} else if config.Mode == 2 {
 			switch config.Coin {
@@ -98,8 +95,6 @@ var serverCmd = &cobra.Command{
 				eth_test.BootWithFee(config)
 			default:
 				test.BootNoFee(config)
-				// utils.Logger.Error("暂未支持的币种")
-				// os.Exit(99)
 			}
 		} else {
 			utils.Logger.Error("不支持的Mode参数")
@@ -169,6 +164,11 @@ func parseFromCli(c *utils.Config) {
 	worker := viper.GetString("worker")
 	if worker != "" {
 		c.Worker = worker
+	}
+
+	id := viper.GetInt("id")
+	if id != 0 {
+		c.Id = id
 	}
 }
 

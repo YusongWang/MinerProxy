@@ -8,7 +8,7 @@ import (
 )
 
 //TODO 直接返回字符串。不用json解析
-var ethsuccess = ``
+var ethsuccess = `{"id":1,"jsonrpc":"2.0","result":true}\n`
 
 type JSONRpcReq struct {
 	Id     json.RawMessage `json:"id"`
@@ -69,16 +69,19 @@ func EthStratumReq(data []byte) (StratumReq, error) {
 
 // Return Success
 func EthSuccess(id json.RawMessage) (out []byte, err error) {
-	rpc := &JSONRpcResp{
-		Id:      id,
-		Version: "2.0",
-		Result:  true,
-	}
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	out, err = json.Marshal(rpc)
-	if err != nil {
-		return nil, err
-	}
+	// rpc := &JSONRpcResp{
+	// 	Id:      id,
+	// 	Version: "2.0",
+	// 	Result:  true,
+	// }
+	// var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	// out, err = json.Marshal(rpc)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// out = append(out, '\n')
+	out = []byte(ethsuccess)
+
 	return
 }
 
