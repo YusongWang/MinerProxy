@@ -41,6 +41,8 @@ var rootCmd = &cobra.Command{
 
 		//TODO 监听配置文件
 		InitializeConfig()
+
+		fmt.Println(global.WebApp)
 		// 启动SERVER配置。
 
 		// 启动web配置
@@ -168,6 +170,7 @@ func InitializeConfig() *viper.Viper {
 	v.SetConfigFile(config)
 	v.SetConfigType("yaml")
 	if err := v.ReadInConfig(); err != nil {
+		fmt.Println(err.Error())
 		return v
 	}
 

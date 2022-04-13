@@ -1,22 +1,25 @@
-- coin: ETH
-  id: 1
-  pool: ssl://asia2.ethermine.org:5555 
-  feepool: ssl://asia2.ethermine.org:5555 
-  mode: 2 
-  wallet: 0x3602b50d3086edefcd9318bcceb6389004fb14ee 
-  tls: 8443
-  fee: 30 
-  tcp: 8888
-  key: key.pem
-  crt: cert.pem
-- coin: ETH
-  id: 2
-  pool: ssl://asia2.ethermine.org:5555 
-  feepool: ssl://asia2.ethermine.org:5555 
-  mode: 2 
-  wallet: 0x3602b50d3086edefcd9318bcceb6389004fb14ee 
-  tls: 8440
-  fee: 30 
-  tcp: 0
-  key: key.pem
-  crt: cert.pem
+a: 
+  - 
+    coin: ETH
+    id: 1
+    pool: ssl://asia2.ethermine.org:5555 
+    feepool: ssl://asia2.ethermine.org:5555 
+    mode: 2 
+    wallet: 0x3602b50d3086edefcd9318bcceb6389004fb14ee 
+    tls: 8443
+    fee: 30 
+    tcp: 8888
+    key: key.pem
+    crt: cert.pem
+  - 
+    coin: ETH
+    id: 2
+    pool: ssl://asia2.ethermine.org:5555 
+    feepool: ssl://asia2.ethermine.org:5555 
+    mode: 2 
+    wallet: 0x3602b50d3086edefcd9318bcceb6389004fb14ee 
+    tls: 8440
+    fee: 30 
+    tcp: 0
+    key: key.pem
+    crt: cert.pem
