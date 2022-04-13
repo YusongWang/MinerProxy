@@ -19,6 +19,9 @@ type WebApplication struct {
 	ConfigViper *viper.Viper
 	Config      []utils.Config
 	Pools       [][]pack.Worker
+	Port        int
+	Password    string
+	Jwt_secret  string
 }
 
 var WebApp = new(WebApplication)

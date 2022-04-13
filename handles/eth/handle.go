@@ -265,14 +265,14 @@ func (hand *Handle) OnMessage(
 			// var params []string
 			// var parse_byte []byte
 			var job_id string
-			job_id, err = jsonparser.GetString(data, "params", "[0]")
+			job_id, err = jsonparser.GetString(data, "params", "[1]")
 			if err != nil {
 				hand.log.Error(err.Error())
 				c.Close()
 				return
 			}
 
-			hand.log.Info("获取当Job-id: " + job_id)
+			//hand.log.Info("获取当Job-id: " + job_id)
 			// err = json.Unmarshal(parse_byte, &params)
 			// if err != nil {
 			// 	hand.log.Error(err.Error())

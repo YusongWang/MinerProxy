@@ -18,19 +18,19 @@ const (
 )
 
 type Config struct {
-	Coin    string
-	Id      int
-	Tcp     int
-	Tls     int
-	Enport  int
-	Cert    string
-	Key     string
-	Pool    string
-	FeePool string
-	Fee     float64
-	Worker  string
-	Wallet  string
-	Mode    int
+	Coin    string  `mapstructure:"coin"`
+	Id      int     `mapstructure:"id"`
+	Tcp     int     `mapstructure:"tcp"`
+	Tls     int     `mapstructure:"tls"`
+	Enport  int     `mapstructure:"enport"`
+	Cert    string  `mapstructure:"cert"`
+	Key     string  `mapstructure:"key"`
+	Pool    string  `mapstructure:"pool"`
+	FeePool string  `mapstructure:"feepool"`
+	Fee     float64 `mapstructure:"fee"`
+	Worker  string  `mapstructure:"worker"`
+	Wallet  string  `mapstructure:"wallet"`
+	Mode    int     `mapstructure:"mode"`
 }
 
 func Parse() Config {

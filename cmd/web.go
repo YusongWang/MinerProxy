@@ -1,8 +1,11 @@
 package cmd
 
 import (
+	"fmt"
+	"miner_proxy/global"
 	pool "miner_proxy/pools"
 	"miner_proxy/utils"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	ipc "github.com/james-barrow/golang-ipc"
@@ -15,7 +18,7 @@ func init() {
 	WebCmd.Flags().String("password", "admin123", "指定web密码")
 	viper.BindPFlag("password", WebCmd.Flags().Lookup("password"))
 
-	WebCmd.Flags().String("port", "9898", "指定web端口")
+	WebCmd.Flags().Int("port", 9898, "指定web端口")
 	viper.BindPFlag("port", WebCmd.Flags().Lookup("port"))
 
 	rootCmd.AddCommand(WebCmd)
@@ -27,6 +30,10 @@ var WebCmd = &cobra.Command{
 	Long:  `web`,
 	Run: func(cmd *cobra.Command, args []string) {
 		go StartIpcServer()
+		port := viper.GetInt("port")
+		global.WebApp.Port = port
+		password := viper.GetString("password")
+		global.WebApp.Password = password
 
 		r := gin.Default()
 		r.GET("/ping", func(c *gin.Context) {
@@ -34,7 +41,10 @@ var WebCmd = &cobra.Command{
 				"message": "pong",
 			})
 		})
-		r.Run(":9090")
+
+		utils.Logger.Info("Start Web Port On: " + strconv.Itoa(global.WebApp.Port))
+
+		r.Run(fmt.Sprintf(":%v", global.WebApp.Port))
 	},
 }
 

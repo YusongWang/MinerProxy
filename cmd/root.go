@@ -183,6 +183,7 @@ func InitializeConfig() *viper.Viper {
 			fmt.Println(err)
 		}
 	})
+
 	// 将配置赋值给全局变量
 	if err := v.Unmarshal(&global.WebApp.Config); err != nil {
 		fmt.Println(err)

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	//_ "net/http/pprof"
+
 	"os"
 
 	etcboot "miner_proxy/boot/etc"
@@ -71,7 +72,16 @@ var serverCmd = &cobra.Command{
 			utils.Logger.Error(err.Error())
 			os.Exit(99)
 		}
-
+		// var configs []utils.Config
+		// configs = append(configs, config)
+		// configs = append(configs, config)
+		// configs = append(configs, config)
+		// yaml, err := yaml.Marshal(configs)
+		// if err != nil {
+		// 	utils.Logger.Error(err.Error())
+		// 	os.Exit(99)
+		// }
+		// fmt.Println(string(yaml))
 		// go func() {
 		// 	log.Println(http.ListenAndServe(":6060", nil))
 		// }()

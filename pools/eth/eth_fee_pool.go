@@ -171,7 +171,8 @@ func (eth *EthStratumServer) SubmitJob(job []byte) error {
 	builder.WriteString(package_end)
 	builder.WriteByte('\n')
 	json_rpc := builder.String()
-	utils.Logger.Info("给服务器提交工作量证明", zap.Any("RPC", json_rpc))
+
+	//utils.Logger.Info("给服务器提交工作量证明", zap.Any("RPC", json_rpc))
 
 	_, err := eth.Conn.Write([]byte(json_rpc))
 	if err != nil {
@@ -228,7 +229,7 @@ func (eth *EthStratumServer) StartLoop() {
 					//增加份额
 					if result {
 						// TODO
-						log.Info("有效份额", zap.Any("RPC", buf_str))
+						//log.Info("有效份额", zap.Any("RPC", buf_str))
 					} else {
 						log.Warn("无效份额", zap.Any("RPC", buf_str))
 					}
