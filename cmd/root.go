@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"miner_proxy/global"
 	pool "miner_proxy/pools"
 	"miner_proxy/utils"
 	"os"
@@ -65,7 +64,6 @@ var rootCmd = &cobra.Command{
 
 		//TODO 监听配置文件
 		InitializeConfig(web_notify_ch, proxy_notify_ch)
-		fmt.Println(global.WebApp)
 
 		//ManagePool.Online[0] =
 		// 启动SERVER配置。
@@ -196,23 +194,23 @@ func Proxy(wg *sync.WaitGroup, restart chan int) {
 proxy:
 	//TODO 启动所有proxy_worker
 	// 注册为一个临时数组、管理所有worker. id 为当前结构注册的 ID
-	go func() {
-		for {
-			select {
-			case id := <-restart:
-				utils.Logger.Info("重启代理ID: " + strconv.Itoa(id))
-				if ManagePool.Online[id] == nil {
-					for _, app := range ManageApp.Config {
-						if app.ID == id {
-							ProcessProxy(&app)
-						}
+	//func() {
+	for {
+		select {
+		case id := <-restart:
+			utils.Logger.Info("重启代理ID: " + strconv.Itoa(id))
+			if ManagePool.Online[id] == nil {
+				for _, app := range ManageApp.Config {
+					if app.ID == id {
+						ProcessProxy(&app)
 					}
-				} else {
-					ManagePool.Online[id].Process.Kill()
 				}
+			} else {
+				ManagePool.Online[id].Process.Kill()
 			}
 		}
-	}()
+	}
+	//}()
 
 	// 注册一个chan 接收ID作为重启。如果这个ID不在数组中就新增一个代理池
 	time.Sleep(time.Second * 10)
@@ -222,7 +220,7 @@ proxy:
 func FristStart() {
 	for _, app := range ManageApp.Config {
 		// 逐一获得cmd执行任务。
-		ProcessProxy(&app)
+		go ProcessProxy(&app)
 	}
 }
 
@@ -370,8 +368,16 @@ proxy:
 		c.Key,
 		"--cert",
 		c.Cert,
+		"--online",
 	)
+
+	if !c.Online {
+		return
+	}
+
 	ManagePool.Online[c.ID] = p
+	utils.Logger.Info("启动代理软件")
+
 	err := p.Run()
 	if err != nil {
 		utils.Logger.Error(err.Error())

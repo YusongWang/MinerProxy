@@ -49,7 +49,7 @@ type Config struct {
 
 func Parse() Config {
 	var config Config
-	viper.SetConfigName("config")         // name of config file (without extension)
+	viper.SetConfigName("config.yaml")    // name of config file (without extension)
 	viper.AddConfigPath("/etc/appname/")  // path to look for the config file in
 	viper.AddConfigPath("$HOME/.appname") // call multiple times to add many search paths
 	viper.AddConfigPath(".")              // optionally look for config in the working directory
