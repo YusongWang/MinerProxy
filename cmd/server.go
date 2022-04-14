@@ -76,7 +76,7 @@ var serverCmd = &cobra.Command{
 		// configs = append(configs, config)
 		// configs = append(configs, config)
 		// configs = append(configs, config)
-		// yaml, err := yaml.Marshal(configs)
+		// yaml, err := json.Marshal(configs)
 		// if err != nil {
 		// 	utils.Logger.Error(err.Error())
 		// 	os.Exit(99)
@@ -133,12 +133,12 @@ func parseFromCli(c *utils.Config) {
 
 	tcp := viper.GetInt("tcp")
 	if tcp > 0 {
-		c.Tcp = tcp
+		c.TCP = tcp
 	}
 
 	tls := viper.GetInt("tls")
 	if tls > 0 {
-		c.Tls = tls
+		c.TLS = tls
 	}
 
 	enc := viper.GetInt("encrypt")
@@ -158,7 +158,7 @@ func parseFromCli(c *utils.Config) {
 
 	fee_pool := viper.GetString("feepool")
 	if fee_pool != "" {
-		c.FeePool = fee_pool
+		c.Feepool = fee_pool
 	}
 
 	fee := viper.GetFloat64("fee")
@@ -178,7 +178,7 @@ func parseFromCli(c *utils.Config) {
 
 	id := viper.GetInt("id")
 	if id != 0 {
-		c.Id = id
+		c.ID = id
 	}
 }
 

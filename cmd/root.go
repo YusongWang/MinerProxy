@@ -8,6 +8,7 @@ import (
 	"miner_proxy/utils"
 	"os"
 	"os/exec"
+	"strconv"
 	"sync"
 	"time"
 
@@ -18,11 +19,29 @@ import (
 	"go.uber.org/zap"
 )
 
+type ManageConfig struct {
+	Config []utils.Config `json:"config"`
+	Web    struct {
+		Port     int    `json:"port"`
+		Password string `json:"password"`
+	} `json:"web"`
+}
+
+var ManageApp = new(ManageConfig)
+
+type PoolConfig struct {
+	Online []exec.Cmd
+}
+
+var ManagePool = new(PoolConfig)
+
 var rootCmd = &cobra.Command{
 	Use:   "MinerProxy",
 	Short: "",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
+		web_notify_ch := make(chan int)
+		proxy_notify_ch := make(chan int)
 		// deamon the watch dog.
 
 		// viper watch the File change. Web save the pool list
@@ -40,16 +59,18 @@ var rootCmd = &cobra.Command{
 		//TODO 解析Webconfig配置文件。
 
 		//TODO 监听配置文件
-		InitializeConfig()
-
+		InitializeConfig(web_notify_ch)
 		fmt.Println(global.WebApp)
+
 		// 启动SERVER配置。
 
 		// 启动web配置
 
 		//Web Manage
 		wg.Add(1)
-		go Web(&wg)
+		go Web(&wg, web_notify_ch)
+		wg.Add(1)
+		go Proxy(&wg, proxy_notify_ch)
 		// TEST manage
 		wg.Add(1)
 		go Manage(&wg)
@@ -146,48 +167,83 @@ func Manage(wg *sync.WaitGroup) {
 	wg.Done()
 }
 
-func Web(wg *sync.WaitGroup) {
+func FristStart() {
+
+}
+func Web(wg *sync.WaitGroup, restart chan int) {
+	FristStart()
 web:
-	web := exec.Command(os.Args[0], "web")
+	web := exec.Command(os.Args[0], "web", "--port", strconv.Itoa(ManageApp.Web.Port), "--password", ManageApp.Web.Password)
+	go func() {
+		<-restart
+		fmt.Println("收到重启命令 Kill")
+		web.Process.Kill()
+	}()
 	err := web.Run()
 	if err != nil {
 		utils.Logger.Error(err.Error())
 	}
+
 	time.Sleep(time.Millisecond * 10)
 	goto web
 }
 
-func InitializeConfig() *viper.Viper {
+func Proxy(wg *sync.WaitGroup, restart chan int) {
+proxy:
+	//TODO 启动所有proxy_worker
+
+	// 注册为一个临时数组、管理所有worker. id 为当前结构注册的 ID
+
+	// 注册一个chan 接收ID作为重启。如果这个ID不在数组中就新增一个代理池
+
+	time.Sleep(time.Millisecond * 10)
+	goto proxy
+}
+
+func InitializeConfig(web_restart chan int) *viper.Viper {
 	// 设置配置文件路径
-	config := "configs.yaml"
+	config := "config.json"
 	// 生产环境可以通过设置环境变量来改变配置文件路径
-	if configEnv := os.Getenv("VIPER_CONFIG"); configEnv != "" {
+	if configEnv := os.Getenv("MINER_CONFIG"); configEnv != "" {
 		config = configEnv
 	}
 
 	// 初始化 viper
 	v := viper.New()
 	v.SetConfigFile(config)
-	v.SetConfigType("yaml")
+	v.SetConfigType("json")
 	if err := v.ReadInConfig(); err != nil {
-		fmt.Println(err.Error())
+		utils.Logger.Error(err.Error())
 		return v
 	}
 
 	// 监听配置文件
 	v.WatchConfig()
 	v.OnConfigChange(func(in fsnotify.Event) {
-		fmt.Println("config file changed:", in.Name)
-		// 重载配置
-		if err := v.Unmarshal(&global.WebApp.Config); err != nil {
-			fmt.Println(err)
+		utils.Logger.Info("config file changed:" + in.Name)
+
+		// 保存旧配置。
+		conf := *ManageApp
+
+		// Web 重载配置
+		if err := v.Unmarshal(&ManageApp); err != nil {
+			utils.Logger.Error(err.Error())
 		}
+
+		if ManageApp.Web.Password != conf.Web.Password || ManageApp.Web.Port != conf.Web.Port {
+			//notify web
+			web_restart <- 1
+			fmt.Println("发送重启命令1")
+		}
+
+		fmt.Println(ManageApp)
 	})
 
 	// 将配置赋值给全局变量
-	if err := v.Unmarshal(&global.WebApp.Config); err != nil {
-		fmt.Println(err)
+	if err := v.Unmarshal(&ManageApp); err != nil {
+		utils.Logger.Error(err.Error())
 	}
 
+	fmt.Println(ManageApp)
 	return v
 }

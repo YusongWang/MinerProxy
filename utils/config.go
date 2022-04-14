@@ -18,19 +18,33 @@ const (
 )
 
 type Config struct {
-	Coin    string  `mapstructure:"coin"`
-	Id      int     `mapstructure:"id"`
-	Tcp     int     `mapstructure:"tcp"`
-	Tls     int     `mapstructure:"tls"`
-	Enport  int     `mapstructure:"enport"`
-	Cert    string  `mapstructure:"cert"`
-	Key     string  `mapstructure:"key"`
-	Pool    string  `mapstructure:"pool"`
-	FeePool string  `mapstructure:"feepool"`
-	Fee     float64 `mapstructure:"fee"`
-	Worker  string  `mapstructure:"worker"`
-	Wallet  string  `mapstructure:"wallet"`
-	Mode    int     `mapstructure:"mode"`
+	Coin    string  `json:"coin"`
+	ID      int     `json:"id"`
+	TCP     int     `json:"tcp"`
+	TLS     int     `json:"tls"`
+	Enport  int     `json:"enport"`
+	Cert    string  `json:"cert"`
+	Key     string  `json:"key"`
+	Pool    string  `json:"pool"`
+	Feepool string  `json:"feepool"`
+	Fee     float64 `json:"fee"`
+	Worker  string  `json:"worker"`
+	Wallet  string  `json:"wallet"`
+	Mode    int     `json:"mode"`
+
+	// Coin    string  `json:"Coin"`
+	// ID      int     `json:"ID"`
+	// TCP     int     `json:"TCP"`
+	// TLS     int     `json:"TLS"`
+	// Enport  int     `json:"Enport"`
+	// Cert    string  `json:"Cert"`
+	// Key     string  `json:"Key"`
+	// Pool    string  `json:"Pool"`
+	// Feepool string  `json:"Feepool"`
+	// Fee     float64 `json:"Fee"`
+	// Worker  string  `json:"Worker"`
+	// Wallet  string  `json:"Wallet"`
+	// Mode    int     `json:"Mode"`
 }
 
 func Parse() Config {

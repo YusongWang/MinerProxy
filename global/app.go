@@ -17,7 +17,7 @@ var App = new(Application)
 
 type WebApplication struct {
 	ConfigViper *viper.Viper
-	Config      []utils.Config
+	Config      []utils.Config `json:"config"`
 	Pools       [][]pack.Worker
 	Port        int
 	Password    string

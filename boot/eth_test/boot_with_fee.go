@@ -25,7 +25,7 @@ func BootWithFee(c utils.Config) error {
 	fee_submit_job := make(chan []byte, 100)
 
 	// 中转线程
-	fee_pool, err := ethpool.New(c.FeePool, fee_job, fee_submit_job)
+	fee_pool, err := ethpool.New(c.Feepool, fee_job, fee_submit_job)
 	if err != nil {
 		utils.Logger.Error(err.Error())
 		os.Exit(99)
@@ -55,8 +55,8 @@ func BootWithFee(c utils.Config) error {
 
 	utils.Logger.Info("Start the Server And ready To serve")
 
-	if c.Tcp > 0 {
-		port := fmt.Sprintf(":%v", c.Tcp)
+	if c.TCP > 0 {
+		port := fmt.Sprintf(":%v", c.TCP)
 		net, err := network.NewTcp(port)
 		if err != nil {
 			utils.Logger.Error("can't bind to TCP addr", zap.String("端口", port))
@@ -70,8 +70,8 @@ func BootWithFee(c utils.Config) error {
 		}()
 	}
 
-	if c.Tls > 0 {
-		port := fmt.Sprintf(":%v", c.Tls)
+	if c.TLS > 0 {
+		port := fmt.Sprintf(":%v", c.TLS)
 		nettls, err := network.NewTls(c.Cert, c.Key, port)
 		if err != nil {
 			utils.Logger.Error("can't bind to SSL addr", zap.String("端口", port))
