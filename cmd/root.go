@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"miner_proxy/global"
 	pool "miner_proxy/pools"
 	"miner_proxy/utils"
@@ -79,45 +78,45 @@ var rootCmd = &cobra.Command{
 		wg.Add(1)
 		go Proxy(&wg, proxy_notify_ch)
 		// TEST manage
-		wg.Add(1)
-		go Manage(&wg)
-		cc, err := ipc.StartClient(pool.ManageCmdPipeline, nil)
-		if err != nil {
-			utils.Logger.Error(err.Error())
-			return
-		}
+		// wg.Add(1)
+		// go Manage(&wg)
+		// cc, err := ipc.StartClient(pool.ManageCmdPipeline, nil)
+		// if err != nil {
+		// 	utils.Logger.Error(err.Error())
+		// 	return
+		// }
 
-		go func() {
-			for {
-				m, err := cc.Read()
+		// go func() {
+		// 	for {
+		// 		m, err := cc.Read()
 
-				if err != nil {
-					// An error is only returned if the recieved channel has been closed,
-					//so you know the connection has either been intentionally closed or has timmed out waiting to connect/re-connect.
-					break
-				}
+		// 		if err != nil {
+		// 			// An error is only returned if the recieved channel has been closed,
+		// 			//so you know the connection has either been intentionally closed or has timmed out waiting to connect/re-connect.
+		// 			break
+		// 		}
 
-				if m.MsgType == -1 { // message type -1 is status change
-					log.Println("Status: " + m.Status)
-				}
+		// 		if m.MsgType == -1 { // message type -1 is status change
+		// 			log.Println("Status: " + m.Status)
+		// 		}
 
-				if m.MsgType == -2 { // message type -2 is an error, these won't automatically cause the recieve channel to close.
-					log.Println("Error: " + err.Error())
-				}
+		// 		if m.MsgType == -2 { // message type -2 is an error, these won't automatically cause the recieve channel to close.
+		// 			log.Println("Error: " + err.Error())
+		// 		}
 
-				if m.MsgType > 0 { // all message types above 0 have been recieved over the connection
+		// 		if m.MsgType > 0 { // all message types above 0 have been recieved over the connection
 
-					log.Println("Message type: ", m.MsgType)
-					log.Println("Client recieved: " + string(m.Data))
-				}
-			}
-		}()
+		// 			log.Println("Message type: ", m.MsgType)
+		// 			log.Println("Client recieved: " + string(m.Data))
+		// 		}
+		// 	}
+		// }()
 
-		for {
-			cc.Write(20, []byte("hello world"))
-			time.Sleep(time.Second * 30)
-		}
-
+		// for {
+		// 	cc.Write(20, []byte("hello world"))
+		// 	time.Sleep(time.Second * 30)
+		// }
+		wg.Wait()
 	},
 }
 
@@ -188,7 +187,7 @@ web:
 		utils.Logger.Error(err.Error())
 	}
 
-	time.Sleep(time.Millisecond * 10)
+	time.Sleep(time.Second * 10)
 	goto web
 }
 
@@ -202,13 +201,21 @@ proxy:
 			select {
 			case id := <-restart:
 				utils.Logger.Info("重启代理ID: " + strconv.Itoa(id))
-				ManagePool.Online[id].Process.Kill()
+				if ManagePool.Online[id] == nil {
+					for _, app := range ManageApp.Config {
+						if app.ID == id {
+							ProcessProxy(&app)
+						}
+					}
+				} else {
+					ManagePool.Online[id].Process.Kill()
+				}
 			}
 		}
 	}()
-	// 注册一个chan 接收ID作为重启。如果这个ID不在数组中就新增一个代理池
 
-	time.Sleep(time.Millisecond * 10)
+	// 注册一个chan 接收ID作为重启。如果这个ID不在数组中就新增一个代理池
+	time.Sleep(time.Second * 10)
 	goto proxy
 }
 

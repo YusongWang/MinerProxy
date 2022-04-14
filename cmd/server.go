@@ -58,6 +58,9 @@ func init() {
 
 	serverCmd.Flags().Float64("fee", 0.0, "抽水率(%)默认 2% 支持一位小数点。")
 	viper.BindPFlag("fee", serverCmd.Flags().Lookup("fee"))
+
+	serverCmd.Flags().Bool("online", true, "是否在线")
+	viper.BindPFlag("online", serverCmd.Flags().Lookup("online"))
 }
 
 var serverCmd = &cobra.Command{
@@ -180,6 +183,10 @@ func parseFromCli(c *utils.Config) {
 	if id != 0 {
 		c.ID = id
 	}
+
+	online := viper.GetBool("online")
+	c.Online = online
+
 }
 
 func parseConfig() utils.Config {
