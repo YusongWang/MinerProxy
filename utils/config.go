@@ -31,7 +31,7 @@ type Config struct {
 	Worker  string  `json:"worker"`
 	Wallet  string  `json:"wallet"`
 	Mode    int     `json:"mode"`
-
+	Online  bool    `json:"online"`
 	// Coin    string  `json:"Coin"`
 	// ID      int     `json:"ID"`
 	// TCP     int     `json:"TCP"`
