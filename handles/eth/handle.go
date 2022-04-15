@@ -144,9 +144,17 @@ func (hand *Handle) OnConnect(
 
 					} else {
 						//go func() {
-						// job_params := utils.InterfaceToStrArray(params)
-						// diff := utils.TargetHexToDiff(job_params[2])
-						// hand.Workers[*id].SetDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetDiff()))
+						job_diff, err := jsonparser.GetString(buf, "result", "[2]")
+						if err != nil {
+							log.Info("格式化Diff字段失败")
+							log.Error(err.Error())
+							hand.OnClose(id)
+							c.Close()
+							return
+						}
+
+						diff := utils.TargetHexToDiff(job_diff)
+						hand.Workers[*id].SetDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetDiff()))
 						// log.Info("diff", zap.Any("diff", hand.Workers[*id]))
 						// log.Info("发送普通任务", zap.String("rpc", string(buf)))
 						//}()
