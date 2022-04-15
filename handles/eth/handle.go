@@ -1,45 +1,46 @@
 package eth
 
 import (
+	"encoding/json"
+	"io"
 	"miner_proxy/fee"
 	"miner_proxy/pack"
 	"miner_proxy/pack/eth"
 	rpool "miner_proxy/pools"
 	"miner_proxy/utils"
-	"net"
 	"strings"
 	"sync"
 
 	"bufio"
 
-	"github.com/pquerna/ffjson/ffjson"
+	"github.com/buger/jsonparser"
 	"go.uber.org/zap"
 )
 
-var package_head = `{"id":40,"method":"eth_submitWork","params":`
-var package_middle = `,"worker":"`
-var package_end = `"}`
+// var package_head = `{"id":40,"method":"eth_submitWork","params":`
+// var package_middle = `,"worker":"`
+// var package_end = `"}`
 
 type Handle struct {
 	log     *zap.Logger
 	Devjob  *pack.Job
 	Feejob  *pack.Job
-	DevConn *net.Conn
-	FeeConn *net.Conn
-	SubFee  *chan []string
-	SubDev  *chan []string
+	DevConn *io.ReadWriteCloser
+	FeeConn *io.ReadWriteCloser
+	SubFee  *chan []byte
+	SubDev  *chan []byte
 	Workers map[string]*pack.Worker
 }
 
 var job []string
 
 func (hand *Handle) OnConnect(
-	c net.Conn,
+	c io.ReadWriteCloser,
 	config *utils.Config,
 	fee *fee.Fee,
 	addr string,
 	id *string,
-) (net.Conn, error) {
+) (io.ReadWriteCloser, error) {
 	hand.log.Info("Miner Connect To Pool " + config.Pool + "    UUID: " + *id)
 	pool, err := utils.NewPool(config.Pool)
 	if err != nil {
@@ -48,7 +49,7 @@ func (hand *Handle) OnConnect(
 		return nil, err
 	}
 
-	log := hand.log.With(zap.String("IP", c.RemoteAddr().String()), zap.String("UUID", *id))
+	log := (*hand.log).With(zap.String("UUID", *id))
 
 	// 处理上游矿池。如果连接失败。矿工线程直接退出并关闭
 	go func() {
@@ -62,23 +63,29 @@ func (hand *Handle) OnConnect(
 				return
 			}
 
-			var push eth.JSONPushMessage
-			if err = ffjson.Unmarshal([]byte(buf), &push); err == nil {
-				if result, ok := push.Result.(bool); ok {
+			if result, _, _, err := jsonparser.Get(buf, "result"); err == nil {
+				//if result, ok := buf.(bool); ok {
+				if res, err := jsonparser.ParseBoolean(result); err == nil {
 					//增加份额
-					if result {
-						hand.Workers[*id].AddShare()
+					if res {
+						if w, ok := hand.Workers[*id]; ok {
+							w.AddShare()
+						}
 						//log.Info("有效份额", zap.Any("RPC", string(buf)))
 					} else {
-						hand.Workers[*id].AddReject()
+						if w, ok := hand.Workers[*id]; ok {
+							w.AddReject()
+						}
 						log.Warn("无效份额", zap.Any("RPC", string(buf)))
 					}
-				} else if _, ok := push.Result.([]interface{}); ok {
+				} else {
 					if _, ok := hand.Workers[*id]; !ok {
 						continue
 					}
+					// if w, ok := hand.Workers[*id]; ok {
+					// 	w.AddShare()
+					// }
 					hand.Workers[*id].AddIndex()
-
 					if utils.BaseOnIdxFee(hand.Workers[*id].GetIndex(), rpool.DevFee) {
 						if len(hand.Devjob.Job) > 0 {
 							job = hand.Devjob.Job[len(hand.Devjob.Job)-1]
@@ -86,16 +93,19 @@ func (hand *Handle) OnConnect(
 							continue
 						}
 
-						//res_chan := make(chan []byte)
+						if len(job) == 0 {
+							log.Info("当前job内容为空")
+							continue
+						}
+						diff := utils.TargetHexToDiff(job[2])
+						hand.Workers[*id].SetDevDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetDevDiff()))
 
-						//go func() {
 						fee.Dev[job[0]] = true
 						job_str := ConcatJobTostr(job)
 						job_byte := ConcatToPushJob(job_str)
-						//}()
 
 						//job_byte := <-res_chan
-						//hand.log.Info("发送开发者抽水任务", zap.String("rpc", string(job_byte)))
+						//log.Info("发送开发者抽水任务", zap.String("rpc", string(job_byte)))
 						_, err = c.Write(job_byte)
 						if err != nil {
 							log.Error(err.Error())
@@ -107,25 +117,23 @@ func (hand *Handle) OnConnect(
 					} else if utils.BaseOnIdxFee(hand.Workers[*id].GetIndex(), config.Fee) {
 						if len(hand.Feejob.Job) > 0 {
 							job = hand.Feejob.Job[len(hand.Feejob.Job)-1]
+							//log.Info("得到当前Job", zap.Any("job", job))
 						} else {
 							continue
 						}
 
-						//res_chan := make(chan []byte)
+						if len(job) == 0 {
+							log.Info("当前job内容为空")
+							continue
+						}
+						diff := utils.TargetHexToDiff(job[2])
+						hand.Workers[*id].SetFeeDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetFeeDiff()))
 
-						// go func() {
-						// 	diff := utils.TargetHexToDiff(job[2])
-						// 	hand.Workers[*id].SetFeeDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetFeeDiff()))
-						// }()
-
-						//go func() {
 						fee.Fee[job[0]] = true
 						job_str := ConcatJobTostr(job)
 						job_byte := ConcatToPushJob(job_str)
-						//}()
 
-						//						job_byte := <-res_chan
-						//hand.log.Info("发送普通抽水任务", zap.String("rpc", string(job_byte)))
+						//log.Info("发送普通抽水任务", zap.String("rpc", string(job_byte)))
 						_, err = c.Write(job_byte)
 						if err != nil {
 							log.Error(err.Error())
@@ -135,13 +143,21 @@ func (hand *Handle) OnConnect(
 						}
 
 					} else {
-						// go func() {
-						// 	job_params := utils.InterfaceToStrArray(params)
-						// 	diff := utils.TargetHexToDiff(job_params[2])
-						// 	hand.Workers[*id].SetDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetDiff()))
-						log.Info("diff", zap.Any("diff", hand.Workers[*id]))
-						// 	//								hand.log.Info("发送普通任务", zap.String("rpc", string(buf)))
-						// }()
+						//go func() {
+						job_diff, err := jsonparser.GetString(buf, "result", "[2]")
+						if err != nil {
+							log.Info("格式化Diff字段失败")
+							log.Error(err.Error())
+							hand.OnClose(id)
+							c.Close()
+							return
+						}
+
+						diff := utils.TargetHexToDiff(job_diff)
+						hand.Workers[*id].SetDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetDiff()))
+						// log.Info("diff", zap.Any("diff", hand.Workers[*id]))
+						// log.Info("发送普通任务", zap.String("rpc", string(buf)))
+						//}()
 						_, err = c.Write(buf)
 						if err != nil {
 							log.Error(err.Error())
@@ -149,11 +165,8 @@ func (hand *Handle) OnConnect(
 							c.Close()
 							return
 						}
+
 					}
-				} else {
-					c.Close()
-					hand.OnClose(id)
-					log.Warn("无法找到此协议。需要适配。", zap.String("RPC", string(buf)))
 				}
 			} else {
 				c.Close()
@@ -168,28 +181,39 @@ func (hand *Handle) OnConnect(
 }
 
 func (hand *Handle) OnMessage(
-	c net.Conn,
-	pool net.Conn,
+	c io.ReadWriteCloser,
+	pool io.ReadWriteCloser,
 	fee *fee.Fee,
 	data []byte,
 	id *string,
 ) (out []byte, err error) {
-	req, err := eth.EthStratumReq(data)
+	//var json = jsoniter.ConfigCompatibleWithStandardLibrary
+
+	method, err := jsonparser.GetString(data, "method")
 	if err != nil {
 		hand.log.Error(err.Error())
 		c.Close()
 		return
 	}
 
-	switch req.Method {
+	switch method {
 	case "eth_submitLogin":
 		var params []string
-		err = ffjson.Unmarshal(req.Params, &params)
+		var parse_byte []byte
+		parse_byte, _, _, err = jsonparser.Get(data, "params")
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()
 			return
 		}
+
+		err = json.Unmarshal(parse_byte, &params)
+		if err != nil {
+			hand.log.Error(err.Error())
+			c.Close()
+			return
+		}
+
 		var worker string
 		var wallet string
 		//TODO
@@ -198,16 +222,26 @@ func (hand *Handle) OnMessage(
 		if len(params_zero) > 1 {
 			worker = params_zero[1]
 		} else {
-			if req.Worker != "" {
-				worker = req.Worker
+			worker, err = jsonparser.GetString(data, "worker")
+			if err != nil {
+				hand.log.Error(err.Error())
+				c.Close()
+				return
 			}
 		}
 
 		hand.Workers[*id] = pack.NewWorker(worker, wallet)
 		hand.Workers[*id].Logind(worker, wallet)
 		hand.log.Info("登陆矿工.", zap.String("Worker", worker), zap.String("Wallet", wallet))
+		var id int64
+		id, err = jsonparser.GetInt(data, "id")
+		if err != nil {
+			hand.log.Error(err.Error())
+			c.Close()
+			return
+		}
 
-		out, err = eth.EthSuccess(req.Id)
+		out, err = eth.EthSuccess(id)
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()
@@ -223,65 +257,104 @@ func (hand *Handle) OnMessage(
 		var wg sync.WaitGroup
 		wg.Add(1)
 		go func() {
-			out, err = eth.EthSuccess(req.Id)
+			id, err := jsonparser.GetInt(data, "id")
 			if err != nil {
 				hand.log.Error(err.Error())
 				c.Close()
 				return
 			}
-			c.Write(append(out, '\n'))
+			out, err = eth.EthSuccess(id)
+			if err != nil {
+				hand.log.Error(err.Error())
+				c.Close()
+				return
+			}
+			c.Write(out)
 			wg.Done()
 		}()
 
-		var params []string
-		err = ffjson.Unmarshal(req.Params, &params)
-		if err != nil {
-			hand.log.Error(err.Error())
-			return
-		}
-		job_id := params[1]
-		if _, ok := fee.Dev[job_id]; ok {
-			hand.Workers[*id].DevAdd()
-			str := ConcatJobTostr(params)
-			var builder strings.Builder
-			builder.WriteString(package_head)
-			builder.WriteString(str)
-			builder.WriteString(package_middle)
-			builder.WriteString("DEVFEE")
-			builder.WriteString(package_end)
-			builder.WriteByte('\n')
+		go func() {
+			// var params []string
+			// var parse_byte []byte
+			var job_id string
+			job_id, err = jsonparser.GetString(data, "params", "[1]")
+			if err != nil {
+				hand.log.Error(err.Error())
+				c.Close()
+				return
+			}
 
-			json_rpc := builder.String()
-			(*hand.DevConn).Write([]byte(json_rpc))
+			//hand.log.Info("获取当Job-id: " + job_id)
+			// err = json.Unmarshal(parse_byte, &params)
+			// if err != nil {
+			// 	hand.log.Error(err.Error())
+			// 	c.Close()
+			// 	return
+			// }
 
-		} else if _, ok := fee.Fee[job_id]; ok {
-			//hand.log.Info("得到普通抽水份额", zap.String("RPC", string(data)))
-			hand.Workers[*id].FeeAdd()
-			str := ConcatJobTostr(params)
-			var builder strings.Builder
-			builder.WriteString(package_head)
-			builder.WriteString(str)
-			builder.WriteString(package_middle)
-			builder.WriteString("MinerProxy")
-			builder.WriteString(package_end)
-			builder.WriteByte('\n')
-
-			json_rpc := builder.String()
-			(*hand.FeeConn).Write([]byte(json_rpc))
-			//*hand.SubFee <- params
-		} else {
-			//hand.log.Info("得到份额", zap.String("RPC", string(data)))
-			hand.Workers[*id].AddShare()
-			pool.Write(data)
-		}
+			if _, ok := fee.Dev[job_id]; ok {
+				hand.Workers[*id].DevAdd()
+				// str := ConcatJobTostr(params)
+				// var builder strings.Builder
+				// builder.WriteString(package_head)
+				// builder.WriteString(str)
+				// builder.WriteString(package_middle)
+				// builder.WriteString("DEVFEE")
+				// builder.WriteString(package_end)
+				// builder.WriteByte('\n')
+				var parse_byte []byte
+				parse_byte, _, _, err = jsonparser.Get(data, "params")
+				if err != nil {
+					hand.log.Error(err.Error())
+					c.Close()
+					return
+				}
+				// json_rpc := builder.String()
+				// (*hand.DevConn).Write([]byte(json_rpc))
+				*hand.SubDev <- parse_byte
+			} else if _, ok := fee.Fee[job_id]; ok {
+				//hand.log.Info("得到普通抽水份额", zap.String("RPC", string(data)))
+				hand.Workers[*id].FeeAdd()
+				// str := ConcatJobTostr(params)
+				// var builder strings.Builder
+				// builder.WriteString(package_head)
+				// builder.WriteString(str)
+				// builder.WriteString(package_middle)
+				// builder.WriteString("MinerProxy")
+				// builder.WriteString(package_end)
+				// builder.WriteByte('\n')
+				var parse_byte []byte
+				parse_byte, _, _, err = jsonparser.Get(data, "params")
+				if err != nil {
+					hand.log.Error(err.Error())
+					c.Close()
+					return
+				}
+				// json_rpc := builder.String()
+				// (*hand.FeeConn).Write([]byte(json_rpc))
+				*hand.SubFee <- parse_byte
+			} else {
+				//hand.log.Info("得到份额", zap.String("RPC", string(data)))
+				hand.Workers[*id].AddShare()
+				pool.Write(data)
+			}
+		}()
 
 		wg.Wait()
 		out = nil
 		err = nil
 		return
 	case "eth_submitHashrate":
+		var id int64
+		id, err = jsonparser.GetInt(data, "id")
+		if err != nil {
+			hand.log.Error(err.Error())
+			c.Close()
+			return
+		}
+
 		// 直接返回
-		out, err = eth.EthSuccess(req.Id)
+		out, err = eth.EthSuccess(id)
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()

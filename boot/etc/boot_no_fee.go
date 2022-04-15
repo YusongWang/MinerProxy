@@ -19,8 +19,8 @@ func BootNoFee(c utils.Config) error {
 	var wg sync.WaitGroup
 	handle := eth.NoFeeHandle{}
 
-	if c.Tcp > 0 {
-		port := fmt.Sprintf(":%v", c.Tcp)
+	if c.TCP > 0 {
+		port := fmt.Sprintf(":%v", c.TCP)
 		net, err := network.NewTcp(port)
 		if err != nil {
 			utils.Logger.Error("can't bind to TCP addr", zap.String("端口", port))
@@ -35,8 +35,8 @@ func BootNoFee(c utils.Config) error {
 		}()
 	}
 
-	if c.Tls > 0 {
-		port := fmt.Sprintf(":%v", c.Tls)
+	if c.TLS > 0 {
+		port := fmt.Sprintf(":%v", c.TLS)
 		nettls, err := network.NewTls(c.Cert, c.Key, port)
 		if err != nil {
 			utils.Logger.Error("can't bind to SSL addr", zap.String("端口", port))

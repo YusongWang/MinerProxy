@@ -1,15 +1,15 @@
 package eth
 
 import (
+	"io"
 	"miner_proxy/fee"
 	"miner_proxy/pack/eth"
 	pack "miner_proxy/pack/eth"
 	"miner_proxy/utils"
-	"net"
 	"strings"
 
+	"github.com/buger/jsonparser"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/pquerna/ffjson/ffjson"
 
 	"bufio"
 
@@ -21,12 +21,12 @@ type NoFeeHandle struct {
 }
 
 func (hand *NoFeeHandle) OnConnect(
-	c net.Conn,
+	c io.ReadWriteCloser,
 	config *utils.Config,
 	fee *fee.Fee,
 	addr string,
 	id *string,
-) (net.Conn, error) {
+) (io.ReadWriteCloser, error) {
 	hand.log.Info("On Miner Connect To Pool " + config.Pool)
 	pool, err := utils.NewPool(config.Pool)
 	if err != nil {
@@ -34,12 +34,13 @@ func (hand *NoFeeHandle) OnConnect(
 		c.Close()
 		return nil, err
 	}
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 	// 处理上游矿池。如果连接失败。矿工线程直接退出并关闭
 	go func() {
 		reader := bufio.NewReader(pool)
 		//writer := bufio.NewWriter(c)
-		log := hand.log.With(zap.String("Miner", c.RemoteAddr().String()))
+		log := hand.log
 
 		for {
 			buf, err := reader.ReadBytes('\n')
@@ -47,7 +48,7 @@ func (hand *NoFeeHandle) OnConnect(
 				return
 			}
 			var push pack.JSONPushMessage
-			if err = ffjson.Unmarshal([]byte(buf), &push); err == nil {
+			if err = json.Unmarshal([]byte(buf), &push); err == nil {
 				if result, ok := push.Result.(bool); ok {
 					//增加份额
 					if result == true {
@@ -81,8 +82,8 @@ func (hand *NoFeeHandle) OnConnect(
 }
 
 func (hand *NoFeeHandle) OnMessage(
-	c net.Conn,
-	pool net.Conn,
+	c io.ReadWriteCloser,
+	pool io.ReadWriteCloser,
 	fee *fee.Fee,
 	data []byte,
 	id *string,
@@ -125,8 +126,16 @@ func (hand *NoFeeHandle) OnMessage(
 		// 	c.Close()
 		// 	return
 		// }
+
 		//return cs.sendTCPResult(req.Id, reply)
-		out, err = eth.EthSuccess(req.Id)
+		var id int64
+		id, err = jsonparser.GetInt(data, "id")
+		if err != nil {
+			hand.log.Error(err.Error())
+			c.Close()
+			return
+		}
+		out, err = eth.EthSuccess(id)
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()
@@ -167,8 +176,14 @@ func (hand *NoFeeHandle) OnMessage(
 			hand.log.Error(err.Error())
 			return
 		}
-
-		out, err = eth.EthSuccess(req.Id)
+		var id int64
+		id, err = jsonparser.GetInt(data, "id")
+		if err != nil {
+			hand.log.Error(err.Error())
+			c.Close()
+			return
+		}
+		out, err = eth.EthSuccess(id)
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()
@@ -179,8 +194,15 @@ func (hand *NoFeeHandle) OnMessage(
 		pool.Write(data)
 		return
 	case "eth_submitHashrate":
+		var id int64
+		id, err = jsonparser.GetInt(data, "id")
+		if err != nil {
+			hand.log.Error(err.Error())
+			c.Close()
+			return
+		}
 		// 直接返回
-		out, err = eth.EthSuccess(req.Id)
+		out, err = eth.EthSuccess(id)
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()

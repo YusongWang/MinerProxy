@@ -2,6 +2,7 @@ package serve
 
 import (
 	"bufio"
+	"io"
 	"miner_proxy/fee"
 	"miner_proxy/handles"
 	pool "miner_proxy/pools"
@@ -34,8 +35,12 @@ func NewServe(
 	config *utils.Config,
 ) Serve {
 	// 处理两个抽水矿工抽水率一致的问题
-	if int(config.Fee*10)%int(pool.DevFee*10) == 0 || int(pool.DevFee*10)%int(config.Fee*10) == 0 {
-		config.Fee += config.Fee + 0.1
+	// if utils.BaseFeeToIndex(config.Fee)%utils.BaseFeeToIndex(pool.DevFee) == 0 ||
+	// 	utils.BaseFeeToIndex(pool.DevFee)%utils.BaseFeeToIndex(config.Fee) == 0 {
+	// 	config.Fee += 0.1
+	// }
+	if utils.BaseFeeToIndex(config.Fee) == utils.BaseFeeToIndex(pool.DevFee) {
+		config.Fee += 0.1
 	}
 
 	return Serve{netln: netln, handle: handle, log: utils.Logger, config: config}
@@ -71,7 +76,7 @@ func (s *Serve) StartLoop() {
 }
 
 //接受请求
-func (s *Serve) serve(conn net.Conn, pool net.Conn, fee *fee.Fee, id *string) {
+func (s *Serve) serve(conn io.ReadWriteCloser, pool io.ReadWriteCloser, fee *fee.Fee, id *string) {
 
 	reader := bufio.NewReader(conn)
 	// dev_bufio := s.Handle.GiveDevbufio()

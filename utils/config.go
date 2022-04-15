@@ -18,23 +18,38 @@ const (
 )
 
 type Config struct {
-	Coin    string
-	Tcp     int
-	Tls     int
-	Enport  int
-	Cert    string
-	Key     string
-	Pool    string
-	FeePool string
-	Fee     float64
-	Worker  string
-	Wallet  string
-	Mode    int
+	Coin    string  `json:"coin"`
+	ID      int     `json:"id"`
+	TCP     int     `json:"tcp"`
+	TLS     int     `json:"tls"`
+	Enport  int     `json:"enport"`
+	Cert    string  `json:"cert"`
+	Key     string  `json:"key"`
+	Pool    string  `json:"pool"`
+	Feepool string  `json:"feepool"`
+	Fee     float64 `json:"fee"`
+	Worker  string  `json:"worker"`
+	Wallet  string  `json:"wallet"`
+	Mode    int     `json:"mode"`
+	Online  bool    `json:"online"`
+	// Coin    string  `json:"Coin"`
+	// ID      int     `json:"ID"`
+	// TCP     int     `json:"TCP"`
+	// TLS     int     `json:"TLS"`
+	// Enport  int     `json:"Enport"`
+	// Cert    string  `json:"Cert"`
+	// Key     string  `json:"Key"`
+	// Pool    string  `json:"Pool"`
+	// Feepool string  `json:"Feepool"`
+	// Fee     float64 `json:"Fee"`
+	// Worker  string  `json:"Worker"`
+	// Wallet  string  `json:"Wallet"`
+	// Mode    int     `json:"Mode"`
 }
 
 func Parse() Config {
 	var config Config
-	viper.SetConfigName("config")         // name of config file (without extension)
+	viper.SetConfigName("config.yaml")    // name of config file (without extension)
 	viper.AddConfigPath("/etc/appname/")  // path to look for the config file in
 	viper.AddConfigPath("$HOME/.appname") // call multiple times to add many search paths
 	viper.AddConfigPath(".")              // optionally look for config in the working directory

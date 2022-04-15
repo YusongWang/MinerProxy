@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	//_ "net/http/pprof"
+
+	"fmt"
 	"os"
 
 	etcboot "miner_proxy/boot/etc"
@@ -12,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 func init() {
@@ -20,6 +24,9 @@ func init() {
 
 	serverCmd.Flags().String("coin", "ETH", "指定需要代理的币种")
 	viper.BindPFlag("coin", serverCmd.Flags().Lookup("coin"))
+
+	serverCmd.Flags().Int("id", 0, "指定当前代理编号")
+	viper.BindPFlag("id", serverCmd.Flags().Lookup("id"))
 
 	serverCmd.Flags().String("crt", "cert.pem", "指定SSL服务器证书")
 	viper.BindPFlag("crt", serverCmd.Flags().Lookup("crt"))
@@ -53,14 +60,15 @@ func init() {
 
 	serverCmd.Flags().Float64("fee", 0.0, "抽水率(%)默认 2% 支持一位小数点。")
 	viper.BindPFlag("fee", serverCmd.Flags().Lookup("fee"))
-	// serverCmd.Flags().String("config", "./config.yaml", "指定配置文件")
-	// viper.BindPFlag("config", serverCmd.Flags().Lookup("config"))
+
+	serverCmd.Flags().Bool("online", true, "是否在线")
+	viper.BindPFlag("online", serverCmd.Flags().Lookup("online"))
 }
 
 var serverCmd = &cobra.Command{
 	Use:   "server",
-	Short: "启动MinerProxy核心，提供转发服务。",
-	Long:  `无UI界面启动。`,
+	Short: "开启纯转发模式，不启动web界面。",
+	Long:  `开启纯转发模式，不启动web界面。`,
 	Run: func(cmd *cobra.Command, args []string) {
 		viper.BindPFlags(pflag.CommandLine)
 		config := parseConfig()
@@ -69,6 +77,20 @@ var serverCmd = &cobra.Command{
 			utils.Logger.Error(err.Error())
 			os.Exit(99)
 		}
+		// var configs []utils.Config
+		// configs = append(configs, config)
+		// configs = append(configs, config)
+		// configs = append(configs, config)
+		// yaml, err := json.Marshal(configs)
+		// if err != nil {
+		// 	utils.Logger.Error(err.Error())
+		// 	os.Exit(99)
+		// }
+		// fmt.Println(string(yaml))
+		// go func() {
+		// 	log.Println(http.ListenAndServe(":6060", nil))
+		// }()
+
 		if config.Mode == 1 {
 			switch config.Coin {
 			case "ETH":
@@ -77,8 +99,6 @@ var serverCmd = &cobra.Command{
 				etcboot.BootNoFee(config)
 			default:
 				test.BootNoFee(config)
-				// utils.Logger.Error("暂未支持的币种")
-				// os.Exit(99)
 			}
 		} else if config.Mode == 2 {
 			switch config.Coin {
@@ -90,8 +110,6 @@ var serverCmd = &cobra.Command{
 				eth_test.BootWithFee(config)
 			default:
 				test.BootNoFee(config)
-				// utils.Logger.Error("暂未支持的币种")
-				// os.Exit(99)
 			}
 		} else {
 			utils.Logger.Error("不支持的Mode参数")
@@ -120,12 +138,12 @@ func parseFromCli(c *utils.Config) {
 
 	tcp := viper.GetInt("tcp")
 	if tcp > 0 {
-		c.Tcp = tcp
+		c.TCP = tcp
 	}
 
 	tls := viper.GetInt("tls")
 	if tls > 0 {
-		c.Tls = tls
+		c.TLS = tls
 	}
 
 	enc := viper.GetInt("encrypt")
@@ -145,7 +163,7 @@ func parseFromCli(c *utils.Config) {
 
 	fee_pool := viper.GetString("feepool")
 	if fee_pool != "" {
-		c.FeePool = fee_pool
+		c.Feepool = fee_pool
 	}
 
 	fee := viper.GetFloat64("fee")
@@ -162,10 +180,22 @@ func parseFromCli(c *utils.Config) {
 	if worker != "" {
 		c.Worker = worker
 	}
+
+	id := viper.GetInt("id")
+	if id != 0 {
+		c.ID = id
+	}
+
+	online := viper.GetBool("online")
+	c.Online = online
 }
 
 func parseConfig() utils.Config {
 	c := utils.Parse()
+	fmt.Println(c)
+	utils.Logger.Info("config", zap.Any("Config", c))
 	parseFromCli(&c)
+	utils.Logger.Info("config", zap.Any("Cli", c))
+	fmt.Println(c)
 	return c
 }

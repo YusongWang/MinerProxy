@@ -1,8 +1,7 @@
 package handles
 
 import (
-	"net"
-
+	"io"
 	"miner_proxy/fee"
 	"miner_proxy/utils"
 
@@ -10,8 +9,8 @@ import (
 )
 
 type Handle interface {
-	OnConnect(net.Conn, *utils.Config, *fee.Fee, string, *string) (net.Conn, error)
-	OnMessage(net.Conn, net.Conn, *fee.Fee, []byte, *string) ([]byte, error)
+	OnConnect(io.ReadWriteCloser, *utils.Config, *fee.Fee, string, *string) (io.ReadWriteCloser, error)
+	OnMessage(io.ReadWriteCloser, io.ReadWriteCloser, *fee.Fee, []byte, *string) ([]byte, error)
 	OnClose(*string)
 	SetLog(*zap.Logger)
 }

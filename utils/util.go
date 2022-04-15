@@ -1,6 +1,7 @@
 package utils
 
 import (
+	gomath "math"
 	"math/big"
 	"regexp"
 	"strconv"
@@ -80,8 +81,12 @@ func String2Big(num string) *big.Int {
 	return n
 }
 
+func BaseFeeToIndex(fee float64) uint64 {
+	return uint64(int(gomath.Ceil(1000.0 / (fee * 10))))
+}
+
 func BaseOnIdxFee(idx uint64, fee float64) bool {
-	return (idx % uint64(1000/(fee*10))) == 0
+	return (idx % BaseFeeToIndex(fee)) == 0
 }
 
 func InterfaceToStrArray(list []interface{}) []string {

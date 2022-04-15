@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"crypto/tls"
 	"errors"
+	"io"
 	"log"
 	"miner_proxy/pack"
 	ethpack "miner_proxy/pack/eth"
@@ -13,15 +14,18 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/pquerna/ffjson/ffjson"
-
+	jsoniter "github.com/json-iterator/go"
 	"go.uber.org/zap"
 )
 
+type setNoDelayer interface {
+	SetNoDelay(bool) error
+}
+
 type EthStratumServer struct {
-	Conn     net.Conn
+	Conn     io.ReadWriteCloser
 	Job      *pack.Job
-	Submit   chan []string
+	Submit   chan []byte
 	PoolAddr string
 	Wallet   string
 	Worker   string
@@ -30,7 +34,7 @@ type EthStratumServer struct {
 func New(
 	address string,
 	job *pack.Job,
-	submit chan []string,
+	submit chan []byte,
 ) (EthStratumServer, error) {
 	if strings.HasPrefix(address, "tcp://") {
 		address = strings.ReplaceAll(address, "tcp://", "")
@@ -46,42 +50,52 @@ func New(
 func newEthStratumServerSsl(
 	address string,
 	job *pack.Job,
-	submit chan []string,
+	submit chan []byte,
 	pool string,
 ) (EthStratumServer, error) {
 	eth := EthStratumServer{}
 	eth.Job = job
 	eth.Submit = submit
-	eth.PoolAddr = address
+	eth.PoolAddr = "ssl://" + address
 
 	cfg := tls.Config{}
 	cfg.InsecureSkipVerify = true
 	cfg.PreferServerCipherSuites = true
-
-	conn, err := tls.Dial("tcp", address, &cfg)
+	var err error
+	eth.Conn, err = tls.Dial("tcp", address, &cfg)
 	if err != nil {
 		return eth, err
 	}
-
-	eth.Conn = conn
+	if c, ok := eth.Conn.(setNoDelayer); ok {
+		c.SetNoDelay(true)
+	}
 	return eth, nil
 }
 
 func newEthStratumServerTcp(
 	address string,
 	job *pack.Job,
-	submit chan []string,
+	submit chan []byte,
 	pool string,
 ) (EthStratumServer, error) {
 	eth := EthStratumServer{}
 	eth.Job = job
 	eth.Submit = submit
-	eth.PoolAddr = address
-	conn, err := net.Dial("tcp", address)
+	eth.PoolAddr = "tcp://" + address
+	tcpAddr, err := net.ResolveTCPAddr("tcp", address)
 	if err != nil {
 		return eth, err
 	}
-	eth.Conn = conn
+
+	eth.Conn, err = net.DialTCP("tcp", nil, tcpAddr)
+	if err != nil {
+		return eth, err
+	}
+
+	if c, ok := eth.Conn.(setNoDelayer); ok {
+		c.SetNoDelay(true)
+	}
+
 	return eth, nil
 }
 
@@ -105,8 +119,8 @@ func (eth *EthStratumServer) Login(wallet string, worker string) error {
 		},
 		Worker: worker,
 	}
-
-	res, err := ffjson.Marshal(login)
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	res, err := json.Marshal(login)
 	if err != nil {
 		return err
 	}
@@ -147,18 +161,18 @@ var package_middle = `,"worker":"`
 var package_end = `"}`
 
 // 提交工作量证明
-func (eth *EthStratumServer) SubmitJob(job []string) error {
-	str := ConcatJobTostr(job)
+func (eth *EthStratumServer) SubmitJob(job []byte) error {
+	//str := ConcatJobTostr(job)
 	var builder strings.Builder
 	builder.WriteString(package_head)
-	builder.WriteString(str)
+	builder.WriteString(string(job))
 	builder.WriteString(package_middle)
 	builder.WriteString(eth.Worker)
 	builder.WriteString(package_end)
 	builder.WriteByte('\n')
-
 	json_rpc := builder.String()
-	utils.Logger.Info("给服务器提交工作量证明", zap.Any("RPC", json_rpc))
+
+	//utils.Logger.Info("给服务器提交工作量证明", zap.Any("RPC", json_rpc))
 
 	_, err := eth.Conn.Write([]byte(json_rpc))
 	if err != nil {
@@ -208,9 +222,9 @@ func (eth *EthStratumServer) StartLoop() {
 				eth.Conn = temp.Conn
 				continue
 			}
-
+			var json = jsoniter.ConfigCompatibleWithStandardLibrary
 			var push ethpack.JSONPushMessage
-			if err = ffjson.Unmarshal([]byte(buf_str), &push); err == nil {
+			if err = json.Unmarshal([]byte(buf_str), &push); err == nil {
 				if result, ok := push.Result.(bool); ok {
 					//增加份额
 					if result {
@@ -236,20 +250,20 @@ func (eth *EthStratumServer) StartLoop() {
 
 	//TODO 调试这里的最优化接受携程数量
 	// for i := 0; i < 10; i++ {
-	// wg.Add(1)
-	// go func() {
-	// 	defer wg.Done()
-	// 	for {
-	// 		select {
-	// 		case job := <-eth.Submit:
-	// 			err := eth.SubmitJob(job)
-	// 			if err != nil {
-	// 				log.Warn("提交工作量证明失败")
-	// 			}
-	// 		}
-	// 	}
-	// }()
-	// }
+	// 	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case job := <-eth.Submit:
+				err := eth.SubmitJob(job)
+				if err != nil {
+					log.Warn("提交工作量证明失败")
+				}
+			}
+		}
+	}()
+	//}
 
 	wg.Wait()
 }

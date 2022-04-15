@@ -3,14 +3,26 @@ package eth
 import (
 	"encoding/json"
 	"errors"
+	"strconv"
 
-	"github.com/pquerna/ffjson/ffjson"
+	jsoniter "github.com/json-iterator/go"
 )
+
+//TODO 直接返回字符串。不用json解析
+
+var ethsuccess = `{"id":`
+var ethsuccess_end = `,"jsonrpc":"2.0","result":true}`
 
 type JSONRpcReq struct {
 	Id     json.RawMessage `json:"id"`
 	Method string          `json:"method"`
 	Params json.RawMessage `json:"params"`
+}
+
+type JSONRpcReqType struct {
+	Id     int      `json:"id"`
+	Method string   `json:"method"`
+	Params []string `json:"params"`
 }
 
 type StratumReq struct {
@@ -55,9 +67,9 @@ type ServerReq struct {
 }
 
 func EthStratumReq(data []byte) (StratumReq, error) {
-
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	var req StratumReq
-	err := ffjson.Unmarshal(data, &req)
+	err := json.Unmarshal(data, &req)
 	if err != nil {
 		return req, err
 	}
@@ -65,17 +77,20 @@ func EthStratumReq(data []byte) (StratumReq, error) {
 }
 
 // Return Success
-func EthSuccess(id json.RawMessage) (out []byte, err error) {
-	rpc := &JSONRpcResp{
-		Id:      id,
-		Version: "2.0",
-		Result:  true,
-	}
+func EthSuccess(id int64) (out []byte, err error) {
+	// rpc := &JSONRpcResp{
+	// 	Id:      id,
+	// 	Version: "2.0",
+	// 	Result:  true,
+	// }
+	// var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	// out, err = json.Marshal(rpc)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	out, err = ffjson.Marshal(rpc)
-	if err != nil {
-		return nil, err
-	}
+	out = []byte(ethsuccess + strconv.Itoa(int(id)) + ethsuccess_end)
+	out = append(out, '\n')
 	return
 }
 

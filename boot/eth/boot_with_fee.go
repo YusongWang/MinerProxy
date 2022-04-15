@@ -16,7 +16,7 @@ import (
 	"sync"
 
 	ipc "github.com/james-barrow/golang-ipc"
-	"github.com/pquerna/ffjson/ffjson"
+	jsoniter "github.com/json-iterator/go"
 	"go.uber.org/zap"
 )
 
@@ -25,11 +25,11 @@ func BootWithFee(c utils.Config) error {
 	dev_job := &pack.Job{}
 	fee_job := &pack.Job{}
 
-	dev_submit_job := make(chan []string, 100)
-	fee_submit_job := make(chan []string, 100)
+	dev_submit_job := make(chan []byte, 100)
+	fee_submit_job := make(chan []byte, 100)
 
 	// 中转线程
-	fee_pool, err := ethpool.New(c.FeePool, fee_job, fee_submit_job)
+	fee_pool, err := ethpool.New(c.Feepool, fee_job, fee_submit_job)
 	if err != nil {
 		utils.Logger.Error(err.Error())
 		os.Exit(99)
@@ -61,38 +61,55 @@ func BootWithFee(c utils.Config) error {
 
 	wg.Add(1)
 	go func() {
+		defer wg.Done()
+
 		for {
-			cc, err := ipc.StartClient("MinerProxy", nil)
+			cc, err := ipc.StartClient(pool.WebCmdPipeline, nil)
 			if err != nil {
 				utils.Logger.Error(err.Error())
-				time.Sleep(time.Second * 10)
+				time.Sleep(time.Second * 60)
 				continue
 			}
-			utils.Logger.Info("链接到manage成功")
 
+			go func() {
+				for {
+					msg, err := cc.Read()
+					if err != nil {
+						utils.Logger.Info("Ipc Channel Close")
+					}
+					utils.Logger.Info("Web -> Proxy ", zap.Any("msg", msg))
+					time.Sleep(time.Second * 10)
+				}
+			}()
+
+			utils.Logger.Info("链接到manage成功")
 			for {
 				for _, hand := range handle.Workers {
-					b, err := ffjson.Marshal(hand)
+					var json = jsoniter.ConfigCompatibleWithStandardLibrary
+					b, err := json.Marshal(hand)
 					if err != nil {
 						utils.Logger.Error(err.Error())
-						time.Sleep(time.Second * 10)
+						//time.Sleep(time.Second * 60)
 						continue
 					}
-					err = cc.Write(1, b)
+					utils.Logger.Info("写入Worker信息!", zap.Any("worker", hand))
+					err = cc.Write(100, b)
 					if err == nil {
-						utils.Logger.Info("发送成功!")
+						utils.Logger.Info("发送成功!", zap.Any("worker", hand))
+					} else {
+						utils.Logger.Info("发送失败!")
+						utils.Logger.Error(err.Error())
 					}
 				}
-				time.Sleep(time.Second * 10)
+				time.Sleep(time.Second * 60)
 			}
 		}
-
-		wg.Done()
 	}()
+
 	utils.Logger.Info("Start the Server And ready To serve")
 
-	if c.Tcp > 0 {
-		port := fmt.Sprintf(":%v", c.Tcp)
+	if c.TCP > 0 {
+		port := fmt.Sprintf(":%v", c.TCP)
 		net, err := network.NewTcp(port)
 		if err != nil {
 			utils.Logger.Error("can't bind to TCP addr", zap.String("端口", port))
@@ -106,8 +123,8 @@ func BootWithFee(c utils.Config) error {
 		}()
 	}
 
-	if c.Tls > 0 {
-		port := fmt.Sprintf(":%v", c.Tls)
+	if c.TLS > 0 {
+		port := fmt.Sprintf(":%v", c.TLS)
 		nettls, err := network.NewTls(c.Cert, c.Key, port)
 		if err != nil {
 			utils.Logger.Error("can't bind to SSL addr", zap.String("端口", port))
