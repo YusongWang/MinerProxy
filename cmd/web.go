@@ -5,6 +5,8 @@ import (
 	"miner_proxy/global"
 	pool "miner_proxy/pools"
 	"miner_proxy/utils"
+	routeRegister "miner_proxy/web/routes"
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -36,15 +38,8 @@ var WebCmd = &cobra.Command{
 		password := viper.GetString("password")
 		global.WebApp.Password = password
 
-		r := gin.Default()
-		r.GET("/ping", func(c *gin.Context) {
-			c.JSON(200, gin.H{
-				"message": "pong",
-			})
-		})
-
+		r := initRouter()
 		utils.Logger.Info("Start Web Port On: " + strconv.Itoa(global.WebApp.Port))
-
 		r.Run(fmt.Sprintf(":%v", global.WebApp.Port))
 	},
 }
@@ -67,4 +62,33 @@ func StartIpcServer() {
 			break
 		}
 	}
+}
+
+func initRouter() *gin.Engine {
+	router := gin.New()
+
+	router.Use(gin.Logger())
+
+	router.NoRoute(func(c *gin.Context) {
+		c.JSON(http.StatusNotFound, gin.H{
+			"code": 404,
+			"msg":  "找不到该路由",
+		})
+	})
+
+	router.NoMethod(func(c *gin.Context) {
+		c.JSON(http.StatusNotFound, gin.H{
+			"code": 404,
+			"msg":  "找不到该方法",
+		})
+	})
+
+	routeRegister.RegisterApiRouter(router)
+
+	// ReverseProxy
+	// router.Use(proxy.ReverseProxy(map[string] string {
+	// 	"localhost:4000" : "localhost:9090",
+	// }))
+
+	return router
 }
