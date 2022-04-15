@@ -11,6 +11,7 @@ import (
 func RegisterApiRouter(router *gin.Engine) {
 	apiRouter := router.Group("api")
 	{
+		apiRouter.GET("/login", controllers.Home)
 		apiRouter.GET("/dashbroad", controllers.Home)
 		apiRouter.GET("/system", controllers.System)
 		apiRouter.GET("/miner/detail", controllers.MinerDetail)
