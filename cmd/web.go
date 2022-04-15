@@ -30,6 +30,7 @@ var WebCmd = &cobra.Command{
 	Long:  `web`,
 	Run: func(cmd *cobra.Command, args []string) {
 		go StartIpcServer()
+
 		port := viper.GetInt("port")
 		global.WebApp.Port = port
 		password := viper.GetString("password")
