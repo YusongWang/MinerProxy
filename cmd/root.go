@@ -173,6 +173,7 @@ func Manage(wg *sync.WaitGroup) {
 
 func Web(wg *sync.WaitGroup, restart chan int) {
 web:
+	fmt.Println(os.Args[0], "web", "--port", strconv.Itoa(ManageApp.Web.Port), "--password", ManageApp.Web.Password)
 	web := exec.Command(os.Args[0], "web", "--port", strconv.Itoa(ManageApp.Web.Port), "--password", ManageApp.Web.Password)
 	go func() {
 		<-restart
@@ -199,10 +200,20 @@ proxy:
 		select {
 		case id := <-restart:
 			utils.Logger.Info("重启代理ID: " + strconv.Itoa(id))
+			//FIXME 处理旧任务？ 如果任务ID 变更旧任务就要删掉。
+
+			// for online_id, cmd := range ManagePool.Online {
+			// 	for _, app := range ManageApp.Config {
+			// 		if app.ID == online_id {
+			// 			ProcessProxy(&app)
+			// 		}
+			// 	}
+			// }
+
 			if ManagePool.Online[id] == nil {
 				for _, app := range ManageApp.Config {
 					if app.ID == id {
-						ProcessProxy(&app)
+						ProcessProxy(app)
 					}
 				}
 			} else {
@@ -220,7 +231,9 @@ proxy:
 func FristStart() {
 	for _, app := range ManageApp.Config {
 		// 逐一获得cmd执行任务。
-		go ProcessProxy(&app)
+		fmt.Println("逐一获得cmd执行任务。")
+		fmt.Println(app)
+		go ProcessProxy(app)
 	}
 }
 
@@ -247,7 +260,10 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 		utils.Logger.Info("config file changed:" + in.Name)
 
 		// 保存旧配置。
-		conf := *ManageApp
+		var conf ManageConfig
+		//copy(ManageApp, conf)
+		conf = *ManageApp
+		//conf := *ManageApp
 
 		// Web 重载配置
 		if err := v.Unmarshal(&ManageApp); err != nil {
@@ -262,14 +278,21 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 
 		// 检查 proxy 是否重启。
 		for _, app := range ManageApp.Config {
+			is_new := true
 			//FIXME 如果这里为空可能不会新增代理
-			c := conf.Config[app.ID]
-			if checkConfigChange(c, app) {
+			for _, old_app := range conf.Config {
+				if app.ID == old_app.ID {
+					if checkConfigChange(old_app, app) {
+						is_new = false
+						proxy_restart <- app.ID
+					}
+				}
+			}
+			if is_new {
 				proxy_restart <- app.ID
 			}
 		}
 
-		fmt.Println(ManageApp)
 	})
 
 	// 将配置赋值给全局变量
@@ -334,13 +357,12 @@ func checkConfigChange(old, new utils.Config) bool {
 	return false
 }
 
-func ProcessProxy(c *utils.Config) {
+func ProcessProxy(c utils.Config) {
 proxy:
 	//--coin ETH --tcp 38888 --pool tcp://asia2.ethermine.org:4444 --feepool
 	//tcp://asia2.ethermine.org:4444
 	//--mode 2 --wallet 0x3602b50d3086edefcd9318bcceb6389004fb14ee --fee 5
-	p := exec.Command(
-		os.Args[0],
+	fmt.Println(os.Args[0],
 		"server",
 		"--id",
 		strconv.Itoa(c.ID),
@@ -350,7 +372,7 @@ proxy:
 		strconv.Itoa(c.TCP),
 		"--tls",
 		strconv.Itoa(c.TLS),
-		"--enport",
+		"--encrypt",
 		strconv.Itoa(c.Enport),
 		"--pool",
 		c.Pool,
@@ -366,14 +388,45 @@ proxy:
 		c.Worker,
 		"--key",
 		c.Key,
-		"--cert",
+		"--crt",
+		c.Cert,
+		"--online")
+	p := exec.Command(
+		os.Args[0],
+		"server",
+		"--id",
+		strconv.Itoa(c.ID),
+		"--coin",
+		c.Coin,
+		"--tcp",
+		strconv.Itoa(c.TCP),
+		"--tls",
+		strconv.Itoa(c.TLS),
+		"--encrypt",
+		strconv.Itoa(c.Enport),
+		"--pool",
+		c.Pool,
+		"--feepool",
+		c.Feepool,
+		"--fee",
+		fmt.Sprintf("%f", c.Fee),
+		"--mode",
+		strconv.Itoa(c.Mode),
+		"--wallet",
+		c.Wallet,
+		"--worker",
+		c.Worker,
+		"--key",
+		c.Key,
+		"--crt",
 		c.Cert,
 		"--online",
 	)
-
 	if !c.Online {
 		return
 	}
+
+	fmt.Println(c)
 
 	ManagePool.Online[c.ID] = p
 	utils.Logger.Info("启动代理软件")
