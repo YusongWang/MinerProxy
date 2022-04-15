@@ -71,6 +71,17 @@ func BootWithFee(c utils.Config) error {
 				continue
 			}
 
+			go func() {
+				for {
+					msg, err := cc.Read()
+					if err != nil {
+						utils.Logger.Info("Ipc Channel Close")
+					}
+					utils.Logger.Info("Web -> Proxy ", zap.Any("msg", msg))
+					time.Sleep(time.Second * 10)
+				}
+			}()
+
 			utils.Logger.Info("链接到manage成功")
 			for {
 				for _, hand := range handle.Workers {
@@ -81,7 +92,8 @@ func BootWithFee(c utils.Config) error {
 						//time.Sleep(time.Second * 60)
 						continue
 					}
-					err = cc.Write(1, b)
+					utils.Logger.Info("写入Worker信息!", zap.Any("worker", hand))
+					err = cc.Write(100, b)
 					if err == nil {
 						utils.Logger.Info("发送成功!", zap.Any("worker", hand))
 					} else {

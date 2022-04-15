@@ -206,6 +206,9 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 	// 初始化 viper
 	v := viper.New()
 	v.SetConfigFile(config)
+	v.AddConfigPath("/etc/appname/")  // path to look for the config file in
+	v.AddConfigPath("$HOME/.appname") // call multiple times to add many search paths
+	v.AddConfigPath(".")              // optionally look for config in the working directory
 	v.SetConfigType("json")
 	if err := v.ReadInConfig(); err != nil {
 		utils.Logger.Error(err.Error())

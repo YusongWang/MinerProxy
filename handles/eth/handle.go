@@ -97,6 +97,8 @@ func (hand *Handle) OnConnect(
 							log.Info("当前job内容为空")
 							continue
 						}
+						diff := utils.TargetHexToDiff(job[2])
+						hand.Workers[*id].SetDevDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetDevDiff()))
 
 						fee.Dev[job[0]] = true
 						job_str := ConcatJobTostr(job)
@@ -124,6 +126,8 @@ func (hand *Handle) OnConnect(
 							log.Info("当前job内容为空")
 							continue
 						}
+						diff := utils.TargetHexToDiff(job[2])
+						hand.Workers[*id].SetFeeDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetFeeDiff()))
 
 						fee.Fee[job[0]] = true
 						job_str := ConcatJobTostr(job)
@@ -139,13 +143,13 @@ func (hand *Handle) OnConnect(
 						}
 
 					} else {
-						// go func() {
+						//go func() {
 						// job_params := utils.InterfaceToStrArray(params)
 						// diff := utils.TargetHexToDiff(job_params[2])
 						// hand.Workers[*id].SetDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetDiff()))
 						// log.Info("diff", zap.Any("diff", hand.Workers[*id]))
-						//log.Info("发送普通任务", zap.String("rpc", string(buf)))
-						// }()
+						// log.Info("发送普通任务", zap.String("rpc", string(buf)))
+						//}()
 						_, err = c.Write(buf)
 						if err != nil {
 							log.Error(err.Error())
