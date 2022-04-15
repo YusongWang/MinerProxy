@@ -1,6 +1,9 @@
 package pack
 
-import "math/big"
+import (
+	"math/big"
+	"time"
+)
 
 type Job struct {
 	Job [][]string
@@ -12,6 +15,8 @@ type Worker struct {
 	Worker_idx    uint64
 	Worker_share  uint64
 	Worker_reject uint64
+	Report_hash   uint64
+	Login_time    time.Time
 	Worker_diff   *big.Int
 	Dev_idx       uint64
 	Dev_diff      *big.Int
@@ -21,13 +26,14 @@ type Worker struct {
 }
 
 func NewWorker(worker string, wallet string) *Worker {
-
 	return &Worker{
 		Worker_name:   worker,
 		Wallet:        wallet,
 		Worker_idx:    0,
 		Worker_share:  0,
 		Worker_reject: 0,
+		Report_hash:   0,
+		Login_time:    time.Now(),
 		Worker_diff:   new(big.Int).SetInt64(0),
 		Dev_idx:       0,
 		Dev_diff:      new(big.Int).SetInt64(0),

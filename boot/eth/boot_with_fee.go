@@ -72,19 +72,21 @@ func BootWithFee(c utils.Config) error {
 			}
 
 			utils.Logger.Info("链接到manage成功")
-
 			for {
 				for _, hand := range handle.Workers {
 					var json = jsoniter.ConfigCompatibleWithStandardLibrary
 					b, err := json.Marshal(hand)
 					if err != nil {
 						utils.Logger.Error(err.Error())
-						time.Sleep(time.Second * 60)
+						//time.Sleep(time.Second * 60)
 						continue
 					}
 					err = cc.Write(1, b)
 					if err == nil {
-						utils.Logger.Info("发送成功!")
+						utils.Logger.Info("发送成功!", zap.Any("worker", hand))
+					} else {
+						utils.Logger.Info("发送失败!")
+						utils.Logger.Error(err.Error())
 					}
 				}
 				time.Sleep(time.Second * 60)

@@ -58,62 +58,20 @@ var rootCmd = &cobra.Command{
 
 		//gin.SetMode(gin.ReleaseMode)
 		var wg sync.WaitGroup
-		//TODO 解析SERVER配置文件。
 
-		//TODO 解析Webconfig配置文件。
-
-		//TODO 监听配置文件
+		// 解析SERVER配置文件。
+		// 监听配置文件
 		InitializeConfig(web_notify_ch, proxy_notify_ch)
 
-		//ManagePool.Online[0] =
-		// 启动SERVER配置。
-
 		// 启动web配置
-
-		//Web Manage
 		wg.Add(1)
 		go Web(&wg, web_notify_ch)
+
+		// 启动代理watchdog
 		wg.Add(1)
 		go Proxy(&wg, proxy_notify_ch)
-		// TEST manage
-		// wg.Add(1)
-		// go Manage(&wg)
-		// cc, err := ipc.StartClient(pool.ManageCmdPipeline, nil)
-		// if err != nil {
-		// 	utils.Logger.Error(err.Error())
-		// 	return
-		// }
 
-		// go func() {
-		// 	for {
-		// 		m, err := cc.Read()
-
-		// 		if err != nil {
-		// 			// An error is only returned if the recieved channel has been closed,
-		// 			//so you know the connection has either been intentionally closed or has timmed out waiting to connect/re-connect.
-		// 			break
-		// 		}
-
-		// 		if m.MsgType == -1 { // message type -1 is status change
-		// 			log.Println("Status: " + m.Status)
-		// 		}
-
-		// 		if m.MsgType == -2 { // message type -2 is an error, these won't automatically cause the recieve channel to close.
-		// 			log.Println("Error: " + err.Error())
-		// 		}
-
-		// 		if m.MsgType > 0 { // all message types above 0 have been recieved over the connection
-
-		// 			log.Println("Message type: ", m.MsgType)
-		// 			log.Println("Client recieved: " + string(m.Data))
-		// 		}
-		// 	}
-		// }()
-
-		// for {
-		// 	cc.Write(20, []byte("hello world"))
-		// 	time.Sleep(time.Second * 30)
-		// }
+		// 等待退出（永远不会退出）
 		wg.Wait()
 	},
 }
@@ -259,10 +217,8 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 	v.OnConfigChange(func(in fsnotify.Event) {
 		utils.Logger.Info("config file changed:" + in.Name)
 
-		// 保存旧配置。
-		var conf ManageConfig
 		//copy(ManageApp, conf)
-		conf = *ManageApp
+		conf := *ManageApp
 		//conf := *ManageApp
 
 		// Web 重载配置
@@ -292,7 +248,6 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 				proxy_restart <- app.ID
 			}
 		}
-
 	})
 
 	// 将配置赋值给全局变量
