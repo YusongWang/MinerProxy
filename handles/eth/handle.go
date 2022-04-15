@@ -230,7 +230,7 @@ func (hand *Handle) OnMessage(
 			}
 		}
 
-		hand.Workers[*id] = pack.NewWorker(worker, wallet)
+		hand.Workers[*id] = pack.NewWorker(worker, wallet, *id)
 		hand.Workers[*id].Logind(worker, wallet)
 		hand.log.Info("登陆矿工.", zap.String("Worker", worker), zap.String("Wallet", wallet))
 		var id int64

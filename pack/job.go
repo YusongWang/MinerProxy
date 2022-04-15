@@ -10,6 +10,7 @@ type Job struct {
 }
 
 type Worker struct {
+	Id            string
 	Worker_name   string
 	Wallet        string
 	Worker_idx    uint64
@@ -25,8 +26,9 @@ type Worker struct {
 	IsOnline      bool
 }
 
-func NewWorker(worker string, wallet string) *Worker {
+func NewWorker(worker string, wallet string, id string) *Worker {
 	return &Worker{
+		Id:            id,
 		Worker_name:   worker,
 		Wallet:        wallet,
 		Worker_idx:    0,

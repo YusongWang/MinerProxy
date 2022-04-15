@@ -1,18 +1,21 @@
 package routes
 
 import (
-	//"morningo/filters/auth"
-
 	"miner_proxy/web/controllers"
+	"miner_proxy/web/models"
 
 	"github.com/gin-gonic/gin"
 )
 
 func RegisterApiRouter(router *gin.Engine) {
+
+	models.InsertTest()
+	models.ReadMiners()
+
 	apiRouter := router.Group("api")
 	{
 		apiRouter.GET("/login", controllers.Home)
-		apiRouter.GET("/dashbroad", controllers.Home)
+		apiRouter.GET("/dashborad", controllers.Home)
 		apiRouter.GET("/system", controllers.System)
 		apiRouter.GET("/miner/detail", controllers.MinerDetail)
 		apiRouter.GET("/miners", controllers.MinerList)
