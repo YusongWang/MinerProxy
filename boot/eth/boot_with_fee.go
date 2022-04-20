@@ -72,10 +72,10 @@ func StartIpcServer(id int, handle *eth.Handle) {
 			// 		log.Error(err.Error())
 			// 	}
 			// }
-			err = sc.Write(10, []byte("Hello world\n"))
-			if err != nil {
-				log.Error(err.Error())
-			}
+			// err = sc.Write(10, []byte("Hello world\n"))
+			// if err != nil {
+			// 	log.Error(err.Error())
+			// }
 			if len(handle.Workers) > 0 {
 				var json = jsoniter.ConfigCompatibleWithStandardLibrary
 				b, err := json.Marshal(handle.Workers)

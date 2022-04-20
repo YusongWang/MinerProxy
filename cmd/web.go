@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"miner_proxy/global"
 	"miner_proxy/pack"
@@ -85,12 +86,18 @@ func StartIpcClient(id int) {
 				if err != nil {
 					log.Info("Ipc Channel Close")
 				}
+
 				if msg.MsgType == 100 {
 					//TODO json_Unmarshar
-
+					err := json.Unmarshal(msg.Data, OnlinePools[id])
+					if err != nil {
+						log.Error("格式化矿工状态失败")
+						continue
+					}
+					log.Info("Web 收到矿工信息", zap.Any("pool_workers", OnlinePools))
 					continue
 				}
-				log.Info("Proxy ->  Web", zap.Any("msg", msg))
+
 				log.Info("Web recieved: "+string(msg.Data), zap.Int("type", msg.MsgType))
 			}
 		}()
@@ -99,7 +106,7 @@ func StartIpcClient(id int) {
 		go func() {
 			defer wg.Done()
 			for {
-				err = cc.Write(111, []byte("hello server 9"))
+				err = cc.Write(111, []byte("hello"))
 				if err != nil {
 					log.Error(err.Error())
 				}
