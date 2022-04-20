@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"miner_proxy/global"
 	"miner_proxy/utils"
 	"time"
 
@@ -10,10 +11,50 @@ import (
 	"go.uber.org/zap"
 )
 
+type Dashboard struct {
+	PoolLength    int
+	OnlineWorker  int
+	OfflineWorker int
+	TotalHash     string
+	OnlineTime    string
+	TotalShare    int64
+	TotalDiff     int64
+	FeeShares     int64
+	FeeDiff       int64
+	DevShares     int64
+	DevDiff       int64
+}
+
 // 首页展示数据接口
 func Home(c *gin.Context) {
+	var data map[string]Dashboard
+
+	//data["ETH"].PoolLength = len(global.ManageApp.Config)
+	//data.PoolLength = len(global.ManageApp.Config)
+
+	var eth Dashboard
+	var etc Dashboard
+	for _, app := range global.ManageApp.Config {
+		if app.Coin == "ETH" {
+			eth.PoolLength++
+			eth.OnlineWorker = eth.OnlineWorker + len(global.OnlinePools[app.ID])
+			//eth.OnlineWorker = eth.OnlineWorker + len(global.OnlinePools[app.ID])
+		}
+
+		if app.Coin == "ETC" {
+			etc.PoolLength++
+			etc.OnlineWorker = etc.OnlineWorker + len(global.OnlinePools[app.ID])
+			//eth.OnlineWorker = eth.OnlineWorker + len(global.OnlinePools[app.ID])
+		}
+	}
+
+	data["ETH"] = eth
+	data["ETC"] = eth
+
 	c.JSON(200, gin.H{
-		"message": "pong",
+		"data":    data,
+		"message": "",
+		"code":    200,
 	})
 }
 

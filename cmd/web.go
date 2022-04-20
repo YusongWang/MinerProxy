@@ -55,7 +55,7 @@ var WebCmd = &cobra.Command{
 }
 
 func FristStartIpcClients() {
-	for _, app := range ManageApp.Config {
+	for _, app := range global.ManageApp.Config {
 		// 逐一获得cmd执行任务。
 		fmt.Println("逐一获得cmd执行任务。")
 		go StartIpcClient(app.ID)
