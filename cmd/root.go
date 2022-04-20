@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	pool "miner_proxy/pools"
 	"miner_proxy/utils"
 	"os"
 	"os/exec"
@@ -11,10 +10,8 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	ipc "github.com/james-barrow/golang-ipc"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 )
 
 type ManageConfig struct {
@@ -107,27 +104,27 @@ func Execute() {
 // 	wg.Done()
 // }
 
-func Manage(wg *sync.WaitGroup) {
-	sc, err := ipc.StartServer(pool.ManageCmdPipeline, nil)
-	if err != nil {
-		utils.Logger.Error(err.Error())
-		return
-	}
+// func Manage(wg *sync.WaitGroup) {
+// 	sc, err := ipc.StartServer(pool.ManageCmdPipeline, nil)
+// 	if err != nil {
+// 		utils.Logger.Error(err.Error())
+// 		return
+// 	}
 
-	utils.Logger.Info("Start Pipeline On " + pool.ManageCmdPipeline)
+// 	utils.Logger.Info("Start Pipeline On " + pool.ManageCmdPipeline)
 
-	for {
-		msg, err := sc.Read()
-		if err == nil {
-			utils.Logger.Info("Server recieved: "+string(msg.Data), zap.Int("type", msg.MsgType))
-		} else {
-			utils.Logger.Error(err.Error())
-			break
-		}
-	}
+// 	for {
+// 		msg, err := sc.Read()
+// 		if err == nil {
+// 			utils.Logger.Info("Server recieved: "+string(msg.Data), zap.Int("type", msg.MsgType))
+// 		} else {
+// 			utils.Logger.Error(err.Error())
+// 			break
+// 		}
+// 	}
 
-	wg.Done()
-}
+// 	wg.Done()
+// }
 
 func Web(wg *sync.WaitGroup, restart chan int) {
 web:
