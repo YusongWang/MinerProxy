@@ -59,15 +59,13 @@ var rootCmd = &cobra.Command{
 		// 解析SERVER配置文件。
 		// 监听配置文件
 		InitializeConfig(web_notify_ch, proxy_notify_ch)
-
-		// 启动web配置
-		wg.Add(1)
-		go Web(&wg, web_notify_ch)
-
 		// 启动代理watchdog
 		wg.Add(1)
 		go Proxy(&wg, proxy_notify_ch)
 
+		// 启动web配置
+		wg.Add(1)
+		go Web(&wg, web_notify_ch)
 		// 等待退出（永远不会退出）
 		wg.Wait()
 	},
