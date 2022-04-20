@@ -20,8 +20,6 @@ import (
 	"go.uber.org/zap"
 )
 
-var OnlinePools [1000]map[string]pack.Worker
-
 func init() {
 	WebCmd.Flags().String("password", "admin123", "指定web密码")
 	viper.BindPFlag("password", WebCmd.Flags().Lookup("password"))
@@ -93,11 +91,10 @@ func StartIpcClient(id int) {
 						log.Error("格式化矿工状态失败", zap.String("data", string(msg.Data)))
 						continue
 					}
-					OnlinePools[id] = p
-					log.Info("Web 收到矿工信息", zap.Any("pool_workers", OnlinePools))
+					global.OnlinePools[id] = p
+					//log.Info("Web 收到矿工信息", zap.Any("pool_workers", OnlinePools))
 					continue
 				}
-
 				log.Info("Web recieved: "+string(msg.Data), zap.Int("type", msg.MsgType))
 			}
 		}()

@@ -25,3 +25,5 @@ type WebApplication struct {
 }
 
 var WebApp = new(WebApplication)
+
+var OnlinePools [1000]map[string]pack.Worker
