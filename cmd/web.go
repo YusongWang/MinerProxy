@@ -20,7 +20,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var OnlinePools [1000][]pack.Worker
+var OnlinePools [1000]map[string]pack.Worker
 
 func init() {
 	WebCmd.Flags().String("password", "admin123", "指定web密码")
@@ -86,14 +86,14 @@ func StartIpcClient(id int) {
 				if err != nil {
 					log.Info("Ipc Channel Close")
 				}
-
+				var p map[string]pack.Worker
 				if msg.MsgType == 100 {
-					//TODO json_Unmarshar
-					err := json.Unmarshal(msg.Data, OnlinePools[id])
+					err := json.Unmarshal(msg.Data, &p)
 					if err != nil {
-						log.Error("格式化矿工状态失败")
+						log.Error("格式化矿工状态失败", zap.String("data", string(msg.Data)))
 						continue
 					}
+					OnlinePools[id] = p
 					log.Info("Web 收到矿工信息", zap.Any("pool_workers", OnlinePools))
 					continue
 				}
