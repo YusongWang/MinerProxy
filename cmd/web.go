@@ -1,13 +1,17 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"miner_proxy/global"
+	"miner_proxy/pack"
 	pool "miner_proxy/pools"
 	"miner_proxy/utils"
 	routeRegister "miner_proxy/web/routes"
 	"net/http"
 	"strconv"
+	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	ipc "github.com/james-barrow/golang-ipc"
@@ -31,7 +35,13 @@ var WebCmd = &cobra.Command{
 	Short: "w",
 	Long:  `web`,
 	Run: func(cmd *cobra.Command, args []string) {
-		go StartIpcServer()
+		web_notify_ch := make(chan int)
+		proxy_notify_ch := make(chan int)
+
+		// 解析SERVER配置文件。
+		// 监听配置文件
+		InitializeConfig(web_notify_ch, proxy_notify_ch)
+		FristStartIpcClients()
 
 		port := viper.GetInt("port")
 		global.WebApp.Port = port
@@ -44,23 +54,64 @@ var WebCmd = &cobra.Command{
 	},
 }
 
-func StartIpcServer() {
-	sc, err := ipc.StartServer(pool.WebCmdPipeline, nil)
-	if err != nil {
-		utils.Logger.Error(err.Error())
-		return
+func FristStartIpcClients() {
+	for _, app := range ManageApp.Config {
+		// 逐一获得cmd执行任务。
+		fmt.Println("逐一获得cmd执行任务。")
+		go StartIpcClient(app.ID)
 	}
+}
 
-	utils.Logger.Info("Start Web Pipeline On: " + pool.WebCmdPipeline)
-
+func StartIpcClient(id int) {
+	pipename := pool.WebCmdPipeline + "_" + strconv.Itoa(id)
+	//pipename := pool.WebCmdPipeline
+	log := utils.Logger.With(zap.String("IPC_NAME", pipename))
 	for {
-		msg, err := sc.Read()
-		if err == nil {
-			utils.Logger.Info("Server recieved: "+string(msg.Data), zap.Int("type", msg.MsgType))
-		} else {
-			utils.Logger.Error(err.Error())
-			break
+		cc, err := ipc.StartClient(pipename, nil)
+		if err != nil {
+			log.Error(err.Error())
+			time.Sleep(time.Second * 60)
+			continue
 		}
+		log.Info("IPC client Ready to Connect!")
+
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				msg, err := cc.Read()
+				if err != nil {
+					log.Info("Ipc Channel Close")
+				}
+				var p map[string]pack.Worker
+				if msg.MsgType == 100 {
+					err := json.Unmarshal(msg.Data, &p)
+					if err != nil {
+						log.Error("格式化矿工状态失败", zap.String("data", string(msg.Data)))
+						continue
+					}
+					global.OnlinePools[id] = p
+					//log.Info("Web 收到矿工信息", zap.Any("pool_workers", OnlinePools))
+					continue
+				}
+				log.Info("Web recieved: "+string(msg.Data), zap.Int("type", msg.MsgType))
+			}
+		}()
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				err = cc.Write(111, []byte("hello"))
+				if err != nil {
+					log.Error(err.Error())
+				}
+				time.Sleep(time.Second * 10)
+			}
+		}()
+
+		wg.Wait()
 	}
 }
 
@@ -84,11 +135,6 @@ func initRouter() *gin.Engine {
 	})
 
 	routeRegister.RegisterApiRouter(router)
-
-	// ReverseProxy
-	// router.Use(proxy.ReverseProxy(map[string] string {
-	// 	"localhost:4000" : "localhost:9090",
-	// }))
 
 	return router
 }

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	pool "miner_proxy/pools"
 	"miner_proxy/utils"
 	"os"
 	"os/exec"
@@ -11,10 +10,8 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	ipc "github.com/james-barrow/golang-ipc"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 )
 
 type ManageConfig struct {
@@ -62,15 +59,13 @@ var rootCmd = &cobra.Command{
 		// 解析SERVER配置文件。
 		// 监听配置文件
 		InitializeConfig(web_notify_ch, proxy_notify_ch)
-
-		// 启动web配置
-		wg.Add(1)
-		go Web(&wg, web_notify_ch)
-
 		// 启动代理watchdog
 		wg.Add(1)
 		go Proxy(&wg, proxy_notify_ch)
 
+		// 启动web配置
+		wg.Add(1)
+		go Web(&wg, web_notify_ch)
 		// 等待退出（永远不会退出）
 		wg.Wait()
 	},
@@ -107,27 +102,27 @@ func Execute() {
 // 	wg.Done()
 // }
 
-func Manage(wg *sync.WaitGroup) {
-	sc, err := ipc.StartServer(pool.ManageCmdPipeline, nil)
-	if err != nil {
-		utils.Logger.Error(err.Error())
-		return
-	}
+// func Manage(wg *sync.WaitGroup) {
+// 	sc, err := ipc.StartServer(pool.ManageCmdPipeline, nil)
+// 	if err != nil {
+// 		utils.Logger.Error(err.Error())
+// 		return
+// 	}
 
-	utils.Logger.Info("Start Pipeline On " + pool.ManageCmdPipeline)
+// 	utils.Logger.Info("Start Pipeline On " + pool.ManageCmdPipeline)
 
-	for {
-		msg, err := sc.Read()
-		if err == nil {
-			utils.Logger.Info("Server recieved: "+string(msg.Data), zap.Int("type", msg.MsgType))
-		} else {
-			utils.Logger.Error(err.Error())
-			break
-		}
-	}
+// 	for {
+// 		msg, err := sc.Read()
+// 		if err == nil {
+// 			utils.Logger.Info("Server recieved: "+string(msg.Data), zap.Int("type", msg.MsgType))
+// 		} else {
+// 			utils.Logger.Error(err.Error())
+// 			break
+// 		}
+// 	}
 
-	wg.Done()
-}
+// 	wg.Done()
+// }
 
 func Web(wg *sync.WaitGroup, restart chan int) {
 web:
