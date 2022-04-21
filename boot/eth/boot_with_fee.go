@@ -84,7 +84,7 @@ func StartIpcServer(id int, handle *eth.Handle) {
 					//time.Sleep(time.Second * 60)
 					continue
 				}
-				log.Info("写入Worker信息!", zap.Any("worker", handle.Workers))
+				//log.Info("写入Worker信息!", zap.Any("worker", handle.Workers))
 				err = sc.Write(100, b)
 				if err == nil {
 					log.Info("发送成功!", zap.Any("worker", handle.Workers))
@@ -93,7 +93,7 @@ func StartIpcServer(id int, handle *eth.Handle) {
 					log.Error(err.Error())
 				}
 			}
-			time.Sleep(time.Second * 10)
+			time.Sleep(time.Second * 120)
 		}
 	}
 }

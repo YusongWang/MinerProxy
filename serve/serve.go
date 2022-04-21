@@ -95,7 +95,6 @@ func (s *Serve) serve(conn io.ReadWriteCloser, pool io.ReadWriteCloser, fee *fee
 		buf, err := reader.ReadBytes('\n')
 		if err != nil {
 			s.log.Error(err.Error())
-
 			s.handle.OnClose(id)
 			return
 		}
