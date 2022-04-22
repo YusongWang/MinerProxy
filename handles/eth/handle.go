@@ -131,6 +131,10 @@ func (hand *Handle) OnMessage(
 
 		return
 	case "eth_getWork":
+		if pool == nil {
+			return
+		}
+
 		_, err = (*pool).Write(data)
 		if err != nil {
 			hand.log.Error("写入矿池失败: " + err.Error())
@@ -140,6 +144,9 @@ func (hand *Handle) OnMessage(
 		}
 		return
 	case "eth_submitWork":
+		if pool == nil {
+			return
+		}
 		var wg sync.WaitGroup
 		wg.Add(1)
 		go func() {
@@ -207,6 +214,9 @@ func (hand *Handle) OnMessage(
 		err = nil
 		return
 	case "eth_submitHashrate":
+		if pool == nil {
+			return
+		}
 		var rpc_id int64
 		rpc_id, err = jsonparser.GetInt(data, "id")
 		if err != nil {
