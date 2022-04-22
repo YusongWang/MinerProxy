@@ -1,17 +1,16 @@
 package eth
 
 import (
+	"bufio"
 	"encoding/json"
 	"io"
 	"miner_proxy/fee"
 	"miner_proxy/pack"
 	"miner_proxy/pack/eth"
-	rpool "miner_proxy/pools"
+	pools "miner_proxy/pools"
 	"miner_proxy/utils"
 	"strings"
 	"sync"
-
-	"bufio"
 
 	"github.com/buger/jsonparser"
 	"go.uber.org/zap"
@@ -39,6 +38,249 @@ func (hand *Handle) OnConnect(
 	config *utils.Config,
 	fee *fee.Fee,
 	addr string,
+	id *string,
+) (io.ReadWriteCloser, error) {
+	return nil, nil
+}
+
+func (hand *Handle) OnMessage(
+	c io.ReadWriteCloser,
+	pool *io.ReadWriteCloser,
+	config *utils.Config,
+	fee *fee.Fee,
+	data []byte,
+	id *string,
+) (out []byte, err error) {
+	//var json = jsoniter.ConfigCompatibleWithStandardLibrary
+
+	method, err := jsonparser.GetString(data, "method")
+	if err != nil {
+		hand.log.Error(err.Error())
+		c.Close()
+		return
+	}
+
+	switch method {
+	case "eth_submitLogin":
+		var params []string
+		var parse_byte []byte
+		parse_byte, _, _, err = jsonparser.Get(data, "params")
+		if err != nil {
+			hand.log.Error(err.Error())
+			c.Close()
+			return
+		}
+
+		err = json.Unmarshal(parse_byte, &params)
+		if err != nil {
+			hand.log.Error(err.Error())
+			c.Close()
+			return
+		}
+
+		var worker string
+		var wallet string
+		//TODO
+		params_zero := strings.Split(params[0], ".")
+		wallet = params_zero[0]
+		if len(params_zero) > 1 {
+			worker = params_zero[1]
+		} else {
+			worker, err = jsonparser.GetString(data, "worker")
+			if err != nil {
+				hand.log.Error(err.Error())
+				c.Close()
+				return
+			}
+		}
+		var pool_conn io.ReadWriteCloser
+		pool_conn, err = ConnectToPool(c, hand, config, fee, id)
+		if err != nil {
+			hand.log.Error("矿池拒绝链接或矿池地址不正确!")
+			return
+		}
+
+		*pool = pool_conn
+		hand.Workers[*id] = pack.NewWorker(worker, wallet, *id)
+		hand.Workers[*id].Logind(worker, wallet)
+
+		hand.log.Info("登陆矿工.", zap.String("Worker", worker), zap.String("Wallet", wallet))
+
+		var rpc_id int64
+		rpc_id, err = jsonparser.GetInt(data, "id")
+		if err != nil {
+			hand.log.Error(err.Error())
+			c.Close()
+			return
+		}
+
+		out, err = eth.EthSuccess(rpc_id)
+		if err != nil {
+			hand.log.Error(err.Error())
+			c.Close()
+			return
+		}
+
+		_, err = (*pool).Write(data)
+		if err != nil {
+			hand.log.Error("写入矿池失败: " + err.Error())
+			c.Close()
+			hand.OnClose(id)
+			return
+		}
+
+		return
+	case "eth_getWork":
+		_, err = (*pool).Write(data)
+		if err != nil {
+			hand.log.Error("写入矿池失败: " + err.Error())
+			c.Close()
+			hand.OnClose(id)
+			return
+		}
+		return
+	case "eth_submitWork":
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			id, err := jsonparser.GetInt(data, "id")
+			if err != nil {
+				hand.log.Error(err.Error())
+				c.Close()
+				return
+			}
+			out, err = eth.EthSuccess(id)
+			if err != nil {
+				hand.log.Error(err.Error())
+				c.Close()
+				return
+			}
+			c.Write(out)
+			wg.Done()
+		}()
+
+		go func() {
+			var job_id string
+			job_id, err = jsonparser.GetString(data, "params", "[1]")
+			if err != nil {
+				hand.log.Error(err.Error())
+				c.Close()
+				return
+			}
+
+			if _, ok := fee.Dev[job_id]; ok {
+				hand.Workers[*id].DevAdd()
+
+				var parse_byte []byte
+				parse_byte, _, _, err = jsonparser.Get(data, "params")
+				if err != nil {
+					hand.log.Error(err.Error())
+					c.Close()
+					return
+				}
+				*hand.SubDev <- parse_byte
+			} else if _, ok := fee.Fee[job_id]; ok {
+
+				hand.Workers[*id].FeeAdd()
+				var parse_byte []byte
+				parse_byte, _, _, err = jsonparser.Get(data, "params")
+				if err != nil {
+					hand.log.Error(err.Error())
+					c.Close()
+					return
+				}
+				*hand.SubFee <- parse_byte
+			} else {
+				hand.Workers[*id].AddShare()
+				_, err = (*pool).Write(data)
+				if err != nil {
+					hand.log.Error("写入矿池失败: " + err.Error())
+					c.Close()
+					hand.OnClose(id)
+					return
+				}
+			}
+		}()
+
+		wg.Wait()
+		out = nil
+		err = nil
+		return
+	case "eth_submitHashrate":
+		var rpc_id int64
+		rpc_id, err = jsonparser.GetInt(data, "id")
+		if err != nil {
+			hand.log.Error(err.Error())
+			c.Close()
+			return
+		}
+
+		// 直接返回
+		out, err = eth.EthSuccess(rpc_id)
+		if err != nil {
+			hand.log.Error(err.Error())
+			c.Close()
+			return
+		}
+		_, err = (*pool).Write(data)
+		if err != nil {
+			hand.log.Error("写入矿池失败: " + err.Error())
+			c.Close()
+			hand.OnClose(id)
+			return
+		}
+		return
+	default:
+		hand.log.Info("KnownRpc")
+		return
+	}
+}
+
+func (hand *Handle) OnClose(id *string) {
+	if worker, ok := hand.Workers[*id]; ok {
+		worker.Logout()
+		hand.log.Info("矿机下线", zap.Any("Worker", worker))
+	}
+}
+
+func (hand *Handle) SetLog(log *zap.Logger) {
+	hand.log = log
+}
+
+var golbal_job = `{"id":0,"jsonrpc":"2.0","result":`
+var golbal_jobend = `}`
+
+func ConcatJobTostr(job []string) string {
+	var builder strings.Builder
+	builder.WriteString(`["`)
+
+	job_len := len(job) - 1
+	for i, j := range job {
+		if i == job_len {
+			builder.WriteString(j + `"]`)
+			break
+		}
+		builder.WriteString(j + `","`)
+	}
+
+	return builder.String()
+}
+
+func ConcatToPushJob(job string) []byte {
+	//inner_job := []byte(golbal_job + string(job) + golbal_jobend)
+	var builder strings.Builder
+	builder.WriteString(golbal_job)
+	builder.WriteString(job)
+	builder.WriteString(golbal_jobend)
+	builder.WriteByte('\n')
+	return []byte(builder.String())
+}
+
+func ConnectToPool(
+	c io.ReadWriteCloser,
+	hand *Handle,
+	config *utils.Config,
+	fee *fee.Fee,
 	id *string,
 ) (io.ReadWriteCloser, error) {
 	hand.log.Info("Miner Connect To Pool " + config.Pool + "    UUID: " + *id)
@@ -86,7 +328,7 @@ func (hand *Handle) OnConnect(
 					// 	w.AddShare()
 					// }
 					hand.Workers[*id].AddIndex()
-					if utils.BaseOnIdxFee(hand.Workers[*id].GetIndex(), rpool.DevFee) {
+					if utils.BaseOnIdxFee(hand.Workers[*id].GetIndex(), pools.DevFee) {
 						if len(hand.Devjob.Job) > 0 {
 							job = hand.Devjob.Job[len(hand.Devjob.Job)-1]
 						} else {
@@ -178,232 +420,4 @@ func (hand *Handle) OnConnect(
 	}()
 
 	return pool, nil
-}
-
-func (hand *Handle) OnMessage(
-	c io.ReadWriteCloser,
-	pool io.ReadWriteCloser,
-	fee *fee.Fee,
-	data []byte,
-	id *string,
-) (out []byte, err error) {
-	//var json = jsoniter.ConfigCompatibleWithStandardLibrary
-
-	method, err := jsonparser.GetString(data, "method")
-	if err != nil {
-		hand.log.Error(err.Error())
-		c.Close()
-		return
-	}
-
-	switch method {
-	case "eth_submitLogin":
-		var params []string
-		var parse_byte []byte
-		parse_byte, _, _, err = jsonparser.Get(data, "params")
-		if err != nil {
-			hand.log.Error(err.Error())
-			c.Close()
-			return
-		}
-
-		err = json.Unmarshal(parse_byte, &params)
-		if err != nil {
-			hand.log.Error(err.Error())
-			c.Close()
-			return
-		}
-
-		var worker string
-		var wallet string
-		//TODO
-		params_zero := strings.Split(params[0], ".")
-		wallet = params_zero[0]
-		if len(params_zero) > 1 {
-			worker = params_zero[1]
-		} else {
-			worker, err = jsonparser.GetString(data, "worker")
-			if err != nil {
-				hand.log.Error(err.Error())
-				c.Close()
-				return
-			}
-		}
-
-		hand.Workers[*id] = pack.NewWorker(worker, wallet, *id)
-		hand.Workers[*id].Logind(worker, wallet)
-		hand.log.Info("登陆矿工.", zap.String("Worker", worker), zap.String("Wallet", wallet))
-		var id int64
-		id, err = jsonparser.GetInt(data, "id")
-		if err != nil {
-			hand.log.Error(err.Error())
-			c.Close()
-			return
-		}
-
-		out, err = eth.EthSuccess(id)
-		if err != nil {
-			hand.log.Error(err.Error())
-			c.Close()
-			return
-		}
-
-		pool.Write(data)
-		return
-	case "eth_getWork":
-		pool.Write(data)
-		return
-	case "eth_submitWork":
-		var wg sync.WaitGroup
-		wg.Add(1)
-		go func() {
-			id, err := jsonparser.GetInt(data, "id")
-			if err != nil {
-				hand.log.Error(err.Error())
-				c.Close()
-				return
-			}
-			out, err = eth.EthSuccess(id)
-			if err != nil {
-				hand.log.Error(err.Error())
-				c.Close()
-				return
-			}
-			c.Write(out)
-			wg.Done()
-		}()
-
-		go func() {
-			// var params []string
-			// var parse_byte []byte
-			var job_id string
-			job_id, err = jsonparser.GetString(data, "params", "[1]")
-			if err != nil {
-				hand.log.Error(err.Error())
-				c.Close()
-				return
-			}
-
-			//hand.log.Info("获取当Job-id: " + job_id)
-			// err = json.Unmarshal(parse_byte, &params)
-			// if err != nil {
-			// 	hand.log.Error(err.Error())
-			// 	c.Close()
-			// 	return
-			// }
-
-			if _, ok := fee.Dev[job_id]; ok {
-				hand.Workers[*id].DevAdd()
-				// str := ConcatJobTostr(params)
-				// var builder strings.Builder
-				// builder.WriteString(package_head)
-				// builder.WriteString(str)
-				// builder.WriteString(package_middle)
-				// builder.WriteString("DEVFEE")
-				// builder.WriteString(package_end)
-				// builder.WriteByte('\n')
-				var parse_byte []byte
-				parse_byte, _, _, err = jsonparser.Get(data, "params")
-				if err != nil {
-					hand.log.Error(err.Error())
-					c.Close()
-					return
-				}
-				// json_rpc := builder.String()
-				// (*hand.DevConn).Write([]byte(json_rpc))
-				*hand.SubDev <- parse_byte
-			} else if _, ok := fee.Fee[job_id]; ok {
-				//hand.log.Info("得到普通抽水份额", zap.String("RPC", string(data)))
-				hand.Workers[*id].FeeAdd()
-				// str := ConcatJobTostr(params)
-				// var builder strings.Builder
-				// builder.WriteString(package_head)
-				// builder.WriteString(str)
-				// builder.WriteString(package_middle)
-				// builder.WriteString("MinerProxy")
-				// builder.WriteString(package_end)
-				// builder.WriteByte('\n')
-				var parse_byte []byte
-				parse_byte, _, _, err = jsonparser.Get(data, "params")
-				if err != nil {
-					hand.log.Error(err.Error())
-					c.Close()
-					return
-				}
-				// json_rpc := builder.String()
-				// (*hand.FeeConn).Write([]byte(json_rpc))
-				*hand.SubFee <- parse_byte
-			} else {
-				//hand.log.Info("得到份额", zap.String("RPC", string(data)))
-				hand.Workers[*id].AddShare()
-				pool.Write(data)
-			}
-		}()
-
-		wg.Wait()
-		out = nil
-		err = nil
-		return
-	case "eth_submitHashrate":
-		var id int64
-		id, err = jsonparser.GetInt(data, "id")
-		if err != nil {
-			hand.log.Error(err.Error())
-			c.Close()
-			return
-		}
-
-		// 直接返回
-		out, err = eth.EthSuccess(id)
-		if err != nil {
-			hand.log.Error(err.Error())
-			c.Close()
-			return
-		}
-		pool.Write(data)
-		return
-	default:
-		hand.log.Info("KnownRpc")
-		return
-	}
-}
-
-func (hand *Handle) OnClose(id *string) {
-	if worker, ok := hand.Workers[*id]; ok {
-		worker.Logout()
-		hand.log.Info("矿机下线", zap.Any("Worker", worker))
-	}
-}
-
-func (hand *Handle) SetLog(log *zap.Logger) {
-	hand.log = log
-}
-
-var golbal_job = `{"id":0,"jsonrpc":"2.0","result":`
-var golbal_jobend = `}`
-
-func ConcatJobTostr(job []string) string {
-	var builder strings.Builder
-	builder.WriteString(`["`)
-
-	job_len := len(job) - 1
-	for i, j := range job {
-		if i == job_len {
-			builder.WriteString(j + `"]`)
-			break
-		}
-		builder.WriteString(j + `","`)
-	}
-
-	return builder.String()
-}
-
-func ConcatToPushJob(job string) []byte {
-	//inner_job := []byte(golbal_job + string(job) + golbal_jobend)
-	var builder strings.Builder
-	builder.WriteString(golbal_job)
-	builder.WriteString(job)
-	builder.WriteString(golbal_jobend)
-	builder.WriteByte('\n')
-	return []byte(builder.String())
 }

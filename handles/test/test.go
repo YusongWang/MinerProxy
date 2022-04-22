@@ -46,13 +46,14 @@ func (hand *Test) OnConnect(
 
 func (hand *Test) OnMessage(
 	c io.ReadWriteCloser,
-	pool io.ReadWriteCloser,
+	pool *io.ReadWriteCloser,
+	config *utils.Config,
 	fee *fee.Fee,
 	data []byte,
 	id *string,
 ) (out []byte, err error) {
 	hand.log.Info("矿机: " + string(data))
-	pool.Write(data)
+	(*pool).Write(data)
 
 	out = nil
 	err = nil

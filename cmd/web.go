@@ -107,7 +107,7 @@ func StartIpcClient(id int) {
 				if err != nil {
 					log.Error(err.Error())
 				}
-				time.Sleep(time.Second * 10)
+				time.Sleep(time.Second * 120)
 			}
 		}()
 

@@ -35,7 +35,7 @@ func StartIpcServer(id int, handle *eth.Handle) {
 
 		go func() {
 			for {
-				msg, err := sc.Read()
+				_, err := sc.Read()
 				if err == nil {
 					// if msg.MsgType == -1 {
 					// 	log.Info("Waiting connect!!!")
@@ -45,8 +45,8 @@ func StartIpcServer(id int, handle *eth.Handle) {
 					// 	log.Info("Connectd !!!!")
 					// 	continue
 					// }
-					log.Info("Proxy ->  Web", zap.Any("msg", msg))
-					log.Info("Server recieved: "+string(msg.Data), zap.Int("type", msg.MsgType))
+					//log.Info("Proxy ->  Web", zap.Any("msg", msg))
+					//log.Info("Server recieved: "+string(msg.Data), zap.Int("type", msg.MsgType))
 				} else {
 					log.Error(err.Error())
 					break
@@ -87,7 +87,7 @@ func StartIpcServer(id int, handle *eth.Handle) {
 				//log.Info("写入Worker信息!", zap.Any("worker", handle.Workers))
 				err = sc.Write(100, b)
 				if err == nil {
-					log.Info("发送成功!", zap.Any("worker", handle.Workers))
+					//log.Info("发送成功!", zap.Any("worker", handle.Workers))
 				} else {
 					log.Info("发送失败!")
 					log.Error(err.Error())
@@ -127,6 +127,7 @@ func BootWithFee(c utils.Config) error {
 	go dev_pool.StartLoop()
 
 	var wg sync.WaitGroup
+
 	handle := eth.Handle{
 		Devjob:  dev_job,
 		Feejob:  fee_job,

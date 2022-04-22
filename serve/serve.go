@@ -55,7 +55,6 @@ func (s *Serve) StartLoop() {
 			continue
 		}
 
-		s.log.Info("Tcp Accept Concent")
 		s.handle.SetLog(s.log)
 
 		var fee fee.Fee
@@ -71,25 +70,15 @@ func (s *Serve) StartLoop() {
 		if err != nil {
 			s.log.Warn(err.Error())
 		}
-		go s.serve(conn, pool_net, &fee, &id)
+
+		go s.serve(conn, &pool_net, &fee, &id)
 	}
 }
 
 //接受请求
-func (s *Serve) serve(conn io.ReadWriteCloser, pool io.ReadWriteCloser, fee *fee.Fee, id *string) {
+func (s *Serve) serve(conn io.ReadWriteCloser, pool *io.ReadWriteCloser, fee *fee.Fee, id *string) {
 
 	reader := bufio.NewReader(conn)
-	// dev_bufio := s.Handle.GiveDevbufio()
-	// fee_bufio := s.Handle.GiveFeebufio()
-	//TODO
-	//w3 := bufio.NewWriter(conn);
-
-	// go func(ww * bufio.Writer) {
-	// 	for ;;  {
-	// 		ww.WriteString("hi33333333333333333333333333333333333333333333\r\n");
-	// 		ww.Flush();
-	// 	}
-	// }(w3)
 
 	for {
 		buf, err := reader.ReadBytes('\n')
@@ -99,23 +88,22 @@ func (s *Serve) serve(conn io.ReadWriteCloser, pool io.ReadWriteCloser, fee *fee
 			return
 		}
 
-		go func(buf []byte) {
-			ret, err := s.handle.OnMessage(conn, pool, fee, buf, id)
+		ret, err := s.handle.OnMessage(conn, pool, s.config, fee, buf, id)
+		if err != nil {
+			s.log.Error(err.Error())
+			s.handle.OnClose(id)
+			return
+		}
+
+		// 兼容内部返回的情况
+		if len(ret) > 0 {
+			_, err = conn.Write(ret)
 			if err != nil {
 				s.log.Error(err.Error())
 				s.handle.OnClose(id)
 				return
 			}
+		}
 
-			// 兼容内部返回的情况
-			if len(ret) > 0 {
-				_, err = conn.Write(ret)
-				if err != nil {
-					s.log.Error(err.Error())
-					s.handle.OnClose(id)
-					return
-				}
-			}
-		}(buf)
 	}
 }
