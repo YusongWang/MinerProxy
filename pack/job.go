@@ -10,20 +10,20 @@ type Job struct {
 }
 
 type Worker struct {
-	Id            string
-	Worker_name   string
-	Wallet        string
-	Worker_idx    uint64
-	Worker_share  uint64
-	Worker_reject uint64
-	Report_hash   uint64
-	Login_time    time.Time
-	Worker_diff   *big.Int
-	Dev_idx       uint64
-	Dev_diff      *big.Int
-	Fee_idx       uint64
-	Fee_diff      *big.Int
-	IsOnline      bool
+	Id            string    `json:"id"`
+	Worker_name   string    `json:"worker_name"`
+	Wallet        string    `json:"wallet"`
+	Worker_idx    uint64    `json:"worker_idx"`
+	Worker_share  uint64    `json:"worker_share"`
+	Worker_reject uint64    `json:"worker_reject"`
+	Report_hash   *big.Int  `json:"report_hash"`
+	Login_time    time.Time `json:"login_time"`
+	Worker_diff   *big.Int  `json:"worker_diff"`
+	Dev_idx       uint64    `json:"dev_idx"`
+	Dev_diff      *big.Int  `json:"dev_diff"`
+	Fee_idx       uint64    `json:"fee_idx"`
+	Fee_diff      *big.Int  `json:"fee_diff"`
+	IsOnline      bool      `json:"is_online"`
 }
 
 func NewWorker(worker string, wallet string, id string) *Worker {
@@ -34,7 +34,7 @@ func NewWorker(worker string, wallet string, id string) *Worker {
 		Worker_idx:    0,
 		Worker_share:  0,
 		Worker_reject: 0,
-		Report_hash:   0,
+		Report_hash:   new(big.Int).SetInt64(0),
 		Login_time:    time.Now(),
 		Worker_diff:   new(big.Int).SetInt64(0),
 		Dev_idx:       0,
@@ -91,6 +91,10 @@ func (w *Worker) AddIndex() {
 
 func (w *Worker) GetIndex() uint64 {
 	return w.Worker_idx
+}
+
+func (w *Worker) SetReportHash(hash *big.Int) {
+	w.Report_hash = hash
 }
 
 func (w *Worker) Logind(worker, wallet string) {

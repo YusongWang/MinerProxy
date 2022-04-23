@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"math/big"
 	"miner_proxy/global"
 	"miner_proxy/utils"
 	"time"
@@ -12,44 +13,78 @@ import (
 )
 
 type Dashboard struct {
-	PoolLength    int
-	OnlineWorker  int
-	OfflineWorker int
-	TotalHash     string
-	OnlineTime    string
-	TotalShare    int64
-	TotalDiff     int64
-	FeeShares     int64
-	FeeDiff       int64
-	DevShares     int64
-	DevDiff       int64
+	PoolLength    int      `json:"pool_length"`
+	OnlineWorker  int      `json:"online_worker"`
+	OfflineWorker int      `json:"offline_worker"`
+	TotalHash     *big.Int `json:"total_hash"`
+	OnlineTime    string   `json:"online_time"`
+	TotalShare    int64    `json:"total_shares"`
+	TotalDiff     *big.Int `json:"total_diff"`
+	FeeShares     int64    `json:"fee_shares"`
+	FeeDiff       *big.Int `json:"fee_diff"`
+	DevShares     int64    `json:"dev_shares"`
+	DevDiff       *big.Int `json:"dev_diff"`
+}
+
+func newDashborad() *Dashboard {
+
+	return &Dashboard{
+		PoolLength:    0,
+		OnlineWorker:  0,
+		OfflineWorker: 0,
+		TotalHash:     new(big.Int).SetInt64(0),
+		OnlineTime:    "",
+		TotalShare:    0,
+		TotalDiff:     new(big.Int).SetInt64(0),
+		FeeShares:     0,
+		FeeDiff:       new(big.Int).SetInt64(0),
+		DevDiff:       new(big.Int).SetInt64(0),
+	}
 }
 
 // 首页展示数据接口
 func Home(c *gin.Context) {
-	var data map[string]Dashboard
 
-	//data["ETH"].PoolLength = len(global.ManageApp.Config)
-	//data.PoolLength = len(global.ManageApp.Config)
+	eth := newDashborad()
+	etc := newDashborad()
 
-	var eth Dashboard
-	var etc Dashboard
 	for _, app := range global.ManageApp.Config {
 		if app.Coin == "ETH" {
 			eth.PoolLength++
-			eth.OnlineWorker = eth.OnlineWorker + len(global.OnlinePools[app.ID])
-			//eth.OnlineWorker = eth.OnlineWorker + len(global.OnlinePools[app.ID])
+			for _, w := range global.OnlinePools[app.ID] {
+				if w.IsOnline {
+					eth.OnlineWorker++
+					eth.TotalShare = eth.TotalShare + int64(w.Worker_share)
+					eth.FeeShares = eth.FeeShares + int64(w.Fee_idx)
+					eth.DevShares = eth.DevShares + int64(w.Dev_idx)
+					eth.TotalHash = new(big.Int).Add(eth.TotalHash, w.Report_hash)
+					eth.TotalDiff = new(big.Int).Div(new(big.Int).Add(eth.TotalDiff, w.Worker_diff), new(big.Int).SetInt64(2))
+				} else {
+					eth.OfflineWorker++
+				}
+			}
 		}
 
 		if app.Coin == "ETC" {
 			etc.PoolLength++
-			etc.OnlineWorker = etc.OnlineWorker + len(global.OnlinePools[app.ID])
-			//eth.OnlineWorker = eth.OnlineWorker + len(global.OnlinePools[app.ID])
+			for _, w := range global.OnlinePools[app.ID] {
+				if w.IsOnline {
+					if w.IsOnline {
+						etc.OnlineWorker++
+						etc.TotalShare = etc.TotalShare + int64(w.Worker_share)
+						etc.FeeShares = etc.FeeShares + int64(w.Fee_idx)
+						etc.DevShares = etc.DevShares + int64(w.Dev_idx)
+						etc.TotalHash = new(big.Int).Add(etc.TotalHash, w.Report_hash)
+						etc.TotalDiff = new(big.Int).Div(new(big.Int).Add(etc.TotalDiff, w.Worker_diff), new(big.Int).SetInt64(2))
+					} else {
+						etc.OfflineWorker++
+					}
+				}
+			}
 		}
 	}
 
-	data["ETH"] = eth
-	data["ETC"] = eth
+	var data = map[string]*Dashboard{"ETH": eth, "ETC": etc}
 
 	c.JSON(200, gin.H{
 		"data":    data,

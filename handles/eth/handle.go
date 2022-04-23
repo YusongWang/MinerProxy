@@ -88,7 +88,7 @@ func (hand *Handle) OnMessage(
 
 		var worker string
 		var wallet string
-		//TODO
+
 		params_zero := strings.Split(params[0], ".")
 		wallet = params_zero[0]
 		if len(params_zero) > 1 {
@@ -232,6 +232,16 @@ func (hand *Handle) OnMessage(
 			return
 		}
 
+		{
+			var hashrate string
+			hashrate, err = jsonparser.GetString(data, "params", "[0]")
+			if err != nil {
+				hand.log.Error(err.Error())
+				c.Close()
+				return
+			}
+			hand.Workers[*id].SetReportHash(utils.String2Big(hashrate))
+		}
 		// 直接返回
 		out, err = eth.EthSuccess(rpc_id)
 		if err != nil {
@@ -302,7 +312,7 @@ func ConnectToPool(
 	fee *fee.Fee,
 	id *string,
 ) (io.ReadWriteCloser, error) {
-	hand.log.Info("Miner Connect To Pool " + config.Pool + "    UUID: " + *id)
+	//hand.log.Info("Miner Connect To Pool " + config.Pool + "    UUID: " + *id)
 	pool, err := utils.NewPool(config.Pool)
 	if err != nil {
 		hand.log.Warn("矿池连接失败", zap.Error(err), zap.String("pool", config.Pool))

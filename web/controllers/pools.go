@@ -1,21 +1,21 @@
 package controllers
 
 import (
-	"fmt"
+	"math/big"
 	"miner_proxy/global"
 
 	"github.com/gin-gonic/gin"
 )
 
 type WorkerList struct {
-	Name      string
-	TotalHash string
-	Online    int
-	Offline   int    `json:"off_line"`
-	Coin      string `json:"coin"`
-	Port      int
-	Protocol  string `json:"protocol"`
-	IsRun     bool   `json:"is_run"`
+	Name      string   `json:"name"`
+	TotalHash *big.Int `json:"total_hash"`
+	Online    int      `json:"online"`
+	Offline   int      `json:"off_line"`
+	Coin      string   `json:"coin"`
+	Port      int      `json:"port"`
+	Protocol  string   `json:"protocol"`
+	IsRun     bool     `json:"is_run"`
 }
 
 // 展示矿池列表 在线和不在线的
@@ -24,7 +24,7 @@ func PoolList(c *gin.Context) {
 	for _, l := range global.ManageApp.Config {
 		temp := WorkerList{
 			Name:      l.Worker,
-			TotalHash: "",
+			TotalHash: new(big.Int).SetInt64(0),
 			Online:    0,
 			Offline:   0,
 			Coin:      l.Coin,
@@ -34,10 +34,13 @@ func PoolList(c *gin.Context) {
 		}
 
 		if global.OnlinePools[l.ID] != nil {
-			temp.Online = len(global.OnlinePools[l.ID])
 			for _, worker := range global.OnlinePools[l.ID] {
-				//TODO HASHRATE 未记录。
-				fmt.Println(worker)
+				if worker.IsOnline {
+					temp.Online++
+					temp.TotalHash = new(big.Int).Add(temp.TotalHash, worker.Report_hash)
+				} else {
+					temp.Offline++
+				}
 			}
 		}
 

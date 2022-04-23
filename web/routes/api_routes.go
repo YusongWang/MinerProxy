@@ -2,6 +2,7 @@ package routes
 
 import (
 	"miner_proxy/web/controllers"
+	"miner_proxy/web/middleware/jwt"
 	"miner_proxy/web/models"
 
 	"github.com/gin-gonic/gin"
@@ -9,17 +10,20 @@ import (
 
 func RegisterApiRouter(router *gin.Engine) {
 
+	router.Use(gin.Logger())
+
 	models.InsertTest()
 	models.ReadMiners()
+	router.POST("auth/login", controllers.Login)
 
 	apiRouter := router.Group("api")
+	apiRouter.Use(jwt.JWT())
 	{
-		apiRouter.GET("/login", controllers.Home)
-		apiRouter.GET("/dashborad", controllers.Home)
-		apiRouter.GET("/system", controllers.System)
-		apiRouter.GET("/miner/detail", controllers.MinerDetail)
-		apiRouter.GET("/miners", controllers.MinerList)
-		apiRouter.GET("/pools", controllers.PoolList)
+		apiRouter.POST("/dashborad", controllers.Home)
+		apiRouter.POST("/system", controllers.System)
+		apiRouter.POST("/miner/detail", controllers.MinerDetail)
+		apiRouter.POST("/miners", controllers.MinerList)
+		apiRouter.POST("/pools", controllers.PoolList)
 	}
 
 	// api := router.Group("/api")
