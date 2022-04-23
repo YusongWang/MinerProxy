@@ -63,7 +63,7 @@ func (hand *Handle) OnMessage(
 
 	method, err := jsonparser.GetString(data, "method")
 	if err != nil {
-		hand.log.Error(err.Error())
+		hand.log.Info("非法封包", zap.String("package", string(data)))
 		c.Close()
 		return
 	}
