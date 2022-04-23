@@ -3,6 +3,7 @@ package eth
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"io"
 	"miner_proxy/fee"
 	"miner_proxy/pack"
@@ -52,6 +53,13 @@ func (hand *Handle) OnMessage(
 	id *string,
 ) (out []byte, err error) {
 	//var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	defer func() {
+		if x := recover(); x != nil {
+			hand.log.Info("Recover", zap.Any("err", x))
+			err = errors.New("Panic(). first package not the Login")
+			return
+		}
+	}()
 
 	method, err := jsonparser.GetString(data, "method")
 	if err != nil {
@@ -131,10 +139,9 @@ func (hand *Handle) OnMessage(
 
 		return
 	case "eth_getWork":
-		if pool == nil {
+		if _, ok := hand.Workers[*id]; !ok {
 			return
 		}
-
 		_, err = (*pool).Write(data)
 		if err != nil {
 			hand.log.Error("写入矿池失败: " + err.Error())
@@ -144,7 +151,7 @@ func (hand *Handle) OnMessage(
 		}
 		return
 	case "eth_submitWork":
-		if pool == nil {
+		if _, ok := hand.Workers[*id]; !ok {
 			return
 		}
 		var wg sync.WaitGroup
@@ -214,7 +221,7 @@ func (hand *Handle) OnMessage(
 		err = nil
 		return
 	case "eth_submitHashrate":
-		if pool == nil {
+		if _, ok := hand.Workers[*id]; !ok {
 			return
 		}
 		var rpc_id int64
@@ -248,8 +255,10 @@ func (hand *Handle) OnMessage(
 
 func (hand *Handle) OnClose(id *string) {
 	if worker, ok := hand.Workers[*id]; ok {
-		worker.Logout()
-		hand.log.Info("矿机下线", zap.Any("Worker", worker))
+		if worker.IsOnline {
+			worker.Logout()
+			hand.log.Info("矿机下线", zap.Any("Worker", worker))
+		}
 	}
 }
 
