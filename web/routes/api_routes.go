@@ -4,16 +4,29 @@ import (
 	"miner_proxy/web/controllers"
 	"miner_proxy/web/middleware/jwt"
 	"miner_proxy/web/models"
+	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
 func RegisterApiRouter(router *gin.Engine) {
-
-	router.Use(gin.Logger())
-
 	models.InsertTest()
 	models.ReadMiners()
+
+	router.Use(gin.Logger())
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"*"},
+		AllowHeaders:     []string{"*"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		AllowOriginFunc: func(origin string) bool {
+			return true
+		},
+		MaxAge: 12 * time.Hour,
+	}))
+
 	router.POST("auth/login", controllers.Login)
 
 	apiRouter := router.Group("api")

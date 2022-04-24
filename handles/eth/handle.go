@@ -104,7 +104,7 @@ func (hand *Handle) OnMessage(
 		var pool_conn io.ReadWriteCloser
 		pool_conn, err = ConnectToPool(c, hand, config, fee, id)
 		if err != nil {
-			hand.log.Error("矿池拒绝链接或矿池地址不正确!")
+			hand.log.Error("矿池拒绝链接或矿池地址不正确! " + err.Error())
 			return
 		}
 
@@ -330,9 +330,17 @@ func ConnectToPool(
 
 	log := (*hand.log).With(zap.String("UUID", *id))
 
+	reader := bufio.NewReader(pool)
 	// 处理上游矿池。如果连接失败。矿工线程直接退出并关闭
-	go func() {
-		reader := bufio.NewReader(pool)
+	go func(reader *bufio.Reader) {
+		defer func() {
+			if x := recover(); x != nil {
+				hand.log.Info("Recover", zap.Any("err", x))
+				c.Close()
+				err = errors.New("Panic() Race!!!!!!! . But Why ????")
+				return
+			}
+		}()
 
 		for {
 			buf, err := reader.ReadBytes('\n')
@@ -454,7 +462,7 @@ func ConnectToPool(
 				return
 			}
 		}
-	}()
+	}(reader)
 
-	return pool, nil
+	return
 }
