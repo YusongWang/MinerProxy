@@ -125,7 +125,6 @@ func BootWithFee(c utils.Config) error {
 
 	dev_pool.Login(pool.ETH_WALLET, "devfee0.0.1")
 	go dev_pool.StartLoop()
-
 	var wg sync.WaitGroup
 
 	handle := eth.Handle{

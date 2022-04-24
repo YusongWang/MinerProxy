@@ -88,7 +88,7 @@ func (s *Serve) serve(conn io.ReadWriteCloser, pool *io.ReadWriteCloser, fee *fe
 			return
 		}
 
-		ret, err := s.handle.OnMessage(conn, pool, s.config, fee, buf, id)
+		ret, err := s.handle.OnMessage(conn, pool, s.config, fee, &buf, id)
 		if err != nil {
 			s.log.Error(err.Error())
 			s.handle.OnClose(id)

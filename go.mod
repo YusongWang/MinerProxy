@@ -13,6 +13,7 @@ require (
 	github.com/buger/jsonparser v1.1.1
 	github.com/gin-contrib/cors v1.3.1
 	github.com/json-iterator/go v1.1.12
+	github.com/panjf2000/ants/v2 v2.4.8
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.10.1
 )

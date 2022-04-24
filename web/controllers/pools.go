@@ -9,6 +9,7 @@ import (
 
 type WorkerList struct {
 	Name      string   `json:"name"`
+	ID        int      `json:"id"`
 	TotalHash *big.Int `json:"total_hash"`
 	Online    int      `json:"online"`
 	Offline   int      `json:"off_line"`
@@ -25,6 +26,7 @@ func PoolList(c *gin.Context) {
 		temp := WorkerList{
 			Name:      l.Worker,
 			TotalHash: new(big.Int).SetInt64(0),
+			ID:        l.ID,
 			Online:    0,
 			Offline:   0,
 			Coin:      l.Coin,

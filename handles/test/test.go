@@ -49,11 +49,11 @@ func (hand *Test) OnMessage(
 	pool *io.ReadWriteCloser,
 	config *utils.Config,
 	fee *fee.Fee,
-	data []byte,
+	data *[]byte,
 	id *string,
 ) (out []byte, err error) {
-	hand.log.Info("矿机: " + string(data))
-	(*pool).Write(data)
+	hand.log.Info("矿机: " + string(*data))
+	(*pool).Write(*data)
 
 	out = nil
 	err = nil

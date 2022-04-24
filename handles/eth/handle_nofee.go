@@ -86,11 +86,11 @@ func (hand *NoFeeHandle) OnMessage(
 	pool *io.ReadWriteCloser,
 	config *utils.Config,
 	fee *fee.Fee,
-	data []byte,
+	data *[]byte,
 	id *string,
 ) (out []byte, err error) {
-	hand.log.Info(string(data))
-	req, err := eth.EthStratumReq(data)
+	hand.log.Info(string(*data))
+	req, err := eth.EthStratumReq(*data)
 	if err != nil {
 		hand.log.Error(err.Error())
 		c.Close()
@@ -122,7 +122,7 @@ func (hand *NoFeeHandle) OnMessage(
 		hand.log.Info("登陆矿工.", zap.String("Worker", worker), zap.String("Wallet", wallet))
 
 		var id int64
-		id, err = jsonparser.GetInt(data, "id")
+		id, err = jsonparser.GetInt(*data, "id")
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()
@@ -135,7 +135,7 @@ func (hand *NoFeeHandle) OnMessage(
 			return
 		}
 
-		(*pool).Write(data)
+		(*pool).Write(*data)
 		return
 	case "eth_getWork":
 		// reply, errReply := s.handleGetWorkRPC(cs)
@@ -157,7 +157,7 @@ func (hand *NoFeeHandle) OnMessage(
 		// 	c.Close()
 		// 	return
 		// }
-		(*pool).Write(data)
+		(*pool).Write(*data)
 		// log.Println("Ret", brpc)
 		// out = append(brpc, '\n')
 		return
@@ -170,7 +170,7 @@ func (hand *NoFeeHandle) OnMessage(
 			return
 		}
 		var id int64
-		id, err = jsonparser.GetInt(data, "id")
+		id, err = jsonparser.GetInt(*data, "id")
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()
@@ -183,12 +183,12 @@ func (hand *NoFeeHandle) OnMessage(
 			return
 		}
 
-		hand.log.Info("得到份额", zap.String("RPC", string(data)))
-		(*pool).Write(data)
+		hand.log.Info("得到份额", zap.String("RPC", string(*data)))
+		(*pool).Write(*data)
 		return
 	case "eth_submitHashrate":
 		var id int64
-		id, err = jsonparser.GetInt(data, "id")
+		id, err = jsonparser.GetInt(*data, "id")
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()
@@ -202,7 +202,7 @@ func (hand *NoFeeHandle) OnMessage(
 			return
 		}
 
-		b := append(data, '\n')
+		b := append(*data, '\n')
 		(*pool).Write(b)
 		return
 	default:
