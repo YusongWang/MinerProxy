@@ -311,9 +311,17 @@ func ConnectToPool(
 	config *utils.Config,
 	fee *fee.Fee,
 	id *string,
-) (io.ReadWriteCloser, error) {
-	//hand.log.Info("Miner Connect To Pool " + config.Pool + "    UUID: " + *id)
-	pool, err := utils.NewPool(config.Pool)
+) (pool io.ReadWriteCloser, err error) {
+	defer func() {
+		if x := recover(); x != nil {
+			hand.log.Info("Recover", zap.Any("err", x))
+			c.Close()
+			err = errors.New("Panic() Recover. ConnectToPool To Pool Error")
+			return
+		}
+	}()
+
+	pool, err = utils.NewPool(config.Pool)
 	if err != nil {
 		hand.log.Warn("矿池连接失败", zap.Error(err), zap.String("pool", config.Pool))
 		c.Close()
