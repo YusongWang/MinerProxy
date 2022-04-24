@@ -57,15 +57,15 @@ var WebCmd = &cobra.Command{
 func FristStartIpcClients() {
 	for _, app := range global.ManageApp.Config {
 		// 逐一获得cmd执行任务。
-		fmt.Println("逐一获得cmd执行任务。")
+		//fmt.Println("逐一获得cmd执行任务。")
 		go StartIpcClient(app.ID)
 	}
 }
 
 func StartIpcClient(id int) {
 	pipename := pool.WebCmdPipeline + "_" + strconv.Itoa(id)
-	//pipename := pool.WebCmdPipeline
 	log := utils.Logger.With(zap.String("IPC_NAME", pipename))
+
 	for {
 		cc, err := ipc.StartClient(pipename, nil)
 		if err != nil {
@@ -92,7 +92,7 @@ func StartIpcClient(id int) {
 						continue
 					}
 					global.OnlinePools[id] = p
-					//log.Info("Web 收到矿工信息", zap.Any("pool_workers", OnlinePools))
+
 					continue
 				}
 				log.Info("Web recieved: "+string(msg.Data), zap.Int("type", msg.MsgType))

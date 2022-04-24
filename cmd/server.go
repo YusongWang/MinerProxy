@@ -15,7 +15,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 )
 
 func init() {
@@ -192,10 +191,10 @@ func parseFromCli(c *utils.Config) {
 
 func parseConfig() utils.Config {
 	c := utils.Parse()
-	fmt.Println(c)
-	utils.Logger.Info("config", zap.Any("Config", c))
+	//fmt.Println(c)
+	//utils.Logger.Info("config", zap.Any("Config", c))
 	parseFromCli(&c)
-	utils.Logger.Info("config", zap.Any("Cli", c))
+	//utils.Logger.Info("config", zap.Any("Cli", c))
 	fmt.Println(c)
 	return c
 }
