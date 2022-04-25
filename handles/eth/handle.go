@@ -114,7 +114,7 @@ func (hand *Handle) OnMessage(
 		// {
 		// 	hand.Lock()
 		// 	worker = pack.NewWorker(worker, wallet, *id)
-		// 	worker.Logind(worker, wallet)
+		worker.Logind(worker_name, wallet)
 		// 	hand.Unlock()
 		// }
 
@@ -293,7 +293,7 @@ func (hand *Handle) OnMessage(
 }
 
 func (hand *Handle) OnClose(worker *pack.Worker) {
-	if worker.IsOnline {
+	if worker.IsOnline() {
 		worker.Logout()
 		hand.log.Info("矿机下线", zap.Any("Worker", worker))
 	}

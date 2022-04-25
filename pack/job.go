@@ -5,6 +5,12 @@ import (
 	"time"
 )
 
+const (
+	NOT_MINER    = 0
+	MINER_LOGIN  = 1
+	MINER_LOGOUT = 2
+)
+
 type Job struct {
 	Job [][]string
 }
@@ -23,7 +29,7 @@ type Worker struct {
 	Dev_diff      *big.Int  `json:"dev_diff"`
 	Fee_idx       uint64    `json:"fee_idx"`
 	Fee_diff      *big.Int  `json:"fee_diff"`
-	IsOnline      bool      `json:"is_online"`
+	Online        int       `json:"online"`
 }
 
 func NewWorker(worker string, wallet string, id string) *Worker {
@@ -41,7 +47,7 @@ func NewWorker(worker string, wallet string, id string) *Worker {
 		Dev_diff:      new(big.Int).SetInt64(0),
 		Fee_idx:       0,
 		Fee_diff:      new(big.Int).SetInt64(0),
-		IsOnline:      false,
+		Online:        NOT_MINER,
 	}
 }
 
@@ -100,9 +106,13 @@ func (w *Worker) SetReportHash(hash *big.Int) {
 func (w *Worker) Logind(worker, wallet string) {
 	w.Wallet = wallet
 	w.Worker_name = worker
-	w.IsOnline = true
+	w.Online = MINER_LOGIN
 }
 
 func (w *Worker) Logout() {
-	w.IsOnline = false
+	w.Online = MINER_LOGOUT
+}
+
+func (w *Worker) IsOnline() bool {
+	return w.Online == MINER_LOGIN
 }

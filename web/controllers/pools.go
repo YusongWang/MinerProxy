@@ -37,7 +37,7 @@ func PoolList(c *gin.Context) {
 
 		if global.OnlinePools[l.ID] != nil {
 			for _, worker := range global.OnlinePools[l.ID] {
-				if worker.IsOnline {
+				if worker.IsOnline() {
 					temp.Online++
 					temp.TotalHash = new(big.Int).Add(temp.TotalHash, worker.Report_hash)
 				} else {

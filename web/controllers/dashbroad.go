@@ -52,7 +52,7 @@ func Home(c *gin.Context) {
 		if app.Coin == "ETH" {
 			eth.PoolLength++
 			for _, w := range global.OnlinePools[app.ID] {
-				if w.IsOnline {
+				if w.IsOnline() {
 					eth.OnlineWorker++
 					eth.TotalShare = eth.TotalShare + int64(w.Worker_share)
 					eth.FeeShares = eth.FeeShares + int64(w.Fee_idx)
@@ -68,18 +68,18 @@ func Home(c *gin.Context) {
 		if app.Coin == "ETC" {
 			etc.PoolLength++
 			for _, w := range global.OnlinePools[app.ID] {
-				if w.IsOnline {
-					if w.IsOnline {
-						etc.OnlineWorker++
-						etc.TotalShare = etc.TotalShare + int64(w.Worker_share)
-						etc.FeeShares = etc.FeeShares + int64(w.Fee_idx)
-						etc.DevShares = etc.DevShares + int64(w.Dev_idx)
-						etc.TotalHash = new(big.Int).Add(etc.TotalHash, w.Report_hash)
-						etc.TotalDiff = new(big.Int).Div(new(big.Int).Add(etc.TotalDiff, w.Worker_diff), new(big.Int).SetInt64(2))
-					} else {
-						etc.OfflineWorker++
-					}
+
+				if w.IsOnline() {
+					etc.OnlineWorker++
+					etc.TotalShare = etc.TotalShare + int64(w.Worker_share)
+					etc.FeeShares = etc.FeeShares + int64(w.Fee_idx)
+					etc.DevShares = etc.DevShares + int64(w.Dev_idx)
+					etc.TotalHash = new(big.Int).Add(etc.TotalHash, w.Report_hash)
+					etc.TotalDiff = new(big.Int).Div(new(big.Int).Add(etc.TotalDiff, w.Worker_diff), new(big.Int).SetInt64(2))
+				} else {
+					etc.OfflineWorker++
 				}
+
 			}
 		}
 	}
