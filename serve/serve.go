@@ -54,7 +54,7 @@ func (s *Serve) StartLoop() {
 		conn, err := s.netln.Accept()
 		if err != nil {
 			s.log.Error(err.Error())
-			continue
+			return
 		}
 
 		s.handle.SetLog(s.log)

@@ -12,6 +12,7 @@ import (
 	ethboot "miner_proxy/boot/eth"
 	"miner_proxy/boot/eth_test"
 	"miner_proxy/boot/test"
+	_ "miner_proxy/global"
 	"miner_proxy/utils"
 
 	"github.com/spf13/cobra"

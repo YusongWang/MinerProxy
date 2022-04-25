@@ -10,4 +10,10 @@ type OnlineWorkers struct {
 	sync.Mutex
 }
 
-var GonlineWorkers OnlineWorkers
+var GonlineWorkers = new(OnlineWorkers)
+
+func init() {
+	GonlineWorkers.Lock()
+	GonlineWorkers.Workers = make(map[string]*pack.Worker)
+	GonlineWorkers.Unlock()
+}

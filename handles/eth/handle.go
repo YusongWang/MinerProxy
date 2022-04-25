@@ -458,8 +458,8 @@ func ConnectToPool(
 						diff := utils.TargetHexToDiff(job_diff)
 						//worker.SetDiff(utils.DivTheDiff(diff, worker.GetDiff()))
 						worker.SetDiff(diff)
-						log.Info("diff", zap.Any("diff", worker))
-						log.Info("发送普通任务", zap.String("rpc", string(buf)))
+						// log.Info("diff", zap.Any("diff", worker))
+						// log.Info("发送普通任务", zap.String("rpc", string(buf)))
 						//}()
 						_, err = c.Write(buf)
 						if err != nil {
