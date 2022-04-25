@@ -3,8 +3,8 @@ package eth
 import (
 	"io"
 	"miner_proxy/fee"
+	pack "miner_proxy/pack"
 	"miner_proxy/pack/eth"
-	pack "miner_proxy/pack/eth"
 	"miner_proxy/utils"
 	"strings"
 
@@ -25,7 +25,7 @@ func (hand *NoFeeHandle) OnConnect(
 	config *utils.Config,
 	fee *fee.Fee,
 	addr string,
-	id *string,
+	worker *pack.Worker,
 ) (io.ReadWriteCloser, error) {
 	hand.log.Info("On Miner Connect To Pool " + config.Pool)
 	pool, err := utils.NewPool(config.Pool)
@@ -47,7 +47,7 @@ func (hand *NoFeeHandle) OnConnect(
 			if err != nil {
 				return
 			}
-			var push pack.JSONPushMessage
+			var push eth.JSONPushMessage
 			if err = json.Unmarshal([]byte(buf), &push); err == nil {
 				if result, ok := push.Result.(bool); ok {
 					//增加份额
@@ -87,7 +87,7 @@ func (hand *NoFeeHandle) OnMessage(
 	config *utils.Config,
 	fee *fee.Fee,
 	data *[]byte,
-	id *string,
+	worker *pack.Worker,
 ) (out []byte, err error) {
 	hand.log.Info(string(*data))
 	req, err := eth.EthStratumReq(*data)
@@ -211,7 +211,7 @@ func (hand *NoFeeHandle) OnMessage(
 	}
 }
 
-func (hand *NoFeeHandle) OnClose(id *string) {
+func (hand *NoFeeHandle) OnClose(worker *pack.Worker) {
 	hand.log.Info("OnClose !!!!!")
 }
 

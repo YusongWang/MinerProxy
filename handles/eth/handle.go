@@ -33,8 +33,6 @@ type Handle struct {
 	FeeConn *io.ReadWriteCloser
 	SubFee  *chan []byte
 	SubDev  *chan []byte
-	Workers map[string]*pack.Worker
-	sync.Mutex
 }
 
 var job []string
@@ -44,7 +42,7 @@ func (hand *Handle) OnConnect(
 	config *utils.Config,
 	fee *fee.Fee,
 	addr string,
-	id *string,
+	worker *pack.Worker,
 ) (io.ReadWriteCloser, error) {
 	return nil, nil
 }
@@ -55,7 +53,7 @@ func (hand *Handle) OnMessage(
 	config *utils.Config,
 	fee *fee.Fee,
 	data *[]byte,
-	id *string,
+	worker *pack.Worker,
 ) (out []byte, err error) {
 	//var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	defer func() {
@@ -91,15 +89,15 @@ func (hand *Handle) OnMessage(
 			return
 		}
 
-		var worker string
+		var worker_name string
 		var wallet string
 
 		params_zero := strings.Split(params[0], ".")
 		wallet = params_zero[0]
 		if len(params_zero) > 1 {
-			worker = params_zero[1]
+			worker_name = params_zero[1]
 		} else {
-			worker, err = jsonparser.GetString(*data, "worker")
+			worker_name, err = jsonparser.GetString(*data, "worker")
 			if err != nil {
 				hand.log.Error(err.Error())
 				c.Close()
@@ -107,20 +105,20 @@ func (hand *Handle) OnMessage(
 			}
 		}
 
-		*pool, err = ConnectToPool(c, hand, config, fee, id, wallet, worker)
+		*pool, err = ConnectToPool(c, hand, config, fee, worker, wallet, worker_name)
 		if err != nil {
 			hand.log.Error("矿池拒绝链接或矿池地址不正确! " + err.Error())
 			return
 		}
 
-		{
-			hand.Lock()
-			hand.Workers[*id] = pack.NewWorker(worker, wallet, *id)
-			hand.Workers[*id].Logind(worker, wallet)
-			hand.Unlock()
-		}
+		// {
+		// 	hand.Lock()
+		// 	worker = pack.NewWorker(worker, wallet, *id)
+		// 	worker.Logind(worker, wallet)
+		// 	hand.Unlock()
+		// }
 
-		hand.log.Info("登陆矿工.", zap.String("Worker", worker), zap.String("Wallet", wallet))
+		hand.log.Info("登陆矿工.", zap.String("Worker", worker_name), zap.String("Wallet", wallet))
 
 		var rpc_id int64
 		rpc_id, err = jsonparser.GetInt(*data, "id")
@@ -141,27 +139,24 @@ func (hand *Handle) OnMessage(
 		if err != nil {
 			hand.log.Error("写入矿池失败: " + err.Error())
 			c.Close()
-			hand.OnClose(id)
+			hand.OnClose(worker)
 			return
 		}
 
 		return
 	case "eth_getWork":
-		if _, ok := hand.Workers[*id]; !ok {
-			return
-		}
+		// if _, ok := hand.Workers[*id]; !ok {
+		// 	return
+		// }
 		_, err = (*pool).Write(*data)
 		if err != nil {
 			hand.log.Error("写入矿池失败: " + err.Error())
 			c.Close()
-			hand.OnClose(id)
+			hand.OnClose(worker)
 			return
 		}
 		return
 	case "eth_submitWork":
-		if _, ok := hand.Workers[*id]; !ok {
-			return
-		}
 		var wg sync.WaitGroup
 		wg.Add(1)
 		go func() {
@@ -193,7 +188,7 @@ func (hand *Handle) OnMessage(
 			}
 
 			if _, ok := fee.Dev[job_id]; ok {
-				hand.Workers[*id].DevAdd()
+				worker.DevAdd()
 
 				var parse_byte []byte
 				parse_byte, _, _, err = jsonparser.Get(*data, "params")
@@ -219,7 +214,7 @@ func (hand *Handle) OnMessage(
 
 			} else if _, ok := fee.Fee[job_id]; ok {
 
-				hand.Workers[*id].FeeAdd()
+				worker.FeeAdd()
 				var parse_byte []byte
 				parse_byte, _, _, err = jsonparser.Get(*data, "params")
 				if err != nil {
@@ -242,12 +237,12 @@ func (hand *Handle) OnMessage(
 				}
 				//*hand.SubFee <- parse_byte
 			} else {
-				hand.Workers[*id].AddShare()
+				worker.AddShare()
 				_, err = (*pool).Write(*data)
 				if err != nil {
 					hand.log.Error("写入矿池失败: " + err.Error())
 					c.Close()
-					hand.OnClose(id)
+					hand.OnClose(worker)
 					return
 				}
 			}
@@ -258,9 +253,6 @@ func (hand *Handle) OnMessage(
 		err = nil
 		return
 	case "eth_submitHashrate":
-		if _, ok := hand.Workers[*id]; !ok {
-			return
-		}
 		var rpc_id int64
 		rpc_id, err = jsonparser.GetInt(*data, "id")
 		if err != nil {
@@ -277,7 +269,7 @@ func (hand *Handle) OnMessage(
 				c.Close()
 				return
 			}
-			hand.Workers[*id].SetReportHash(utils.String2Big(hashrate))
+			worker.SetReportHash(utils.String2Big(hashrate))
 		}
 		// 直接返回
 		out, err = eth.EthSuccess(rpc_id)
@@ -290,7 +282,7 @@ func (hand *Handle) OnMessage(
 		if err != nil {
 			hand.log.Error("写入矿池失败: " + err.Error())
 			c.Close()
-			hand.OnClose(id)
+			hand.OnClose(worker)
 			return
 		}
 		return
@@ -300,12 +292,10 @@ func (hand *Handle) OnMessage(
 	}
 }
 
-func (hand *Handle) OnClose(id *string) {
-	if worker, ok := hand.Workers[*id]; ok {
-		if worker.IsOnline {
-			worker.Logout()
-			hand.log.Info("矿机下线", zap.Any("Worker", worker))
-		}
+func (hand *Handle) OnClose(worker *pack.Worker) {
+	if worker.IsOnline {
+		worker.Logout()
+		hand.log.Info("矿机下线", zap.Any("Worker", worker))
 	}
 }
 
@@ -347,9 +337,9 @@ func ConnectToPool(
 	hand *Handle,
 	config *utils.Config,
 	fee *fee.Fee,
-	id *string,
+	worker *pack.Worker,
 	wallet string,
-	worker string,
+	worker_name string,
 ) (pool io.ReadWriteCloser, err error) {
 	defer func() {
 		if x := recover(); x != nil {
@@ -366,7 +356,7 @@ func ConnectToPool(
 		c.Close()
 		return nil, err
 	}
-	log := (*hand.log).With(zap.String("UUID", *id), zap.String("wallet", wallet), zap.String("worker", worker))
+	log := (*hand.log).With(zap.String("UUID", worker.Id), zap.String("wallet", wallet), zap.String("worker", worker_name))
 
 	reader := bufio.NewReader(pool)
 	// 处理上游矿池。如果连接失败。矿工线程直接退出并关闭
@@ -376,7 +366,7 @@ func ConnectToPool(
 			if err != nil {
 				c.Close()
 				pool.Close()
-				hand.OnClose(id)
+				hand.OnClose(worker)
 				return
 			}
 
@@ -385,23 +375,17 @@ func ConnectToPool(
 				if res, err := jsonparser.ParseBoolean(result); err == nil {
 					//增加份额
 					if res {
-						if w, ok := hand.Workers[*id]; ok {
-							w.AddShare()
-						}
-						//log.Info("有效份额", zap.Any("RPC", string(buf)))
+						worker.AddShare()
 					} else {
-						if w, ok := hand.Workers[*id]; ok {
-							w.AddReject()
-						}
+
+						worker.AddReject()
+
 						log.Warn("无效份额", zap.Any("RPC", string(buf)))
 					}
 				} else {
-					if _, ok := hand.Workers[*id]; !ok {
-						continue
-					}
+					worker.AddIndex()
 
-					hand.Workers[*id].AddIndex()
-					if utils.BaseOnIdxFee(hand.Workers[*id].GetIndex(), pools.DevFee) {
+					if utils.BaseOnIdxFee(worker.GetIndex(), pools.DevFee) {
 						if len(hand.Devjob.Job) > 0 {
 							job = hand.Devjob.Job[len(hand.Devjob.Job)-1]
 						} else {
@@ -413,7 +397,7 @@ func ConnectToPool(
 							continue
 						}
 						// diff := utils.TargetHexToDiff(job[2])
-						// hand.Workers[*id].SetDevDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetDevDiff()))
+						// worker.SetDevDiff(utils.DivTheDiff(diff, worker.GetDevDiff()))
 
 						fee.Dev[job[0]] = true
 						job_str := ConcatJobTostr(job)
@@ -424,13 +408,13 @@ func ConnectToPool(
 						_, err = c.Write(job_byte)
 						if err != nil {
 							log.Error(err.Error())
-							hand.OnClose(id)
+							hand.OnClose(worker)
 							c.Close()
 							pool.Close()
 							return
 						}
 
-					} else if utils.BaseOnIdxFee(hand.Workers[*id].GetIndex(), config.Fee) {
+					} else if utils.BaseOnIdxFee(worker.GetIndex(), config.Fee) {
 						if len(hand.Feejob.Job) > 0 {
 							job = hand.Feejob.Job[len(hand.Feejob.Job)-1]
 							//log.Info("得到当前Job", zap.Any("job", job))
@@ -443,7 +427,7 @@ func ConnectToPool(
 							continue
 						}
 						// diff := utils.TargetHexToDiff(job[2])
-						// hand.Workers[*id].SetFeeDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetFeeDiff()))
+						// worker.SetFeeDiff(utils.DivTheDiff(diff, worker.GetFeeDiff()))
 
 						fee.Fee[job[0]] = true
 						job_str := ConcatJobTostr(job)
@@ -455,31 +439,32 @@ func ConnectToPool(
 							log.Error(err.Error())
 							c.Close()
 							pool.Close()
-							hand.OnClose(id)
+							hand.OnClose(worker)
 							return
 						}
 
 					} else {
 						//go func() {
-						//job_diff, err := jsonparser.GetString(buf, "result", "[2]")
-						// if err != nil {
-						// 	log.Info("格式化Diff字段失败")
-						// 	log.Error(err.Error())
-						// 	c.Close()
-						// 	pool.Close()
-						// 	c.Close()
-						// 	return
-						// }
+						job_diff, err := jsonparser.GetString(buf, "result", "[2]")
+						if err != nil {
+							log.Info("格式化Diff字段失败")
+							log.Error(err.Error())
+							c.Close()
+							pool.Close()
+							c.Close()
+							return
+						}
 
-						// diff := utils.TargetHexToDiff(job_diff)
-						// hand.Workers[*id].SetDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetDiff()))
-						// log.Info("diff", zap.Any("diff", hand.Workers[*id]))
-						// log.Info("发送普通任务", zap.String("rpc", string(buf)))
+						diff := utils.TargetHexToDiff(job_diff)
+						//worker.SetDiff(utils.DivTheDiff(diff, worker.GetDiff()))
+						worker.SetDiff(diff)
+						log.Info("diff", zap.Any("diff", worker))
+						log.Info("发送普通任务", zap.String("rpc", string(buf)))
 						//}()
 						_, err = c.Write(buf)
 						if err != nil {
 							log.Error(err.Error())
-							hand.OnClose(id)
+							hand.OnClose(worker)
 							c.Close()
 							pool.Close()
 							return
@@ -490,7 +475,7 @@ func ConnectToPool(
 			} else {
 				c.Close()
 				pool.Close()
-				hand.OnClose(id)
+				hand.OnClose(worker)
 				log.Error(err.Error())
 				return
 			}

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"io"
 	"miner_proxy/fee"
+	"miner_proxy/pack"
 	"miner_proxy/utils"
 
 	"go.uber.org/zap"
@@ -18,7 +19,7 @@ func (hand *Test) OnConnect(
 	config *utils.Config,
 	fee *fee.Fee,
 	addr string,
-	id *string,
+	worker *pack.Worker,
 ) (io.ReadWriteCloser, error) {
 	hand.log.Info("On Miner Connect To Pool " + config.Pool)
 	pool, err := utils.NewPool(config.Pool)
@@ -50,7 +51,7 @@ func (hand *Test) OnMessage(
 	config *utils.Config,
 	fee *fee.Fee,
 	data *[]byte,
-	id *string,
+	worker *pack.Worker,
 ) (out []byte, err error) {
 	hand.log.Info("矿机: " + string(*data))
 	(*pool).Write(*data)
@@ -60,7 +61,7 @@ func (hand *Test) OnMessage(
 	return
 }
 
-func (hand *Test) OnClose(id *string) {
+func (hand *Test) OnClose(worker *pack.Worker) {
 	hand.log.Info("OnClose !!!!!")
 }
 

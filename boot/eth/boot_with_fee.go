@@ -2,6 +2,7 @@ package eth
 
 import (
 	"fmt"
+	"miner_proxy/global"
 	"miner_proxy/handles/eth"
 	"miner_proxy/network"
 	"miner_proxy/pack"
@@ -76,9 +77,9 @@ func StartIpcServer(id int, handle *eth.Handle) {
 			// if err != nil {
 			// 	log.Error(err.Error())
 			// }
-			if len(handle.Workers) > 0 {
+			if len(global.GonlineWorkers.Workers) > 0 {
 				var json = jsoniter.ConfigCompatibleWithStandardLibrary
-				b, err := json.Marshal(handle.Workers)
+				b, err := json.Marshal(global.GonlineWorkers.Workers)
 				if err != nil {
 					log.Error(err.Error())
 					//time.Sleep(time.Second * 60)
@@ -134,7 +135,6 @@ func BootWithFee(c utils.Config) error {
 		FeeConn: &fee_pool.Conn,
 		SubDev:  &dev_submit_job,
 		SubFee:  &fee_submit_job,
-		Workers: make(map[string]*pack.Worker),
 	}
 
 	wg.Add(1)
