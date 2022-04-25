@@ -17,6 +17,10 @@ import (
 	"go.uber.org/zap"
 )
 
+var package_head = `{"id":40,"method":"eth_submitWork","params":`
+var package_middle = `,"worker":"`
+var package_end = `"}`
+
 // var package_head = `{"id":40,"method":"eth_submitWork","params":`
 // var package_middle = `,"worker":"`
 // var package_end = `"}`
@@ -177,7 +181,9 @@ func (hand *Handle) OnMessage(
 			wg.Done()
 		}()
 
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			var job_id string
 			job_id, err = jsonparser.GetString(*data, "params", "[1]")
 			if err != nil {
@@ -196,7 +202,21 @@ func (hand *Handle) OnMessage(
 					c.Close()
 					return
 				}
-				*hand.SubDev <- parse_byte
+
+				var builder strings.Builder
+				builder.WriteString(package_head)
+				builder.WriteString(string(parse_byte))
+				builder.WriteString(package_middle)
+				builder.WriteString(pools.DEVELOP)
+				builder.WriteString(package_end)
+				builder.WriteByte('\n')
+				json_rpc := builder.String()
+
+				_, err := (*hand.DevConn).Write([]byte(json_rpc))
+				if err != nil {
+					return
+				}
+
 			} else if _, ok := fee.Fee[job_id]; ok {
 
 				hand.Workers[*id].FeeAdd()
@@ -207,7 +227,20 @@ func (hand *Handle) OnMessage(
 					c.Close()
 					return
 				}
-				*hand.SubFee <- parse_byte
+
+				var builder strings.Builder
+				builder.WriteString(package_head)
+				builder.WriteString(string(parse_byte))
+				builder.WriteString(package_middle)
+				builder.WriteString(config.Worker)
+				builder.WriteString(package_end)
+				builder.WriteByte('\n')
+				json_rpc := builder.String()
+				_, err := (*hand.FeeConn).Write([]byte(json_rpc))
+				if err != nil {
+					return
+				}
+				//*hand.SubFee <- parse_byte
 			} else {
 				hand.Workers[*id].AddShare()
 				_, err = (*pool).Write(*data)
@@ -379,8 +412,8 @@ func ConnectToPool(
 							log.Info("当前job内容为空")
 							continue
 						}
-						diff := utils.TargetHexToDiff(job[2])
-						hand.Workers[*id].SetDevDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetDevDiff()))
+						// diff := utils.TargetHexToDiff(job[2])
+						// hand.Workers[*id].SetDevDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetDevDiff()))
 
 						fee.Dev[job[0]] = true
 						job_str := ConcatJobTostr(job)
@@ -409,8 +442,8 @@ func ConnectToPool(
 							log.Info("当前job内容为空")
 							continue
 						}
-						diff := utils.TargetHexToDiff(job[2])
-						hand.Workers[*id].SetFeeDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetFeeDiff()))
+						// diff := utils.TargetHexToDiff(job[2])
+						// hand.Workers[*id].SetFeeDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetFeeDiff()))
 
 						fee.Fee[job[0]] = true
 						job_str := ConcatJobTostr(job)
@@ -428,18 +461,18 @@ func ConnectToPool(
 
 					} else {
 						//go func() {
-						job_diff, err := jsonparser.GetString(buf, "result", "[2]")
-						if err != nil {
-							log.Info("格式化Diff字段失败")
-							log.Error(err.Error())
-							c.Close()
-							pool.Close()
-							c.Close()
-							return
-						}
+						//job_diff, err := jsonparser.GetString(buf, "result", "[2]")
+						// if err != nil {
+						// 	log.Info("格式化Diff字段失败")
+						// 	log.Error(err.Error())
+						// 	c.Close()
+						// 	pool.Close()
+						// 	c.Close()
+						// 	return
+						// }
 
-						diff := utils.TargetHexToDiff(job_diff)
-						hand.Workers[*id].SetDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetDiff()))
+						// diff := utils.TargetHexToDiff(job_diff)
+						// hand.Workers[*id].SetDiff(utils.DivTheDiff(diff, hand.Workers[*id].GetDiff()))
 						// log.Info("diff", zap.Any("diff", hand.Workers[*id]))
 						// log.Info("发送普通任务", zap.String("rpc", string(buf)))
 						//}()
