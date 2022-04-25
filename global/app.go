@@ -25,3 +25,15 @@ type WebApplication struct {
 }
 
 var WebApp = new(WebApplication)
+
+type ManageConfig struct {
+	Config []utils.Config `json:"config"`
+	Web    struct {
+		Port     int    `json:"port"`
+		Password string `json:"password"`
+	} `json:"web"`
+}
+
+var ManageApp = new(ManageConfig)
+
+var OnlinePools [1000]map[string]pack.Worker

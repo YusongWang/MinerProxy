@@ -1,21 +1,23 @@
 package cmd
 
 import (
-	//_ "net/http/pprof"
+	_ "net/http/pprof"
 
 	"fmt"
+	"log"
+	"net/http"
 	"os"
 
 	etcboot "miner_proxy/boot/etc"
 	ethboot "miner_proxy/boot/eth"
 	"miner_proxy/boot/eth_test"
 	"miner_proxy/boot/test"
+	_ "miner_proxy/global"
 	"miner_proxy/utils"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 )
 
 func init() {
@@ -87,9 +89,9 @@ var serverCmd = &cobra.Command{
 		// 	os.Exit(99)
 		// }
 		// fmt.Println(string(yaml))
-		// go func() {
-		// 	log.Println(http.ListenAndServe(":6060", nil))
-		// }()
+		go func() {
+			log.Println(http.ListenAndServe(":6060", nil))
+		}()
 
 		if config.Mode == 1 {
 			switch config.Coin {
@@ -192,10 +194,10 @@ func parseFromCli(c *utils.Config) {
 
 func parseConfig() utils.Config {
 	c := utils.Parse()
-	fmt.Println(c)
-	utils.Logger.Info("config", zap.Any("Config", c))
+	//fmt.Println(c)
+	//utils.Logger.Info("config", zap.Any("Config", c))
 	parseFromCli(&c)
-	utils.Logger.Info("config", zap.Any("Cli", c))
+	//utils.Logger.Info("config", zap.Any("Cli", c))
 	fmt.Println(c)
 	return c
 }

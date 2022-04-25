@@ -11,19 +11,23 @@ require (
 
 require (
 	github.com/buger/jsonparser v1.1.1
+	github.com/gin-contrib/cors v1.3.1
 	github.com/json-iterator/go v1.1.12
+	github.com/panjf2000/ants/v2 v2.4.8
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.10.1
 )
 
 require (
 	github.com/Microsoft/go-winio v0.4.16 // indirect
-	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
+	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-playground/locales v0.13.0 // indirect
 	github.com/go-playground/universal-translator v0.17.0 // indirect
 	github.com/go-playground/validator/v10 v10.4.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
+	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/leodido/go-urn v1.2.0 // indirect
@@ -36,7 +40,10 @@ require (
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
+	github.com/tklauser/go-sysconf v0.3.5 // indirect
+	github.com/tklauser/numcpus v0.2.2 // indirect
 	github.com/ugorji/go/codec v1.1.7 // indirect
+	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
@@ -46,10 +53,14 @@ require (
 
 require (
 	github.com/BurntSushi/toml v1.1.0 // indirect
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/ethereum/go-ethereum v1.10.17
+	github.com/fsnotify/fsnotify v1.5.1
 	github.com/gin-gonic/gin v1.7.7
 	github.com/google/uuid v1.2.0
+	github.com/hashicorp/go-memdb v1.3.2
 	github.com/james-barrow/golang-ipc v0.0.0-20210227130457-95e7cc81f5e2
+	github.com/shirou/gopsutil v3.21.11+incompatible
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/sys v0.0.0-20220224120231-95c6836cb0e7 // indirect

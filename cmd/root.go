@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	pool "miner_proxy/pools"
+	"miner_proxy/global"
 	"miner_proxy/utils"
 	"os"
 	"os/exec"
@@ -11,21 +11,9 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	ipc "github.com/james-barrow/golang-ipc"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 )
-
-type ManageConfig struct {
-	Config []utils.Config `json:"config"`
-	Web    struct {
-		Port     int    `json:"port"`
-		Password string `json:"password"`
-	} `json:"web"`
-}
-
-var ManageApp = new(ManageConfig)
 
 type PoolConfig struct {
 	Online []*exec.Cmd
@@ -62,15 +50,13 @@ var rootCmd = &cobra.Command{
 		// 解析SERVER配置文件。
 		// 监听配置文件
 		InitializeConfig(web_notify_ch, proxy_notify_ch)
-
-		// 启动web配置
-		wg.Add(1)
-		go Web(&wg, web_notify_ch)
-
 		// 启动代理watchdog
 		wg.Add(1)
 		go Proxy(&wg, proxy_notify_ch)
 
+		// 启动web配置
+		wg.Add(1)
+		go Web(&wg, web_notify_ch)
 		// 等待退出（永远不会退出）
 		wg.Wait()
 	},
@@ -107,32 +93,33 @@ func Execute() {
 // 	wg.Done()
 // }
 
-func Manage(wg *sync.WaitGroup) {
-	sc, err := ipc.StartServer(pool.ManageCmdPipeline, nil)
-	if err != nil {
-		utils.Logger.Error(err.Error())
-		return
-	}
+// func Manage(wg *sync.WaitGroup) {
+// 	sc, err := ipc.StartServer(pool.ManageCmdPipeline, nil)
+// 	if err != nil {
+// 		utils.Logger.Error(err.Error())
+// 		return
+// 	}
 
-	utils.Logger.Info("Start Pipeline On " + pool.ManageCmdPipeline)
+// 	utils.Logger.Info("Start Pipeline On " + pool.ManageCmdPipeline)
 
-	for {
-		msg, err := sc.Read()
-		if err == nil {
-			utils.Logger.Info("Server recieved: "+string(msg.Data), zap.Int("type", msg.MsgType))
-		} else {
-			utils.Logger.Error(err.Error())
-			break
-		}
-	}
+// 	for {
+// 		msg, err := sc.Read()
+// 		if err == nil {
+// 			utils.Logger.Info("Server recieved: "+string(msg.Data), zap.Int("type", msg.MsgType))
+// 		} else {
+// 			utils.Logger.Error(err.Error())
+// 			break
+// 		}
+// 	}
 
-	wg.Done()
-}
+// 	wg.Done()
+// }
 
 func Web(wg *sync.WaitGroup, restart chan int) {
+
 web:
-	fmt.Println(os.Args[0], "web", "--port", strconv.Itoa(ManageApp.Web.Port), "--password", ManageApp.Web.Password)
-	web := exec.Command(os.Args[0], "web", "--port", strconv.Itoa(ManageApp.Web.Port), "--password", ManageApp.Web.Password)
+	fmt.Println(os.Args[0], "web", "--port", strconv.Itoa(global.ManageApp.Web.Port), "--password", global.ManageApp.Web.Password)
+	web := exec.Command(os.Args[0], "web", "--port", strconv.Itoa(global.ManageApp.Web.Port), "--password", global.ManageApp.Web.Password)
 	go func() {
 		<-restart
 		fmt.Println("收到重启命令 Kill")
@@ -169,7 +156,7 @@ proxy:
 			// }
 
 			if ManagePool.Online[id] == nil {
-				for _, app := range ManageApp.Config {
+				for _, app := range global.ManageApp.Config {
 					if app.ID == id {
 						ProcessProxy(app)
 					}
@@ -187,7 +174,7 @@ proxy:
 }
 
 func FristStart() {
-	for _, app := range ManageApp.Config {
+	for _, app := range global.ManageApp.Config {
 		// 逐一获得cmd执行任务。
 		fmt.Println("逐一获得cmd执行任务。")
 		fmt.Println(app)
@@ -221,22 +208,22 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 		utils.Logger.Info("config file changed:" + in.Name)
 
 		//copy(ManageApp, conf)
-		conf := *ManageApp
+		conf := *global.ManageApp
 		//conf := *ManageApp
 
 		// Web 重载配置
-		if err := v.Unmarshal(&ManageApp); err != nil {
+		if err := v.Unmarshal(&global.ManageApp); err != nil {
 			utils.Logger.Error(err.Error())
 		}
 
-		if ManageApp.Web.Password != conf.Web.Password || ManageApp.Web.Port != conf.Web.Port {
+		if global.ManageApp.Web.Password != conf.Web.Password || global.ManageApp.Web.Port != conf.Web.Port {
 			//notify web
 			web_restart <- 1
 			fmt.Println("发送重启命令1")
 		}
 
 		// 检查 proxy 是否重启。
-		for _, app := range ManageApp.Config {
+		for _, app := range global.ManageApp.Config {
 			is_new := true
 			//FIXME 如果这里为空可能不会新增代理
 			for _, old_app := range conf.Config {
@@ -254,11 +241,11 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 	})
 
 	// 将配置赋值给全局变量
-	if err := v.Unmarshal(&ManageApp); err != nil {
+	if err := v.Unmarshal(&global.ManageApp); err != nil {
 		utils.Logger.Error(err.Error())
 	}
 
-	fmt.Println(ManageApp)
+	fmt.Println(global.ManageApp)
 	return v
 }
 

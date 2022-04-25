@@ -3,8 +3,8 @@ package eth
 import (
 	"io"
 	"miner_proxy/fee"
+	pack "miner_proxy/pack"
 	"miner_proxy/pack/eth"
-	pack "miner_proxy/pack/eth"
 	"miner_proxy/utils"
 	"strings"
 
@@ -25,7 +25,7 @@ func (hand *NoFeeHandle) OnConnect(
 	config *utils.Config,
 	fee *fee.Fee,
 	addr string,
-	id *string,
+	worker *pack.Worker,
 ) (io.ReadWriteCloser, error) {
 	hand.log.Info("On Miner Connect To Pool " + config.Pool)
 	pool, err := utils.NewPool(config.Pool)
@@ -47,7 +47,7 @@ func (hand *NoFeeHandle) OnConnect(
 			if err != nil {
 				return
 			}
-			var push pack.JSONPushMessage
+			var push eth.JSONPushMessage
 			if err = json.Unmarshal([]byte(buf), &push); err == nil {
 				if result, ok := push.Result.(bool); ok {
 					//增加份额
@@ -83,13 +83,14 @@ func (hand *NoFeeHandle) OnConnect(
 
 func (hand *NoFeeHandle) OnMessage(
 	c io.ReadWriteCloser,
-	pool io.ReadWriteCloser,
+	pool *io.ReadWriteCloser,
+	config *utils.Config,
 	fee *fee.Fee,
-	data []byte,
-	id *string,
+	data *[]byte,
+	worker *pack.Worker,
 ) (out []byte, err error) {
-	hand.log.Info(string(data))
-	req, err := eth.EthStratumReq(data)
+	hand.log.Info(string(*data))
+	req, err := eth.EthStratumReq(*data)
 	if err != nil {
 		hand.log.Error(err.Error())
 		c.Close()
@@ -119,17 +120,9 @@ func (hand *NoFeeHandle) OnMessage(
 			}
 		}
 		hand.log.Info("登陆矿工.", zap.String("Worker", worker), zap.String("Wallet", wallet))
-		// reply, errReply := s.handleLoginRPC(cs, params, req.Worker)
-		// if errReply != nil {
-		// 	//return cs.sendTCPError(req.Id, errReply)
-		// 	log.Println("Loign Error -1")
-		// 	c.Close()
-		// 	return
-		// }
 
-		//return cs.sendTCPResult(req.Id, reply)
 		var id int64
-		id, err = jsonparser.GetInt(data, "id")
+		id, err = jsonparser.GetInt(*data, "id")
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()
@@ -142,7 +135,7 @@ func (hand *NoFeeHandle) OnMessage(
 			return
 		}
 
-		pool.Write(data)
+		(*pool).Write(*data)
 		return
 	case "eth_getWork":
 		// reply, errReply := s.handleGetWorkRPC(cs)
@@ -164,7 +157,7 @@ func (hand *NoFeeHandle) OnMessage(
 		// 	c.Close()
 		// 	return
 		// }
-		pool.Write(data)
+		(*pool).Write(*data)
 		// log.Println("Ret", brpc)
 		// out = append(brpc, '\n')
 		return
@@ -177,7 +170,7 @@ func (hand *NoFeeHandle) OnMessage(
 			return
 		}
 		var id int64
-		id, err = jsonparser.GetInt(data, "id")
+		id, err = jsonparser.GetInt(*data, "id")
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()
@@ -190,12 +183,12 @@ func (hand *NoFeeHandle) OnMessage(
 			return
 		}
 
-		hand.log.Info("得到份额", zap.String("RPC", string(data)))
-		pool.Write(data)
+		hand.log.Info("得到份额", zap.String("RPC", string(*data)))
+		(*pool).Write(*data)
 		return
 	case "eth_submitHashrate":
 		var id int64
-		id, err = jsonparser.GetInt(data, "id")
+		id, err = jsonparser.GetInt(*data, "id")
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()
@@ -209,8 +202,8 @@ func (hand *NoFeeHandle) OnMessage(
 			return
 		}
 
-		b := append(data, '\n')
-		pool.Write(b)
+		b := append(*data, '\n')
+		(*pool).Write(b)
 		return
 	default:
 		hand.log.Info("KnownRpc")
@@ -218,7 +211,7 @@ func (hand *NoFeeHandle) OnMessage(
 	}
 }
 
-func (hand *NoFeeHandle) OnClose(id *string) {
+func (hand *NoFeeHandle) OnClose(worker *pack.Worker) {
 	hand.log.Info("OnClose !!!!!")
 }
 

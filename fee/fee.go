@@ -13,5 +13,4 @@ type FeeConn struct {
 type Fee struct {
 	Dev map[string]bool
 	Fee map[string]bool
-	//	sync.RWMutex
 }

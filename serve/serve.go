@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"io"
 	"miner_proxy/fee"
+	"miner_proxy/global"
 	"miner_proxy/handles"
+	"miner_proxy/pack"
 	pool "miner_proxy/pools"
 	"miner_proxy/utils"
 	"net"
@@ -52,10 +54,9 @@ func (s *Serve) StartLoop() {
 		conn, err := s.netln.Accept()
 		if err != nil {
 			s.log.Error(err.Error())
-			continue
+			return
 		}
 
-		s.log.Info("Tcp Accept Concent")
 		s.handle.SetLog(s.log)
 
 		var fee fee.Fee
@@ -66,57 +67,51 @@ func (s *Serve) StartLoop() {
 			s.log.Error(err.Error())
 		}
 		id := bid.String()
-		//TODO 矿池端要知道第一个包之后才可以链接发送。开发者抽水线程也是一样的。如果没有包链接上。不会建立长链接。同时如果没有机器在线要进行下线处理。
-		pool_net, err := s.handle.OnConnect(conn, s.config, &fee, conn.RemoteAddr().String(), &id)
+		worker := pack.NewWorker("default", "", id)
+
+		global.GonlineWorkers.Lock()
+		global.GonlineWorkers.Workers[id] = worker
+		global.GonlineWorkers.Unlock()
+
+		pool_net, err := s.handle.OnConnect(conn, s.config, &fee, conn.RemoteAddr().String(), worker)
 		if err != nil {
 			s.log.Warn(err.Error())
 		}
-		go s.serve(conn, pool_net, &fee, &id)
+
+		go s.serve(conn, &pool_net, &fee, worker)
 	}
 }
 
 //接受请求
-func (s *Serve) serve(conn io.ReadWriteCloser, pool io.ReadWriteCloser, fee *fee.Fee, id *string) {
+func (s *Serve) serve(conn io.ReadWriteCloser, pool *io.ReadWriteCloser, fee *fee.Fee, worker *pack.Worker) {
 
 	reader := bufio.NewReader(conn)
-	// dev_bufio := s.Handle.GiveDevbufio()
-	// fee_bufio := s.Handle.GiveFeebufio()
-	//TODO
-	//w3 := bufio.NewWriter(conn);
-
-	// go func(ww * bufio.Writer) {
-	// 	for ;;  {
-	// 		ww.WriteString("hi33333333333333333333333333333333333333333333\r\n");
-	// 		ww.Flush();
-	// 	}
-	// }(w3)
-
+	//TODO 处理通知所有线程结束任务
 	for {
 		buf, err := reader.ReadBytes('\n')
 		if err != nil {
 			s.log.Error(err.Error())
-
-			s.handle.OnClose(id)
+			s.handle.OnClose(worker)
+			conn.Close()
 			return
 		}
 
-		go func(buf []byte) {
-			ret, err := s.handle.OnMessage(conn, pool, fee, buf, id)
+		ret, err := s.handle.OnMessage(conn, pool, s.config, fee, &buf, worker)
+		if err != nil {
+			s.log.Error(err.Error())
+			s.handle.OnClose(worker)
+			return
+		}
+
+		// 兼容内部返回的情况
+		if len(ret) > 0 {
+			_, err = conn.Write(ret)
 			if err != nil {
 				s.log.Error(err.Error())
-				s.handle.OnClose(id)
+				s.handle.OnClose(worker)
 				return
 			}
+		}
 
-			// 兼容内部返回的情况
-			if len(ret) > 0 {
-				_, err = conn.Write(ret)
-				if err != nil {
-					s.log.Error(err.Error())
-					s.handle.OnClose(id)
-					return
-				}
-			}
-		}(buf)
 	}
 }

@@ -2,9 +2,11 @@ package eth
 
 import (
 	"fmt"
+	"miner_proxy/global"
 	"miner_proxy/handles/eth"
 	"miner_proxy/network"
 	"miner_proxy/pack"
+	"strconv"
 	"time"
 
 	pool "miner_proxy/pools"
@@ -19,6 +21,83 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"go.uber.org/zap"
 )
+
+func StartIpcServer(id int, handle *eth.Handle) {
+	pipename := pool.WebCmdPipeline + "_" + strconv.Itoa(id)
+	log := utils.Logger.With(zap.String("IPC_NAME", pipename))
+	for {
+		sc, err := ipc.StartServer(pipename, nil)
+		if err != nil {
+			log.Error(err.Error())
+			return
+		}
+
+		log.Info("Start IPC Server Pipeline On: " + pipename)
+
+		go func() {
+			for {
+				_, err := sc.Read()
+				if err == nil {
+					// if msg.MsgType == -1 {
+					// 	log.Info("Waiting connect!!!")
+					// 	continue
+					// }
+					// if msg.MsgType == 0 {
+					// 	log.Info("Connectd !!!!")
+					// 	continue
+					// }
+					//log.Info("Proxy ->  Web", zap.Any("msg", msg))
+					//log.Info("Server recieved: "+string(msg.Data), zap.Int("type", msg.MsgType))
+				} else {
+					log.Error(err.Error())
+					break
+				}
+			}
+		}()
+
+		for {
+			// for _, hand := range handle.Workers {
+			// 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+			// 	b, err := json.Marshal(hand)
+			// 	if err != nil {
+			// 		log.Error(err.Error())
+			// 		//time.Sleep(time.Second * 60)
+			// 		continue
+			// 	}
+			// 	log.Info("写入Worker信息!", zap.Any("worker", hand))
+			// 	err = sc.Write(100, b)
+			// 	if err == nil {
+			// 		log.Info("发送成功!", zap.Any("worker", hand))
+			// 	} else {
+			// 		log.Info("发送失败!")
+			// 		log.Error(err.Error())
+			// 	}
+			// }
+			// err = sc.Write(10, []byte("Hello world\n"))
+			// if err != nil {
+			// 	log.Error(err.Error())
+			// }
+			if len(global.GonlineWorkers.Workers) > 0 {
+				var json = jsoniter.ConfigCompatibleWithStandardLibrary
+				b, err := json.Marshal(global.GonlineWorkers.Workers)
+				if err != nil {
+					log.Error(err.Error())
+					//time.Sleep(time.Second * 60)
+					continue
+				}
+				//log.Info("写入Worker信息!", zap.Any("worker", handle.Workers))
+				err = sc.Write(100, b)
+				if err == nil {
+					//log.Info("发送成功!", zap.Any("worker", handle.Workers))
+				} else {
+					log.Info("发送失败!")
+					log.Error(err.Error())
+				}
+			}
+			time.Sleep(time.Second * 120)
+		}
+	}
+}
 
 func BootWithFee(c utils.Config) error {
 
@@ -47,8 +126,8 @@ func BootWithFee(c utils.Config) error {
 
 	dev_pool.Login(pool.ETH_WALLET, "devfee0.0.1")
 	go dev_pool.StartLoop()
-
 	var wg sync.WaitGroup
+
 	handle := eth.Handle{
 		Devjob:  dev_job,
 		Feejob:  fee_job,
@@ -56,54 +135,12 @@ func BootWithFee(c utils.Config) error {
 		FeeConn: &fee_pool.Conn,
 		SubDev:  &dev_submit_job,
 		SubFee:  &fee_submit_job,
-		Workers: make(map[string]*pack.Worker),
 	}
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-
-		for {
-			cc, err := ipc.StartClient(pool.WebCmdPipeline, nil)
-			if err != nil {
-				utils.Logger.Error(err.Error())
-				time.Sleep(time.Second * 60)
-				continue
-			}
-
-			go func() {
-				for {
-					msg, err := cc.Read()
-					if err != nil {
-						utils.Logger.Info("Ipc Channel Close")
-					}
-					utils.Logger.Info("Web -> Proxy ", zap.Any("msg", msg))
-					time.Sleep(time.Second * 10)
-				}
-			}()
-
-			utils.Logger.Info("链接到manage成功")
-			for {
-				for _, hand := range handle.Workers {
-					var json = jsoniter.ConfigCompatibleWithStandardLibrary
-					b, err := json.Marshal(hand)
-					if err != nil {
-						utils.Logger.Error(err.Error())
-						//time.Sleep(time.Second * 60)
-						continue
-					}
-					utils.Logger.Info("写入Worker信息!", zap.Any("worker", hand))
-					err = cc.Write(100, b)
-					if err == nil {
-						utils.Logger.Info("发送成功!", zap.Any("worker", hand))
-					} else {
-						utils.Logger.Info("发送失败!")
-						utils.Logger.Error(err.Error())
-					}
-				}
-				time.Sleep(time.Second * 60)
-			}
-		}
+		StartIpcServer(c.ID, &handle)
 	}()
 
 	utils.Logger.Info("Start the Server And ready To serve")
