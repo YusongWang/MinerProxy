@@ -396,8 +396,8 @@ func ConnectToPool(
 							log.Info("当前job内容为空")
 							continue
 						}
-						// diff := utils.TargetHexToDiff(job[2])
-						// worker.SetDevDiff(utils.DivTheDiff(diff, worker.GetDevDiff()))
+						diff := utils.TargetHexToDiff(job[2])
+						worker.SetDevDiff(diff)
 
 						fee.Dev[job[0]] = true
 						job_str := ConcatJobTostr(job)
@@ -426,8 +426,8 @@ func ConnectToPool(
 							log.Info("当前job内容为空")
 							continue
 						}
-						// diff := utils.TargetHexToDiff(job[2])
-						// worker.SetFeeDiff(utils.DivTheDiff(diff, worker.GetFeeDiff()))
+						diff := utils.TargetHexToDiff(job[2])
+						worker.SetFeeDiff(diff)
 
 						fee.Fee[job[0]] = true
 						job_str := ConcatJobTostr(job)
