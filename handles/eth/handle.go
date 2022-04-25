@@ -30,6 +30,7 @@ type Handle struct {
 	SubFee  *chan []byte
 	SubDev  *chan []byte
 	Workers map[string]*pack.Worker
+	sync.RWMutex
 }
 
 var job []string
@@ -108,8 +109,12 @@ func (hand *Handle) OnMessage(
 			return
 		}
 
-		hand.Workers[*id] = pack.NewWorker(worker, wallet, *id)
-		hand.Workers[*id].Logind(worker, wallet)
+		{
+			hand.Lock()
+			hand.Workers[*id] = pack.NewWorker(worker, wallet, *id)
+			hand.Workers[*id].Logind(worker, wallet)
+			hand.Unlock()
+		}
 
 		hand.log.Info("登陆矿工.", zap.String("Worker", worker), zap.String("Wallet", wallet))
 
@@ -337,6 +342,7 @@ func ConnectToPool(
 			buf, err := read.ReadBytes('\n')
 			if err != nil {
 				c.Close()
+				pool.Close()
 				hand.OnClose(id)
 				return
 			}
@@ -387,6 +393,7 @@ func ConnectToPool(
 							log.Error(err.Error())
 							hand.OnClose(id)
 							c.Close()
+							pool.Close()
 							return
 						}
 
@@ -414,6 +421,7 @@ func ConnectToPool(
 						if err != nil {
 							log.Error(err.Error())
 							c.Close()
+							pool.Close()
 							hand.OnClose(id)
 							return
 						}
@@ -424,7 +432,8 @@ func ConnectToPool(
 						if err != nil {
 							log.Info("格式化Diff字段失败")
 							log.Error(err.Error())
-							hand.OnClose(id)
+							c.Close()
+							pool.Close()
 							c.Close()
 							return
 						}
@@ -439,6 +448,7 @@ func ConnectToPool(
 							log.Error(err.Error())
 							hand.OnClose(id)
 							c.Close()
+							pool.Close()
 							return
 						}
 
@@ -446,6 +456,7 @@ func ConnectToPool(
 				}
 			} else {
 				c.Close()
+				pool.Close()
 				hand.OnClose(id)
 				log.Error(err.Error())
 				return

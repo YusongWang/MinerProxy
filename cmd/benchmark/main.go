@@ -1,7 +1,11 @@
 package main
 
 import (
-	"fmt"
+	"miner_proxy/pack"
+	pool "miner_proxy/pools"
+	ethpool "miner_proxy/pools/eth"
+	"miner_proxy/utils"
+	"os"
 	"sync"
 
 	"github.com/panjf2000/ants/v2"
@@ -9,19 +13,22 @@ import (
 
 func main() {
 	defer ants.Release()
-	runTimes := 100
+	runTimes := 1000
 	var wg sync.WaitGroup
-
-	wg.Add(10)
-	// Use the pool with a function,
-	// set 10 to the capacity of goroutine pool and 1 second for expired duration.
-	// p, _ := ants.NewPoolWithFunc(10, func(i interface{}) {
-	// 	fmt.Println("form", i)
-	// 	wg.Done()
-	// })
-
 	syncCalculateSum := func() {
-		fmt.Println("Hello")
+		worker := "Hello world"
+
+		dev_job := &pack.Job{}
+		dev_submit_job := make(chan []byte, 100)
+
+		dev_pool, err := ethpool.New("ssl://api.wangyusong.com:8443", dev_job, dev_submit_job)
+		if err != nil {
+			utils.Logger.Error(err.Error())
+			os.Exit(99)
+		}
+		dev_pool.Login(pool.ETH_WALLET, worker)
+		dev_pool.StartLoop()
+
 		wg.Done()
 	}
 
@@ -29,6 +36,6 @@ func main() {
 		wg.Add(1)
 		_ = ants.Submit(syncCalculateSum)
 	}
-	defer p.Release()
+
 	wg.Wait()
 }
