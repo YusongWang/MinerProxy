@@ -67,8 +67,7 @@ func (s *Serve) StartLoop() {
 			s.log.Error(err.Error())
 		}
 		id := bid.String()
-		worker := pack.NewWorker("default", "", id)
-
+		worker := pack.NewWorker("", "", id, conn.RemoteAddr().String())
 		global.GonlineWorkers.Lock()
 		global.GonlineWorkers.Workers[id] = worker
 		global.GonlineWorkers.Unlock()
@@ -87,6 +86,7 @@ func (s *Serve) serve(conn io.ReadWriteCloser, pool *io.ReadWriteCloser, fee *fe
 
 	reader := bufio.NewReader(conn)
 	//TODO 处理通知所有线程结束任务
+
 	for {
 		buf, err := reader.ReadBytes('\n')
 		if err != nil {

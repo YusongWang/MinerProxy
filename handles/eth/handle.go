@@ -377,9 +377,7 @@ func ConnectToPool(
 					if res {
 						worker.AddShare()
 					} else {
-
 						worker.AddReject()
-
 						log.Warn("无效份额", zap.Any("RPC", string(buf)))
 					}
 				} else {
@@ -403,8 +401,6 @@ func ConnectToPool(
 						job_str := ConcatJobTostr(job)
 						job_byte := ConcatToPushJob(job_str)
 
-						//job_byte := <-res_chan
-						//log.Info("发送开发者抽水任务", zap.String("rpc", string(job_byte)))
 						_, err = c.Write(job_byte)
 						if err != nil {
 							log.Error(err.Error())
@@ -417,7 +413,6 @@ func ConnectToPool(
 					} else if utils.BaseOnIdxFee(worker.GetIndex(), config.Fee) {
 						if len(hand.Feejob.Job) > 0 {
 							job = hand.Feejob.Job[len(hand.Feejob.Job)-1]
-							//log.Info("得到当前Job", zap.Any("job", job))
 						} else {
 							continue
 						}

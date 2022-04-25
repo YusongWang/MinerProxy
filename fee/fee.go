@@ -1,12 +1,10 @@
 package fee
 
-import (
-	"net"
-)
+import "io"
 
 type FeeConn struct {
-	DevConn net.Conn
-	FeeConn net.Conn
+	DevConn *io.ReadWriteCloser
+	FeeConn *io.ReadWriteCloser
 }
 
 // 保存临时份额 查找时间O(1)

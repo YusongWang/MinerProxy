@@ -30,11 +30,14 @@ type Worker struct {
 	Fee_idx       uint64    `json:"fee_idx"`
 	Fee_diff      *big.Int  `json:"fee_diff"`
 	Online        int       `json:"online"`
+	Ip            string    `json:"ip"`
+	Ping          int       `json:"ping"`
 }
 
-func NewWorker(worker string, wallet string, id string) *Worker {
+func NewWorker(worker string, wallet string, id string, ip string) *Worker {
 	return &Worker{
 		Id:            id,
+		Ip:            ip,
 		Worker_name:   worker,
 		Wallet:        wallet,
 		Worker_idx:    0,
@@ -103,6 +106,10 @@ func (w *Worker) SetReportHash(hash *big.Int) {
 	w.Report_hash = hash
 }
 
+func (w *Worker) SetPing(ping int) {
+	w.Ping = ping
+}
+
 func (w *Worker) Logind(worker, wallet string) {
 	w.Wallet = wallet
 	w.Worker_name = worker
@@ -115,4 +122,8 @@ func (w *Worker) Logout() {
 
 func (w *Worker) IsOnline() bool {
 	return w.Online == MINER_LOGIN
+}
+
+func (w *Worker) IsOffline() bool {
+	return w.Online == MINER_LOGOUT
 }

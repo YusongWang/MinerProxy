@@ -54,6 +54,7 @@ require (
 require (
 	github.com/BurntSushi/toml v1.1.0 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/dustin/go-humanize v1.0.0
 	github.com/ethereum/go-ethereum v1.10.17
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/gin-gonic/gin v1.7.7
