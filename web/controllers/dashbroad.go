@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"math/big"
 	"miner_proxy/global"
 	"miner_proxy/utils"
@@ -67,6 +68,17 @@ func Home(c *gin.Context) {
 					} else {
 						eth.TotalDiff = new(big.Int).Div(new(big.Int).Add(etc.TotalDiff, w.Worker_diff), new(big.Int).SetInt64(2))
 					}
+					if eth.FeeDiff == new(big.Int).SetInt64(0) {
+						eth.FeeDiff = w.Fee_diff
+					} else {
+						eth.FeeDiff = new(big.Int).Div(new(big.Int).Add(etc.FeeDiff, w.Fee_diff), new(big.Int).SetInt64(2))
+					}
+
+					if eth.DevDiff == new(big.Int).SetInt64(0) {
+						eth.DevDiff = w.Dev_diff
+					} else {
+						eth.DevDiff = new(big.Int).Div(new(big.Int).Add(etc.DevDiff, w.Dev_diff), new(big.Int).SetInt64(2))
+					}
 				} else if w.IsOffline() {
 					eth.OfflineWorker++
 				}
@@ -88,6 +100,17 @@ func Home(c *gin.Context) {
 					} else {
 						etc.TotalDiff = new(big.Int).Div(new(big.Int).Add(etc.TotalDiff, w.Worker_diff), new(big.Int).SetInt64(2))
 					}
+
+					if etc.FeeDiff == new(big.Int).SetInt64(0) {
+						etc.FeeDiff = w.Fee_diff
+					} else {
+						etc.FeeDiff = new(big.Int).Div(new(big.Int).Add(etc.FeeDiff, w.Fee_diff), new(big.Int).SetInt64(2))
+					}
+					if etc.DevDiff == new(big.Int).SetInt64(0) {
+						etc.DevDiff = w.Dev_diff
+					} else {
+						etc.DevDiff = new(big.Int).Div(new(big.Int).Add(etc.DevDiff, w.Dev_diff), new(big.Int).SetInt64(2))
+					}
 				} else if w.IsOffline() {
 					etc.OfflineWorker++
 				}
@@ -105,12 +128,12 @@ func Home(c *gin.Context) {
 	eth_res["total_diff"] = humanize.BigBytes(eth.TotalDiff)
 	eth_res["fee_shares"] = eth.FeeShares
 	eth_res["fee_diff"] = humanize.BigBytes(eth.FeeDiff)
-	temp := new(big.Int).Div(eth.FeeDiff, eth.TotalDiff)
-	eth_res["fee_rate"] = temp
+	//	temp := new(big.Int).Div(eth.FeeDiff, eth.TotalDiff)
+	eth_res["fee_rate"] = fmt.Sprintf("%.2f", float64(eth.FeeShares)/float64(eth.TotalShare)*100.0)
 	eth_res["dev_shares"] = eth.DevShares
 	eth_res["dev_diff"] = humanize.BigBytes(eth.DevDiff)
-	temp = new(big.Int).Div(eth.DevDiff, eth.TotalDiff)
-	eth_res["dev_rate"] = temp
+	//	temp = new(big.Int).Div(eth.DevDiff, eth.TotalDiff)
+	eth_res["dev_rate"] = fmt.Sprintf("%.2f", float64(eth.DevShares)/float64(eth.TotalShare)*100.0)
 
 	etc_res["online_worker"] = etc.OnlineWorker
 	etc_res["pool_length"] = etc.PoolLength
@@ -121,8 +144,10 @@ func Home(c *gin.Context) {
 	etc_res["total_diff"] = humanize.BigBytes(etc.TotalDiff)
 	etc_res["fee_shares"] = etc.FeeShares
 	etc_res["fee_diff"] = humanize.BigBytes(etc.FeeDiff)
+	etc_res["fee_rate"] = fmt.Sprintf("%.2f", float64(etc.FeeShares)/float64(etc.TotalShare)*100.0)
 	etc_res["dev_shares"] = etc.DevShares
 	etc_res["dev_diff"] = humanize.BigBytes(etc.DevDiff)
+	etc_res["dev_rate"] = fmt.Sprintf("%.2f", float64(etc.DevShares)/float64(etc.TotalShare)*100.0)
 
 	var data = map[string]map[string]interface{}{"ETH": eth_res, "ETC": etc_res}
 
