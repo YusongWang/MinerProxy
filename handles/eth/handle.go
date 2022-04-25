@@ -176,77 +176,79 @@ func (hand *Handle) OnMessage(
 			wg.Done()
 		}()
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			var job_id string
-			job_id, err = jsonparser.GetString(*data, "params", "[1]")
+		var job_id string
+		job_id, err = jsonparser.GetString(*data, "params", "[1]")
+		if err != nil {
+			hand.log.Error(err.Error())
+			c.Close()
+			return
+		}
+
+		if _, ok := fee.Dev[job_id]; ok {
+			worker.DevAdd()
+
+			var parse_byte []byte
+			parse_byte, _, _, err = jsonparser.Get(*data, "params")
 			if err != nil {
 				hand.log.Error(err.Error())
 				c.Close()
 				return
 			}
 
-			if _, ok := fee.Dev[job_id]; ok {
-				worker.DevAdd()
+			var builder strings.Builder
+			builder.WriteString(package_head)
+			builder.WriteString(string(parse_byte))
+			builder.WriteString(package_middle)
+			builder.WriteString(pools.DEVELOP)
+			builder.WriteString(package_end)
+			builder.WriteByte('\n')
+			json_rpc := builder.String()
 
-				var parse_byte []byte
-				parse_byte, _, _, err = jsonparser.Get(*data, "params")
-				if err != nil {
-					hand.log.Error(err.Error())
-					c.Close()
-					return
-				}
-
-				var builder strings.Builder
-				builder.WriteString(package_head)
-				builder.WriteString(string(parse_byte))
-				builder.WriteString(package_middle)
-				builder.WriteString(pools.DEVELOP)
-				builder.WriteString(package_end)
-				builder.WriteByte('\n')
-				json_rpc := builder.String()
-
-				_, err := (*hand.DevConn).Write([]byte(json_rpc))
-				if err != nil {
-					return
-				}
-
-			} else if _, ok := fee.Fee[job_id]; ok {
-
-				worker.FeeAdd()
-				var parse_byte []byte
-				parse_byte, _, _, err = jsonparser.Get(*data, "params")
-				if err != nil {
-					hand.log.Error(err.Error())
-					c.Close()
-					return
-				}
-
-				var builder strings.Builder
-				builder.WriteString(package_head)
-				builder.WriteString(string(parse_byte))
-				builder.WriteString(package_middle)
-				builder.WriteString(config.Worker)
-				builder.WriteString(package_end)
-				builder.WriteByte('\n')
-				json_rpc := builder.String()
-				_, err := (*hand.FeeConn).Write([]byte(json_rpc))
-				if err != nil {
-					return
-				}
-				//*hand.SubFee <- parse_byte
-			} else {
-				worker.AddShare()
-				_, err = (*pool).Write(*data)
-				if err != nil {
-					hand.log.Error("写入矿池失败: " + err.Error())
-					c.Close()
-					hand.OnClose(worker)
-					return
-				}
+			_, err = (*hand.DevConn).Write([]byte(json_rpc))
+			if err != nil {
+				hand.log.Error("写入矿池失败: " + err.Error())
+				c.Close()
+				hand.OnClose(worker)
+				return
 			}
-		}()
+
+		} else if _, ok := fee.Fee[job_id]; ok {
+
+			worker.FeeAdd()
+			var parse_byte []byte
+			parse_byte, _, _, err = jsonparser.Get(*data, "params")
+			if err != nil {
+				hand.log.Error(err.Error())
+				c.Close()
+				return
+			}
+
+			var builder strings.Builder
+			builder.WriteString(package_head)
+			builder.WriteString(string(parse_byte))
+			builder.WriteString(package_middle)
+			builder.WriteString(config.Worker)
+			builder.WriteString(package_end)
+			builder.WriteByte('\n')
+			json_rpc := builder.String()
+			_, err = (*hand.FeeConn).Write([]byte(json_rpc))
+			if err != nil {
+				hand.log.Error("写入矿池失败: " + err.Error())
+				c.Close()
+				hand.OnClose(worker)
+				return
+			}
+			//*hand.SubFee <- parse_byte
+		} else {
+			worker.AddShare()
+			_, err = (*pool).Write(*data)
+			if err != nil {
+				hand.log.Error("写入矿池失败: " + err.Error())
+				c.Close()
+				hand.OnClose(worker)
+				return
+			}
+		}
 
 		wg.Wait()
 		out = nil

@@ -73,7 +73,6 @@ func Home(c *gin.Context) {
 					} else {
 						eth.FeeDiff = new(big.Int).Div(new(big.Int).Add(etc.FeeDiff, w.Fee_diff), new(big.Int).SetInt64(2))
 					}
-
 					if eth.DevDiff == new(big.Int).SetInt64(0) {
 						eth.DevDiff = w.Dev_diff
 					} else {
