@@ -30,7 +30,7 @@ type Handle struct {
 	SubFee  *chan []byte
 	SubDev  *chan []byte
 	Workers map[string]*pack.Worker
-	sync.RWMutex
+	sync.Mutex
 }
 
 var job []string
