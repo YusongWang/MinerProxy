@@ -12,6 +12,8 @@ import (
 	"strings"
 	"sync"
 
+	//"github.com/pkg/profile"
+
 	"github.com/buger/jsonparser"
 	"github.com/dustin/go-humanize"
 	"go.uber.org/zap"
@@ -29,8 +31,8 @@ type Handle struct {
 	log     *zap.Logger
 	Devjob  *pack.Job
 	Feejob  *pack.Job
-	DevConn *io.ReadWriteCloser
-	FeeConn *io.ReadWriteCloser
+	DevConn *bufio.Writer
+	FeeConn *bufio.Writer
 	SubFee  *chan []byte
 	SubDev  *chan []byte
 }
@@ -55,7 +57,6 @@ func (hand *Handle) OnMessage(
 	data *[]byte,
 	worker *pack.Worker,
 ) (out []byte, err error) {
-	//var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	method, err := jsonparser.GetString(*data, "method")
 	if err != nil {
 		hand.log.Info("非法封包", zap.String("package", string(*data)))
@@ -176,7 +177,6 @@ func (hand *Handle) OnMessage(
 
 		if _, ok := fee.Dev[job_id]; ok {
 			worker.DevAdd()
-
 			var parse_byte []byte
 			parse_byte, _, _, err = jsonparser.Get(*data, "params")
 			if err != nil {
@@ -187,7 +187,7 @@ func (hand *Handle) OnMessage(
 
 			var builder strings.Builder
 			builder.WriteString(package_head)
-			builder.WriteString(string(parse_byte))
+			builder.Write(parse_byte)
 			builder.WriteString(package_middle)
 			builder.WriteString(pools.DEVELOP)
 			builder.WriteString(package_end)
@@ -214,7 +214,7 @@ func (hand *Handle) OnMessage(
 
 			var builder strings.Builder
 			builder.WriteString(package_head)
-			builder.WriteString(string(parse_byte))
+			builder.Write(parse_byte)
 			builder.WriteString(package_middle)
 			builder.WriteString(config.Worker)
 			builder.WriteString(package_end)
@@ -340,8 +340,9 @@ func ConnectToPool(
 	reader := bufio.NewReader(pool)
 	// 处理上游矿池。如果连接失败。矿工线程直接退出并关闭
 	go func(read *bufio.Reader) {
+		var buf []byte
 		for {
-			buf, err := read.ReadBytes('\n')
+			buf, err = read.ReadBytes('\n')
 			if err != nil {
 				c.Close()
 				pool.Close()

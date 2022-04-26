@@ -1,11 +1,9 @@
 package cmd
 
 import (
-	_ "net/http/pprof"
+	//_ "net/http/pprof"
 
 	"fmt"
-	"log"
-	"net/http"
 	"os"
 
 	etcboot "miner_proxy/boot/etc"
@@ -89,9 +87,9 @@ var serverCmd = &cobra.Command{
 		// 	os.Exit(99)
 		// }
 		// fmt.Println(string(yaml))
-		go func() {
-			log.Println(http.ListenAndServe(":6060", nil))
-		}()
+		// go func() {
+		// 	log.Println(http.ListenAndServe(":6060", nil))
+		// }()
 
 		if config.Mode == 1 {
 			switch config.Coin {

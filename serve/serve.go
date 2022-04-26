@@ -96,15 +96,22 @@ func (s *Serve) serve(conn io.ReadWriteCloser, pool *io.ReadWriteCloser, fee *fe
 	for {
 		buf, err := reader.ReadBytes('\n')
 		if err != nil {
-			s.log.Error(err.Error())
+			if err == io.EOF {
+
+			} else {
+				s.log.Error(err.Error())
+			}
 			s.handle.OnClose(worker)
-			conn.Close()
 			return
 		}
 
 		ret, err := s.handle.OnMessage(conn, pool, s.config, fee, &buf, worker)
 		if err != nil {
-			s.log.Error(err.Error())
+			if err == io.EOF {
+
+			} else {
+				s.log.Error(err.Error())
+			}
 			s.handle.OnClose(worker)
 			return
 		}
@@ -113,7 +120,11 @@ func (s *Serve) serve(conn io.ReadWriteCloser, pool *io.ReadWriteCloser, fee *fe
 		if len(ret) > 0 {
 			_, err = conn.Write(ret)
 			if err != nil {
-				s.log.Error(err.Error())
+				if err == io.EOF {
+
+				} else {
+					s.log.Error(err.Error())
+				}
 				s.handle.OnClose(worker)
 				return
 			}
