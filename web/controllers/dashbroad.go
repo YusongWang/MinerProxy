@@ -63,17 +63,17 @@ func Home(c *gin.Context) {
 					eth.FeeShares = eth.FeeShares + int64(w.Fee_idx)
 					eth.DevShares = eth.DevShares + int64(w.Dev_idx)
 					eth.TotalHash = new(big.Int).Add(eth.TotalHash, w.Report_hash)
-					if eth.TotalDiff == new(big.Int).SetInt64(0) {
+					if eth.TotalDiff.Cmp(new(big.Int).SetInt64(0)) == 0 {
 						eth.TotalDiff = w.Worker_diff
 					} else {
 						eth.TotalDiff = new(big.Int).Div(new(big.Int).Add(etc.TotalDiff, w.Worker_diff), new(big.Int).SetInt64(2))
 					}
-					if eth.FeeDiff == new(big.Int).SetInt64(0) {
+					if eth.FeeDiff.Cmp(new(big.Int).SetInt64(0)) == 0 {
 						eth.FeeDiff = w.Fee_diff
 					} else {
 						eth.FeeDiff = new(big.Int).Div(new(big.Int).Add(etc.FeeDiff, w.Fee_diff), new(big.Int).SetInt64(2))
 					}
-					if eth.DevDiff == new(big.Int).SetInt64(0) {
+					if eth.DevDiff.Cmp(new(big.Int).SetInt64(0)) == 0 {
 						eth.DevDiff = w.Dev_diff
 					} else {
 						eth.DevDiff = new(big.Int).Div(new(big.Int).Add(etc.DevDiff, w.Dev_diff), new(big.Int).SetInt64(2))
@@ -94,18 +94,18 @@ func Home(c *gin.Context) {
 					etc.FeeShares = etc.FeeShares + int64(w.Fee_idx)
 					etc.DevShares = etc.DevShares + int64(w.Dev_idx)
 					etc.TotalHash = new(big.Int).Add(etc.TotalHash, w.Report_hash)
-					if etc.TotalDiff == new(big.Int).SetInt64(0) {
+					if etc.TotalDiff.Cmp(new(big.Int).SetInt64(0)) == 0 {
 						etc.TotalDiff = w.Worker_diff
 					} else {
 						etc.TotalDiff = new(big.Int).Div(new(big.Int).Add(etc.TotalDiff, w.Worker_diff), new(big.Int).SetInt64(2))
 					}
 
-					if etc.FeeDiff == new(big.Int).SetInt64(0) {
+					if etc.FeeDiff.Cmp(new(big.Int).SetInt64(0)) == 0 {
 						etc.FeeDiff = w.Fee_diff
 					} else {
 						etc.FeeDiff = new(big.Int).Div(new(big.Int).Add(etc.FeeDiff, w.Fee_diff), new(big.Int).SetInt64(2))
 					}
-					if etc.DevDiff == new(big.Int).SetInt64(0) {
+					if etc.DevDiff.Cmp(new(big.Int).SetInt64(0)) == 0 {
 						etc.DevDiff = w.Dev_diff
 					} else {
 						etc.DevDiff = new(big.Int).Div(new(big.Int).Add(etc.DevDiff, w.Dev_diff), new(big.Int).SetInt64(2))

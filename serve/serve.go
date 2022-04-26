@@ -83,6 +83,12 @@ func (s *Serve) StartLoop() {
 
 //接受请求
 func (s *Serve) serve(conn io.ReadWriteCloser, pool *io.ReadWriteCloser, fee *fee.Fee, worker *pack.Worker) {
+	defer func() {
+		if x := recover(); x != nil {
+			s.log.Info("Recover", zap.Any("err", x))
+			return
+		}
+	}()
 
 	reader := bufio.NewReader(conn)
 	//TODO 处理通知所有线程结束任务

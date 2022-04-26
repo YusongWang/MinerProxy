@@ -3,7 +3,6 @@ package eth
 import (
 	"bufio"
 	"encoding/json"
-	"errors"
 	"io"
 	"miner_proxy/fee"
 	"miner_proxy/pack"
@@ -57,14 +56,6 @@ func (hand *Handle) OnMessage(
 	worker *pack.Worker,
 ) (out []byte, err error) {
 	//var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	defer func() {
-		if x := recover(); x != nil {
-			hand.log.Info("Recover", zap.Any("err", x))
-			err = errors.New("Panic(). first package not the Login")
-			return
-		}
-	}()
-
 	method, err := jsonparser.GetString(*data, "method")
 	if err != nil {
 		hand.log.Info("非法封包", zap.String("package", string(*data)))
@@ -338,15 +329,6 @@ func ConnectToPool(
 	wallet string,
 	worker_name string,
 ) (pool io.ReadWriteCloser, err error) {
-	defer func() {
-		if x := recover(); x != nil {
-			hand.log.Info("Recover", zap.Any("err", x))
-			c.Close()
-			err = errors.New("Panic() Recover. ConnectToPool To Pool Error")
-			return
-		}
-	}()
-
 	pool, err = utils.NewPool(config.Pool)
 	if err != nil {
 		hand.log.Warn("矿池连接失败", zap.Error(err), zap.String("pool", config.Pool))
@@ -441,7 +423,6 @@ func ConnectToPool(
 							log.Error(err.Error())
 							c.Close()
 							pool.Close()
-							c.Close()
 							return
 						}
 
