@@ -133,8 +133,8 @@ func BootWithFee(c utils.Config) error {
 	handle := eth.Handle{
 		Devjob:  dev_job,
 		Feejob:  fee_job,
-		DevConn: bufio.NewWriter(dev_pool.Conn),
-		FeeConn: bufio.NewWriter(fee_pool.Conn),
+		DevConn: bufio.NewWriter(*dev_pool.Conn),
+		FeeConn: bufio.NewWriter(*fee_pool.Conn),
 		SubDev:  &dev_submit_job,
 		SubFee:  &fee_submit_job,
 	}
