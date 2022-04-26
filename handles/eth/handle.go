@@ -14,6 +14,7 @@ import (
 	"sync"
 
 	"github.com/buger/jsonparser"
+	"github.com/dustin/go-humanize"
 	"go.uber.org/zap"
 )
 
@@ -139,7 +140,6 @@ func (hand *Handle) OnMessage(
 		if err != nil {
 			hand.log.Error("写入矿池失败: " + err.Error())
 			c.Close()
-			hand.OnClose(worker)
 			return
 		}
 
@@ -152,7 +152,6 @@ func (hand *Handle) OnMessage(
 		if err != nil {
 			hand.log.Error("写入矿池失败: " + err.Error())
 			c.Close()
-			hand.OnClose(worker)
 			return
 		}
 		return
@@ -208,7 +207,6 @@ func (hand *Handle) OnMessage(
 			if err != nil {
 				hand.log.Error("写入矿池失败: " + err.Error())
 				c.Close()
-				hand.OnClose(worker)
 				return
 			}
 
@@ -235,7 +233,6 @@ func (hand *Handle) OnMessage(
 			if err != nil {
 				hand.log.Error("写入矿池失败: " + err.Error())
 				c.Close()
-				hand.OnClose(worker)
 				return
 			}
 			//*hand.SubFee <- parse_byte
@@ -245,7 +242,6 @@ func (hand *Handle) OnMessage(
 			if err != nil {
 				hand.log.Error("写入矿池失败: " + err.Error())
 				c.Close()
-				hand.OnClose(worker)
 				return
 			}
 		}
@@ -268,11 +264,11 @@ func (hand *Handle) OnMessage(
 			hashrate, err = jsonparser.GetString(*data, "params", "[0]")
 			if err != nil {
 				hand.log.Error(err.Error())
-				c.Close()
-				return
+			} else {
+				worker.SetReportHash(utils.String2Big(hashrate))
 			}
-			worker.SetReportHash(utils.String2Big(hashrate))
 		}
+
 		// 直接返回
 		out, err = eth.EthSuccess(rpc_id)
 		if err != nil {
@@ -284,7 +280,6 @@ func (hand *Handle) OnMessage(
 		if err != nil {
 			hand.log.Error("写入矿池失败: " + err.Error())
 			c.Close()
-			hand.OnClose(worker)
 			return
 		}
 		return
@@ -297,7 +292,7 @@ func (hand *Handle) OnMessage(
 func (hand *Handle) OnClose(worker *pack.Worker) {
 	if worker.IsOnline() {
 		worker.Logout()
-		hand.log.Info("矿机下线", zap.Any("Worker", worker))
+		hand.log.Info("矿机下线", zap.Any("Worker", worker), zap.String("Time", humanize.Time(worker.Login_time)))
 	}
 }
 
@@ -368,7 +363,6 @@ func ConnectToPool(
 			if err != nil {
 				c.Close()
 				pool.Close()
-				hand.OnClose(worker)
 				return
 			}
 
@@ -406,7 +400,6 @@ func ConnectToPool(
 						_, err = c.Write(job_byte)
 						if err != nil {
 							log.Error(err.Error())
-							hand.OnClose(worker)
 							c.Close()
 							pool.Close()
 							return
@@ -436,7 +429,7 @@ func ConnectToPool(
 							log.Error(err.Error())
 							c.Close()
 							pool.Close()
-							hand.OnClose(worker)
+
 							return
 						}
 
@@ -461,7 +454,7 @@ func ConnectToPool(
 						_, err = c.Write(buf)
 						if err != nil {
 							log.Error(err.Error())
-							hand.OnClose(worker)
+
 							c.Close()
 							pool.Close()
 							return
@@ -472,7 +465,6 @@ func ConnectToPool(
 			} else {
 				c.Close()
 				pool.Close()
-				hand.OnClose(worker)
 				log.Error(err.Error())
 				return
 			}
