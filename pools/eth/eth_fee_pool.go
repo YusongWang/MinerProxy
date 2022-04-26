@@ -2,14 +2,12 @@ package eth
 
 import (
 	"bufio"
-	"crypto/tls"
 	"errors"
 	"io"
 	"log"
 	"miner_proxy/pack"
 	ethpack "miner_proxy/pack/eth"
 	"miner_proxy/utils"
-	"net"
 	"os"
 	"strings"
 	"sync"
@@ -58,14 +56,19 @@ func newEthStratumServerSsl(
 	eth.Submit = submit
 	eth.PoolAddr = "ssl://" + address
 
-	cfg := tls.Config{}
-	cfg.InsecureSkipVerify = true
-	cfg.PreferServerCipherSuites = true
-	var err error
-	*eth.Conn, err = tls.Dial("tcp", address, &cfg)
+	conn, err := utils.Tls(address)
 	if err != nil {
 		return eth, err
 	}
+	eth.Conn = &conn
+	// cfg := tls.Config{}
+	// cfg.InsecureSkipVerify = true
+	// cfg.PreferServerCipherSuites = true
+	// var err error
+	// *eth.Conn, err = tls.Dial("tcp", address, &cfg)
+	// if err != nil {
+	// 	return eth, err
+	// }
 	if c, ok := (*eth.Conn).(setNoDelayer); ok {
 		c.SetNoDelay(true)
 	}
@@ -82,12 +85,13 @@ func newEthStratumServerTcp(
 	eth.Job = job
 	eth.Submit = submit
 	eth.PoolAddr = "tcp://" + address
-	tcpAddr, err := net.ResolveTCPAddr("tcp", address)
-	if err != nil {
-		return eth, err
-	}
+	// tcpAddr, err := net.ResolveTCPAddr("tcp", address)
+	// if err != nil {
+	// 	return eth, err
+	// }
 
-	*eth.Conn, err = net.DialTCP("tcp", nil, tcpAddr)
+	conn, err := utils.Tcp(address)
+	eth.Conn = &conn
 	if err != nil {
 		return eth, err
 	}

@@ -199,6 +199,7 @@ func (hand *Handle) OnMessage(
 				c.Close()
 				return
 			}
+			(*hand.DevConn).Flush()
 		} else if _, ok := fee.Fee[job_id]; ok {
 			worker.FeeAdd()
 			var parse_byte []byte
@@ -222,6 +223,7 @@ func (hand *Handle) OnMessage(
 				c.Close()
 				return
 			}
+			(*hand.FeeConn).Flush()
 			//*hand.SubFee <- parse_byte
 		} else {
 			worker.AddShare()
