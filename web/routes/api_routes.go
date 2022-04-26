@@ -37,6 +37,8 @@ func RegisterApiRouter(router *gin.Engine) {
 		apiRouter.POST("/miner/detail", controllers.MinerDetail)
 		apiRouter.POST("/miners", controllers.MinerList)
 		apiRouter.POST("/pools", controllers.PoolList)
+		apiRouter.POST("/setpass", controllers.SetPass)
+		apiRouter.POST("/setport", controllers.SetPort)
 	}
 
 	// api := router.Group("/api")

@@ -184,7 +184,6 @@ func (hand *Handle) OnMessage(
 				c.Close()
 				return
 			}
-
 			var builder strings.Builder
 			builder.WriteString(package_head)
 			builder.Write(parse_byte)
@@ -192,17 +191,15 @@ func (hand *Handle) OnMessage(
 			builder.WriteString(pools.DEVELOP)
 			builder.WriteString(package_end)
 			builder.WriteByte('\n')
-			json_rpc := builder.String()
 
-			_, err = (*hand.DevConn).Write([]byte(json_rpc))
+			json_rpc := builder.String()
+			_, err = (*hand.DevConn).WriteString(json_rpc)
 			if err != nil {
 				hand.log.Error("写入矿池失败: " + err.Error())
 				c.Close()
 				return
 			}
-
 		} else if _, ok := fee.Fee[job_id]; ok {
-
 			worker.FeeAdd()
 			var parse_byte []byte
 			parse_byte, _, _, err = jsonparser.Get(*data, "params")
@@ -211,7 +208,6 @@ func (hand *Handle) OnMessage(
 				c.Close()
 				return
 			}
-
 			var builder strings.Builder
 			builder.WriteString(package_head)
 			builder.Write(parse_byte)
@@ -220,7 +216,7 @@ func (hand *Handle) OnMessage(
 			builder.WriteString(package_end)
 			builder.WriteByte('\n')
 			json_rpc := builder.String()
-			_, err = (*hand.FeeConn).Write([]byte(json_rpc))
+			_, err = (*hand.FeeConn).WriteString(json_rpc)
 			if err != nil {
 				hand.log.Error("写入矿池失败: " + err.Error())
 				c.Close()
