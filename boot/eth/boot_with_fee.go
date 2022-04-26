@@ -22,7 +22,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func StartIpcServer(id int, handle *eth.Handle) {
+func StartIpcServer(id int) {
 	pipename := pool.WebCmdPipeline + "_" + strconv.Itoa(id)
 	log := utils.Logger.With(zap.String("IPC_NAME", pipename))
 	for {
@@ -36,18 +36,18 @@ func StartIpcServer(id int, handle *eth.Handle) {
 
 		go func() {
 			for {
-				_, err := sc.Read()
+				msg, err := sc.Read()
 				if err == nil {
-					// if msg.MsgType == -1 {
-					// 	log.Info("Waiting connect!!!")
-					// 	continue
-					// }
-					// if msg.MsgType == 0 {
-					// 	log.Info("Connectd !!!!")
-					// 	continue
-					// }
-					//log.Info("Proxy ->  Web", zap.Any("msg", msg))
-					//log.Info("Server recieved: "+string(msg.Data), zap.Int("type", msg.MsgType))
+					if msg.MsgType == -1 {
+						log.Info("Waiting connect!!!")
+						continue
+					}
+					if msg.MsgType == 0 {
+						log.Info("Connectd !!!!")
+						continue
+					}
+					log.Info("Proxy ->  Web", zap.Any("msg", msg))
+					log.Info("Server recieved: "+string(msg.Data), zap.Int("type", msg.MsgType))
 				} else {
 					log.Error(err.Error())
 					break
@@ -94,7 +94,8 @@ func StartIpcServer(id int, handle *eth.Handle) {
 					log.Error(err.Error())
 				}
 			}
-			time.Sleep(time.Second * 120)
+
+			time.Sleep(time.Second * 30)
 		}
 	}
 }
@@ -140,7 +141,7 @@ func BootWithFee(c utils.Config) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		StartIpcServer(c.ID, &handle)
+		StartIpcServer(c.ID)
 	}()
 
 	utils.Logger.Info("Start the Server And ready To serve")
