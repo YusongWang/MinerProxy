@@ -15,9 +15,9 @@ func SetPass(c *gin.Context) {
 	new := c.PostForm("pass")
 	if new == "" {
 		c.JSON(200, gin.H{
-			"data":    "",
-			"message": "请传入密码",
-			"code":    301,
+			"data": "",
+			"msg":  "请传入密码",
+			"code": 301,
 		})
 		return
 	}
@@ -28,18 +28,18 @@ func SetPass(c *gin.Context) {
 		config_json, err := json.Marshal(global.ManageApp)
 		if err != nil {
 			c.JSON(200, gin.H{
-				"data":    "",
-				"message": "格式化配置文件失败",
-				"code":    301,
+				"data": "",
+				"msg":  "格式化配置文件失败",
+				"code": 301,
 			})
 			return
 		}
 		config_file, err := os.OpenFile("config.json", os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0777)
 		if err != nil {
 			c.JSON(200, gin.H{
-				"data":    "",
-				"message": "打开配置文件失败",
-				"code":    301,
+				"data": "",
+				"msg":  "打开配置文件失败",
+				"code": 301,
 			})
 			return
 		}
@@ -47,15 +47,15 @@ func SetPass(c *gin.Context) {
 		config_file.Write(config_json)
 		config_file.Close()
 		c.JSON(200, gin.H{
-			"data":    "",
-			"message": "修改成功，请刷新网页.",
-			"code":    200,
+			"data": "",
+			"msg":  "修改成功，请刷新网页.",
+			"code": 200,
 		})
 	} else {
 		c.JSON(200, gin.H{
-			"data":    "",
-			"message": "旧密码不正确",
-			"code":    301,
+			"data": "",
+			"msg":  "旧密码不正确",
+			"code": 301,
 		})
 	}
 }
@@ -65,9 +65,9 @@ func SetPort(c *gin.Context) {
 	new := c.PostForm("port")
 	if new == "" {
 		c.JSON(200, gin.H{
-			"data":    "",
-			"message": "请传入端口号",
-			"code":    301,
+			"data": "",
+			"msg":  "请传入端口号",
+			"code": 301,
 		})
 		return
 	}
@@ -75,17 +75,17 @@ func SetPort(c *gin.Context) {
 	newport, err := strconv.Atoi(new)
 	if err != nil {
 		c.JSON(200, gin.H{
-			"data":    "",
-			"message": "端口号不正确",
-			"code":    301,
+			"data": "",
+			"msg":  "端口号不正确",
+			"code": 301,
 		})
 		return
 	}
 	if newport <= 1000 || newport >= 65535 {
 		c.JSON(200, gin.H{
-			"data":    "",
-			"message": "端口号不正确",
-			"code":    301,
+			"data": "",
+			"msg":  "端口号不正确",
+			"code": 301,
 		})
 		return
 	}
@@ -96,18 +96,18 @@ func SetPort(c *gin.Context) {
 		config_json, err := json.Marshal(global.ManageApp)
 		if err != nil {
 			c.JSON(200, gin.H{
-				"data":    "",
-				"message": "格式化配置文件失败",
-				"code":    301,
+				"data": "",
+				"msg":  "格式化配置文件失败",
+				"code": 301,
 			})
 			return
 		}
 		config_file, err := os.OpenFile("config.json", os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0777)
 		if err != nil {
 			c.JSON(200, gin.H{
-				"data":    "",
-				"message": "打开配置文件失败",
-				"code":    301,
+				"data": "",
+				"msg":  "打开配置文件失败",
+				"code": 301,
 			})
 			return
 		}
@@ -115,15 +115,15 @@ func SetPort(c *gin.Context) {
 		config_file.Write(config_json)
 		config_file.Close()
 		c.JSON(200, gin.H{
-			"data":    "",
-			"message": "修改成功，请刷新网页.",
-			"code":    200,
+			"data": "",
+			"msg":  "修改成功，请刷新网页.",
+			"code": 200,
 		})
 	} else {
 		c.JSON(200, gin.H{
-			"data":    "",
-			"message": "修改成功",
-			"code":    200,
+			"data": "",
+			"msg":  "修改成功",
+			"code": 200,
 		})
 	}
 

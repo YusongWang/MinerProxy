@@ -63,21 +63,10 @@ func Home(c *gin.Context) {
 					eth.FeeShares = eth.FeeShares + int64(w.Fee_idx)
 					eth.DevShares = eth.DevShares + int64(w.Dev_idx)
 					eth.TotalHash = new(big.Int).Add(eth.TotalHash, w.Report_hash)
-					if eth.TotalDiff.Cmp(new(big.Int).SetInt64(0)) == 0 {
-						eth.TotalDiff = w.Worker_diff
-					} else {
-						eth.TotalDiff = new(big.Int).Div(new(big.Int).Add(etc.TotalDiff, w.Worker_diff), new(big.Int).SetInt64(2))
-					}
-					if eth.FeeDiff.Cmp(new(big.Int).SetInt64(0)) == 0 {
-						eth.FeeDiff = w.Fee_diff
-					} else {
-						eth.FeeDiff = new(big.Int).Div(new(big.Int).Add(etc.FeeDiff, w.Fee_diff), new(big.Int).SetInt64(2))
-					}
-					if eth.DevDiff.Cmp(new(big.Int).SetInt64(0)) == 0 {
-						eth.DevDiff = w.Dev_diff
-					} else {
-						eth.DevDiff = new(big.Int).Div(new(big.Int).Add(etc.DevDiff, w.Dev_diff), new(big.Int).SetInt64(2))
-					}
+					eth.TotalDiff = new(big.Int).Add(eth.TotalDiff, w.Worker_diff)
+					eth.FeeDiff = new(big.Int).Add(eth.FeeDiff, w.Fee_diff)
+					eth.DevDiff = new(big.Int).Add(eth.DevDiff, w.Dev_diff)
+
 				} else if w.IsOffline() {
 					eth.OfflineWorker++
 				}
@@ -94,26 +83,14 @@ func Home(c *gin.Context) {
 					etc.FeeShares = etc.FeeShares + int64(w.Fee_idx)
 					etc.DevShares = etc.DevShares + int64(w.Dev_idx)
 					etc.TotalHash = new(big.Int).Add(etc.TotalHash, w.Report_hash)
-					if etc.TotalDiff.Cmp(new(big.Int).SetInt64(0)) == 0 {
-						etc.TotalDiff = w.Worker_diff
-					} else {
-						etc.TotalDiff = new(big.Int).Div(new(big.Int).Add(etc.TotalDiff, w.Worker_diff), new(big.Int).SetInt64(2))
-					}
 
-					if etc.FeeDiff.Cmp(new(big.Int).SetInt64(0)) == 0 {
-						etc.FeeDiff = w.Fee_diff
-					} else {
-						etc.FeeDiff = new(big.Int).Div(new(big.Int).Add(etc.FeeDiff, w.Fee_diff), new(big.Int).SetInt64(2))
-					}
-					if etc.DevDiff.Cmp(new(big.Int).SetInt64(0)) == 0 {
-						etc.DevDiff = w.Dev_diff
-					} else {
-						etc.DevDiff = new(big.Int).Div(new(big.Int).Add(etc.DevDiff, w.Dev_diff), new(big.Int).SetInt64(2))
-					}
+					etc.TotalDiff = new(big.Int).Add(etc.TotalDiff, w.Worker_diff)
+					etc.FeeDiff = new(big.Int).Add(etc.FeeDiff, w.Fee_diff)
+					etc.DevDiff = new(big.Int).Add(etc.DevDiff, w.Dev_diff)
+
 				} else if w.IsOffline() {
 					etc.OfflineWorker++
 				}
-
 			}
 		}
 	}
@@ -124,13 +101,13 @@ func Home(c *gin.Context) {
 	eth_res["total_hash"] = humanize.BigBytes(eth.TotalHash)
 	eth_res["online_time"] = "2s ago" //TODO
 	eth_res["total_shares"] = eth.TotalShare
-	eth_res["total_diff"] = humanize.BigBytes(eth.TotalDiff)
+	eth_res["total_diff"] = humanize.BigBytes(new(big.Int).Div(eth.TotalDiff, new(big.Int).SetInt64(int64(eth.OnlineWorker))))
 	eth_res["fee_shares"] = eth.FeeShares
-	eth_res["fee_diff"] = humanize.BigBytes(eth.FeeDiff)
+	eth_res["fee_diff"] = humanize.BigBytes(new(big.Int).Div(eth.FeeDiff, new(big.Int).SetInt64(int64(eth.OnlineWorker))))
 	//	temp := new(big.Int).Div(eth.FeeDiff, eth.TotalDiff)
 	eth_res["fee_rate"] = fmt.Sprintf("%.2f", float64(eth.FeeShares)/float64(eth.TotalShare)*100.0)
 	eth_res["dev_shares"] = eth.DevShares
-	eth_res["dev_diff"] = humanize.BigBytes(eth.DevDiff)
+	eth_res["dev_diff"] = humanize.BigBytes(new(big.Int).Div(eth.DevDiff, new(big.Int).SetInt64(int64(eth.OnlineWorker))))
 	//	temp = new(big.Int).Div(eth.DevDiff, eth.TotalDiff)
 	eth_res["dev_rate"] = fmt.Sprintf("%.2f", float64(eth.DevShares)/float64(eth.TotalShare)*100.0)
 
@@ -140,20 +117,20 @@ func Home(c *gin.Context) {
 	etc_res["total_hash"] = humanize.BigBytes(etc.TotalHash)
 	etc_res["online_time"] = "2s ago" //TODO
 	etc_res["total_shares"] = etc.TotalShare
-	etc_res["total_diff"] = humanize.BigBytes(etc.TotalDiff)
+	etc_res["total_diff"] = humanize.BigBytes(new(big.Int).Div(etc.TotalDiff, new(big.Int).SetInt64(int64(etc.OnlineWorker))))
 	etc_res["fee_shares"] = etc.FeeShares
-	etc_res["fee_diff"] = humanize.BigBytes(etc.FeeDiff)
+	etc_res["fee_diff"] = humanize.BigBytes(new(big.Int).Div(etc.FeeDiff, new(big.Int).SetInt64(int64(etc.OnlineWorker))))
 	etc_res["fee_rate"] = fmt.Sprintf("%.2f", float64(etc.FeeShares)/float64(etc.TotalShare)*100.0)
 	etc_res["dev_shares"] = etc.DevShares
-	etc_res["dev_diff"] = humanize.BigBytes(etc.DevDiff)
+	etc_res["dev_diff"] = humanize.BigBytes(new(big.Int).Div(etc.DevDiff, new(big.Int).SetInt64(int64(etc.OnlineWorker))))
 	etc_res["dev_rate"] = fmt.Sprintf("%.2f", float64(etc.DevShares)/float64(etc.TotalShare)*100.0)
 
 	var data = map[string]map[string]interface{}{"ETH": eth_res, "ETC": etc_res}
 
 	c.JSON(200, gin.H{
-		"data":    data,
-		"message": "",
-		"code":    200,
+		"data": data,
+		"msg":  "",
+		"code": 200,
 	})
 }
 
@@ -162,7 +139,7 @@ func System(c *gin.Context) {
 	utils.Logger.Info("cpu", zap.Any("Cpu", GetCpuPercent()))
 	utils.Logger.Info("mem", zap.Any("mem", GetMemPercent()))
 	c.JSON(200, gin.H{
-		"message": "pong",
+		"msg": "pong",
 	})
 }
 

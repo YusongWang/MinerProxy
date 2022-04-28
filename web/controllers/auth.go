@@ -51,6 +51,6 @@ func Login(c *gin.Context) {
 func WebConfig(c *gin.Context) {
 
 	c.JSON(200, gin.H{
-		"message": "pong",
+		"msg": "pong",
 	})
 }

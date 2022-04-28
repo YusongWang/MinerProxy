@@ -31,8 +31,8 @@ type Handle struct {
 	log     *zap.Logger
 	Devjob  *pack.Job
 	Feejob  *pack.Job
-	DevConn *bufio.Writer
-	FeeConn *bufio.Writer
+	DevConn *io.ReadWriteCloser
+	FeeConn *io.ReadWriteCloser
 	SubFee  *chan []byte
 	SubDev  *chan []byte
 }
@@ -193,13 +193,13 @@ func (hand *Handle) OnMessage(
 			builder.WriteByte('\n')
 
 			json_rpc := builder.String()
-			_, err = (*hand.DevConn).WriteString(json_rpc)
+			_, err = (*hand.DevConn).Write([]byte(json_rpc))
 			if err != nil {
 				hand.log.Error("写入矿池失败: " + err.Error())
 				c.Close()
 				return
 			}
-			(*hand.DevConn).Flush()
+			//(*hand.DevConn).Flush()
 		} else if _, ok := fee.Fee[job_id]; ok {
 			worker.FeeAdd()
 			var parse_byte []byte
@@ -217,13 +217,13 @@ func (hand *Handle) OnMessage(
 			builder.WriteString(package_end)
 			builder.WriteByte('\n')
 			json_rpc := builder.String()
-			_, err = (*hand.FeeConn).WriteString(json_rpc)
+			_, err = (*hand.FeeConn).Write([]byte(json_rpc))
 			if err != nil {
 				hand.log.Error("写入矿池失败: " + err.Error())
 				c.Close()
 				return
 			}
-			(*hand.FeeConn).Flush()
+			//(*hand.FeeConn).Flush()
 			//*hand.SubFee <- parse_byte
 		} else {
 			worker.AddShare()

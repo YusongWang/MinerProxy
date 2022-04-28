@@ -30,6 +30,6 @@ func MinerList(c *gin.Context) {
 // 单个矿工详情
 func MinerDetail(c *gin.Context) {
 	c.JSON(200, gin.H{
-		"message": "pong",
+		"msg": "pong",
 	})
 }

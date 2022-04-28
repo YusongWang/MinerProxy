@@ -1,7 +1,6 @@
 package etc
 
 import (
-	"bufio"
 	"fmt"
 	"miner_proxy/handles/eth"
 	"miner_proxy/network"
@@ -48,8 +47,8 @@ func BootWithFee(c utils.Config) error {
 	handle := eth.Handle{
 		Devjob:  dev_job,
 		Feejob:  fee_job,
-		DevConn: bufio.NewWriter(*dev_pool.Conn),
-		FeeConn: bufio.NewWriter(*fee_pool.Conn),
+		DevConn: dev_pool.Conn,
+		FeeConn: fee_pool.Conn,
 	}
 
 	utils.Logger.Info("Start the Server And ready To serve")

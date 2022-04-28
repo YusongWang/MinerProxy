@@ -53,9 +53,9 @@ func PoolList(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{
-		"data":    list,
-		"message": "",
-		"code":    200,
+		"data": list,
+		"msg":  "",
+		"code": 200,
 	})
 }
 
@@ -64,9 +64,9 @@ func CreatePool(c *gin.Context) {
 	err := c.BindJSON(&config)
 	if err != nil {
 		c.JSON(200, gin.H{
-			"data":    "",
-			"message": "解析参数失败" + err.Error(),
-			"code":    301,
+			"data": "",
+			"msg":  "解析参数失败" + err.Error(),
+			"code": 301,
 		})
 		return
 	}
@@ -76,18 +76,18 @@ func CreatePool(c *gin.Context) {
 	config_json, err := json.Marshal(global.ManageApp)
 	if err != nil {
 		c.JSON(200, gin.H{
-			"data":    "",
-			"message": "格式化配置文件失败",
-			"code":    301,
+			"data": "",
+			"msg":  "格式化配置文件失败",
+			"code": 301,
 		})
 		return
 	}
 	config_file, err := os.OpenFile("config.json", os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0777)
 	if err != nil {
 		c.JSON(200, gin.H{
-			"data":    "",
-			"message": "打开配置文件失败",
-			"code":    301,
+			"data": "",
+			"msg":  "打开配置文件失败",
+			"code": 301,
 		})
 		return
 	}
@@ -96,8 +96,8 @@ func CreatePool(c *gin.Context) {
 	config_file.Close()
 
 	c.JSON(200, gin.H{
-		"data":    "",
-		"message": "添加成功",
-		"code":    200,
+		"data": "",
+		"msg":  "添加成功",
+		"code": 200,
 	})
 }
