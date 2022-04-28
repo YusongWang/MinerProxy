@@ -7,7 +7,9 @@ import (
 )
 
 func main() {
-	ballast := make([]byte, 0.5*1024*1024*1024)
+	var mem runtime.MemStats
+	runtime.ReadMemStats(&mem)
+	ballast := make([]byte, mem.Alloc)
 	runtime.KeepAlive(ballast)
 
 	cmd.Execute()
