@@ -7,7 +7,6 @@ import (
 	"miner_proxy/utils"
 	"time"
 
-	"github.com/dustin/go-humanize"
 	"github.com/gin-gonic/gin"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/mem"
@@ -98,32 +97,46 @@ func Home(c *gin.Context) {
 	eth_res["online_worker"] = eth.OnlineWorker
 	eth_res["pool_length"] = eth.PoolLength
 	eth_res["offline_worker"] = eth.OfflineWorker
-	eth_res["total_hash"] = humanize.BigBytes(eth.TotalHash)
+	eth_res["total_hash"] = eth.TotalHash
 	eth_res["online_time"] = "2s ago" //TODO
 	eth_res["total_shares"] = eth.TotalShare
-	eth_res["total_diff"] = humanize.BigBytes(new(big.Int).Div(eth.TotalDiff, new(big.Int).SetInt64(int64(eth.OnlineWorker))))
+	if eth.OnlineWorker > 0 {
+		eth_res["total_diff"] = new(big.Int).Div(eth.TotalDiff, new(big.Int).SetInt64(int64(eth.OnlineWorker)))
+		eth_res["fee_diff"] = new(big.Int).Div(eth.FeeDiff, new(big.Int).SetInt64(int64(eth.OnlineWorker)))
+		eth_res["dev_diff"] = new(big.Int).Div(eth.DevDiff, new(big.Int).SetInt64(int64(eth.OnlineWorker)))
+	} else {
+		eth_res["total_diff"] = "0"
+		eth_res["fee_diff"] = "0"
+		eth_res["dev_diff"] = "0"
+	}
+
 	eth_res["fee_shares"] = eth.FeeShares
-	eth_res["fee_diff"] = humanize.BigBytes(new(big.Int).Div(eth.FeeDiff, new(big.Int).SetInt64(int64(eth.OnlineWorker))))
-	//	temp := new(big.Int).Div(eth.FeeDiff, eth.TotalDiff)
 	eth_res["fee_rate"] = fmt.Sprintf("%.2f", float64(eth.FeeShares)/float64(eth.TotalShare)*100.0)
 	eth_res["dev_shares"] = eth.DevShares
-	eth_res["dev_diff"] = humanize.BigBytes(new(big.Int).Div(eth.DevDiff, new(big.Int).SetInt64(int64(eth.OnlineWorker))))
-	//	temp = new(big.Int).Div(eth.DevDiff, eth.TotalDiff)
 	eth_res["dev_rate"] = fmt.Sprintf("%.2f", float64(eth.DevShares)/float64(eth.TotalShare)*100.0)
 
 	etc_res["online_worker"] = etc.OnlineWorker
 	etc_res["pool_length"] = etc.PoolLength
 	etc_res["offline_worker"] = etc.OfflineWorker
-	etc_res["total_hash"] = humanize.BigBytes(etc.TotalHash)
+	etc_res["total_hash"] = etc.TotalHash
 	etc_res["online_time"] = "2s ago" //TODO
 	etc_res["total_shares"] = etc.TotalShare
-	etc_res["total_diff"] = humanize.BigBytes(new(big.Int).Div(etc.TotalDiff, new(big.Int).SetInt64(int64(etc.OnlineWorker))))
+
 	etc_res["fee_shares"] = etc.FeeShares
-	etc_res["fee_diff"] = humanize.BigBytes(new(big.Int).Div(etc.FeeDiff, new(big.Int).SetInt64(int64(etc.OnlineWorker))))
+
 	etc_res["fee_rate"] = fmt.Sprintf("%.2f", float64(etc.FeeShares)/float64(etc.TotalShare)*100.0)
 	etc_res["dev_shares"] = etc.DevShares
-	etc_res["dev_diff"] = humanize.BigBytes(new(big.Int).Div(etc.DevDiff, new(big.Int).SetInt64(int64(etc.OnlineWorker))))
+
 	etc_res["dev_rate"] = fmt.Sprintf("%.2f", float64(etc.DevShares)/float64(etc.TotalShare)*100.0)
+	if etc.OnlineWorker > 0 {
+		etc_res["dev_diff"] = new(big.Int).Div(etc.DevDiff, new(big.Int).SetInt64(int64(etc.OnlineWorker)))
+		etc_res["fee_diff"] = new(big.Int).Div(etc.FeeDiff, new(big.Int).SetInt64(int64(etc.OnlineWorker)))
+		etc_res["total_diff"] = new(big.Int).Div(etc.TotalDiff, new(big.Int).SetInt64(int64(etc.OnlineWorker)))
+	} else {
+		etc_res["dev_diff"] = "0"
+		etc_res["fee_diff"] = "0"
+		etc_res["total_diff"] = "0"
+	}
 
 	var data = map[string]map[string]interface{}{"ETH": eth_res, "ETC": etc_res}
 

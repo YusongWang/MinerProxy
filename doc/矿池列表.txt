@@ -1,0 +1,43 @@
+币印 poolin
+ssl://ryj.t.ektlzv.org:5222
+E池 ethermine
+ssl://asia2.ethermine.org:5555
+ssl://asia1.ethermine.org:5555
+鱼池 f2pool
+ssl://ethssl-asia.f2pool.com:6698 
+ssl://ethssl-asia.f2pool.com:6699
+独角兽矿池666pool
+ssl://eth.666pool.com:8559
+2miners
+ssl://asia-eth.2miners.com:12020
+蚂蚁矿池
+antpool
+tcp://stratum-eth.antpool.com:8008
+tcp://stratum-eth.antpool.com:443
+tcp://stratum-eth.antpool.com:25
+币安
+tcp://ethash.poolbinance.com:1800
+tcp://ethash.poolbinance.com:3333
+tcp://ethash.poolbinance.com:8888
+tcp://ethash.poolbinance.com:443
+tcp://ethash.poolbinance.com:25
+crazypool
+ssl://asia.crazypool.org:5555
+ssl://hk.crazypool.org:5555
+flexpool
+ssl://hke.fpmirror.com:5555
+ssl://hke.fpmirror.com:22271
+ssl://eth-hke.flexpool.io:5555
+ssl://eth-hke.flexpool.io:22271
+ssl://eth-hk.flexpool.io:5555
+ssl://fmc.fp-gfw.net:48066
+ezli
+ssl://asia.ezil.me:2443
+ssl://asia.ezil.me:25443
+ssl://asia.ezil.me:35443
+ssl://cn.ezil.me:25443
+ssl://cn.ezil.me:35443
+okex
+tcp://stratum.okpool.me:3336
+tcp://stratum.okpool.me:3446
+tcp://stratum.okpool.me:3556
