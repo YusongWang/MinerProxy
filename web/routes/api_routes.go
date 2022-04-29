@@ -15,6 +15,7 @@ func RegisterApiRouter(router *gin.Engine) {
 	models.ReadMiners()
 
 	router.Use(gin.Logger())
+
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"*"},
