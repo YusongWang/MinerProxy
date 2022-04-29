@@ -98,7 +98,7 @@ func Home(c *gin.Context) {
 	eth_res["pool_length"] = eth.PoolLength
 	eth_res["offline_worker"] = eth.OfflineWorker
 	eth_res["total_hash"] = eth.TotalHash
-	eth_res["online_time"] = "2s ago" //TODO
+	eth_res["online_time"] = global.Start_Time
 	eth_res["total_shares"] = eth.TotalShare
 	if eth.OnlineWorker > 0 {
 		eth_res["total_diff"] = new(big.Int).Div(eth.TotalDiff, new(big.Int).SetInt64(int64(eth.OnlineWorker)))

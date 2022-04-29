@@ -133,7 +133,7 @@ func CreatePool(c *gin.Context) {
 }
 
 func GetPool(c *gin.Context) {
-	id_str := c.PostForm("id")
+	id_str := c.Param("id")
 
 	id, err := strconv.Atoi(id_str)
 	if err != nil {
@@ -158,7 +158,7 @@ func GetPool(c *gin.Context) {
 }
 
 func UpdatePool(c *gin.Context) {
-	id_str := c.PostForm("id")
+	id_str := c.Param("id")
 	id, err := strconv.Atoi(id_str)
 	if err != nil {
 		c.JSON(200, gin.H{
@@ -184,9 +184,80 @@ func UpdatePool(c *gin.Context) {
 		}
 	}
 
+	config_json, err := json.Marshal(global.ManageApp)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"data": "",
+			"msg":  "格式化配置文件失败",
+			"code": 301,
+		})
+		return
+	}
+	config_file, err := os.OpenFile("config.json", os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0777)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"data": "",
+			"msg":  "打开配置文件失败",
+			"code": 301,
+		})
+		return
+	}
+
+	config_file.Write(config_json)
+	config_file.Close()
+
 	c.JSON(200, gin.H{
 		"data": pool,
 		"msg":  "添加成功",
+		"code": 200,
+	})
+}
+
+func DeletePool(c *gin.Context) {
+	id_str := c.Param("id")
+	id, err := strconv.Atoi(id_str)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"msg":  "矿池ID未选择",
+			"code": 300,
+		})
+		return
+	}
+	var newc []utils.Config
+
+	for idx, c := range global.ManageApp.Config {
+		if c.ID == id {
+			//global.ManageApp.Config[idx] = nil
+		} else {
+			newc = append(newc, global.ManageApp.Config[idx])
+		}
+	}
+	global.ManageApp.Config = newc
+
+	config_json, err := json.Marshal(global.ManageApp)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"data": "",
+			"msg":  "格式化配置文件失败",
+			"code": 301,
+		})
+		return
+	}
+	config_file, err := os.OpenFile("config.json", os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0777)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"data": "",
+			"msg":  "打开配置文件失败",
+			"code": 301,
+		})
+		return
+	}
+
+	config_file.Write(config_json)
+	config_file.Close()
+	c.JSON(200, gin.H{
+		"data": "",
+		"msg":  "删除成功",
 		"code": 200,
 	})
 }

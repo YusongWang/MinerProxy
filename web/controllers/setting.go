@@ -4,16 +4,29 @@ import (
 	"encoding/json"
 	"miner_proxy/global"
 	"os"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
+type Passwrod struct {
+	OldPass string `json:"oldpass"`
+	Pass    string `json:"pass"`
+}
+
 // 展示矿池列表 在线和不在线的
 func SetPass(c *gin.Context) {
-	old := c.PostForm("oldpass")
-	new := c.PostForm("pass")
-	if new == "" {
+	var pass Passwrod
+	err := c.BindJSON(&pass)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"data": "",
+			"msg":  "解析参数失败" + err.Error(),
+			"code": 301,
+		})
+		return
+	}
+
+	if pass.OldPass == "" || pass.Pass == "" {
 		c.JSON(200, gin.H{
 			"data": "",
 			"msg":  "请传入密码",
@@ -22,9 +35,8 @@ func SetPass(c *gin.Context) {
 		return
 	}
 
-	if old == global.ManageApp.Web.Password {
-		global.ManageApp.Web.Password = new
-
+	if pass.OldPass == global.ManageApp.Web.Password {
+		global.ManageApp.Web.Password = pass.Pass
 		config_json, err := json.Marshal(global.ManageApp)
 		if err != nil {
 			c.JSON(200, gin.H{
@@ -60,10 +72,24 @@ func SetPass(c *gin.Context) {
 	}
 }
 
+type Port struct {
+	Port int `json:"port"`
+}
+
 // 展示矿池列表 在线和不在线的
 func SetPort(c *gin.Context) {
-	new := c.PostForm("port")
-	if new == "" {
+	var p Port
+	err := c.BindJSON(&p)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"data": "",
+			"msg":  "解析参数失败" + err.Error(),
+			"code": 301,
+		})
+		return
+	}
+
+	if p.Port == 0 {
 		c.JSON(200, gin.H{
 			"data": "",
 			"msg":  "请传入端口号",
@@ -72,16 +98,7 @@ func SetPort(c *gin.Context) {
 		return
 	}
 
-	newport, err := strconv.Atoi(new)
-	if err != nil {
-		c.JSON(200, gin.H{
-			"data": "",
-			"msg":  "端口号不正确",
-			"code": 301,
-		})
-		return
-	}
-	if newport <= 1000 || newport >= 65535 {
+	if p.Port <= 0 || p.Port >= 65535 {
 		c.JSON(200, gin.H{
 			"data": "",
 			"msg":  "端口号不正确",
@@ -90,8 +107,8 @@ func SetPort(c *gin.Context) {
 		return
 	}
 
-	if newport != global.ManageApp.Web.Port {
-		global.ManageApp.Web.Port = newport
+	if p.Port != global.ManageApp.Web.Port {
+		global.ManageApp.Web.Port = p.Port
 
 		config_json, err := json.Marshal(global.ManageApp)
 		if err != nil {

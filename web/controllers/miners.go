@@ -11,7 +11,7 @@ import (
 
 // 单个矿池的矿工列表
 func MinerList(c *gin.Context) {
-	id_str := c.PostForm("id")
+	id_str := c.Param("id")
 
 	id, err := strconv.Atoi(id_str)
 	if err != nil {

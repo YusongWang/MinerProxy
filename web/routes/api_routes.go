@@ -32,15 +32,19 @@ func RegisterApiRouter(router *gin.Engine) {
 	apiRouter := router.Group("api")
 	apiRouter.Use(jwt.JWT())
 	{
-		apiRouter.POST("/dashborad", controllers.Home)
-		apiRouter.POST("/system", controllers.System)
-		apiRouter.POST("/miner/detail", controllers.MinerDetail)
-		apiRouter.POST("/miners", controllers.MinerList)
-		apiRouter.POST("/pools", controllers.PoolList)
+		apiRouter.GET("/dashborad", controllers.Home)
+		//apiRouter.POST("/system", controllers.System)
+		//apiRouter.POST("/miner/detail", controllers.MinerDetail)
+		apiRouter.GET("/miners/:id", controllers.MinerList)
+
 		apiRouter.POST("/setpass", controllers.SetPass)
 		apiRouter.POST("/setport", controllers.SetPort)
-		apiRouter.POST("/createpool", controllers.CreatePool)
 
+		apiRouter.GET("/pool", controllers.PoolList)
+		apiRouter.POST("/pool", controllers.CreatePool)
+		apiRouter.GET("/pool/:id", controllers.GetPool)
+		apiRouter.POST("/pool/:id", controllers.UpdatePool)
+		apiRouter.DELETE("/pool/:id", controllers.DeletePool)
 	}
 
 	// api := router.Group("/api")

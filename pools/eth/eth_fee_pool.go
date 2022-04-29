@@ -225,7 +225,7 @@ func (eth *EthStratumServer) StartLoop() {
 					os.Exit(1)
 				}
 
-				eth.Conn = temp.Conn
+				*eth.Conn = *temp.Conn
 				reader = bufio.NewReader(*eth.Conn)
 				continue
 			}
