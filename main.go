@@ -2,6 +2,7 @@ package main
 
 import (
 	"miner_proxy/cmd"
+	_ "miner_proxy/global"
 	_ "miner_proxy/utils"
 	"runtime"
 )

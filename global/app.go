@@ -3,6 +3,7 @@ package global
 import (
 	"miner_proxy/pack"
 	"miner_proxy/utils"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -37,3 +38,9 @@ type ManageConfig struct {
 var ManageApp = new(ManageConfig)
 
 var OnlinePools [1000]map[string]pack.Worker
+
+var Start_Time = time.Now().Unix()
+
+func init() {
+	Start_Time = time.Now().Unix()
+}

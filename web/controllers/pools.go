@@ -6,6 +6,7 @@ import (
 	"miner_proxy/global"
 	"miner_proxy/utils"
 	"os"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -126,6 +127,65 @@ func CreatePool(c *gin.Context) {
 
 	c.JSON(200, gin.H{
 		"data": "",
+		"msg":  "添加成功",
+		"code": 200,
+	})
+}
+
+func GetPool(c *gin.Context) {
+	id_str := c.PostForm("id")
+
+	id, err := strconv.Atoi(id_str)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"msg":  "矿池ID未选择",
+			"code": 300,
+		})
+		return
+	}
+	var pool utils.Config
+	for _, c := range global.ManageApp.Config {
+		if c.ID == id {
+			pool = c
+		}
+	}
+
+	c.JSON(200, gin.H{
+		"data": pool,
+		"msg":  "添加成功",
+		"code": 200,
+	})
+}
+
+func UpdatePool(c *gin.Context) {
+	id_str := c.PostForm("id")
+	id, err := strconv.Atoi(id_str)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"msg":  "矿池ID未选择",
+			"code": 300,
+		})
+		return
+	}
+	var pool utils.Config
+	err = c.BindJSON(&pool)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"data": "",
+			"msg":  "解析参数失败" + err.Error(),
+			"code": 301,
+		})
+		return
+	}
+
+	for idx, c := range global.ManageApp.Config {
+		if c.ID == id {
+			global.ManageApp.Config[idx] = pool
+		}
+	}
+
+	c.JSON(200, gin.H{
+		"data": pool,
 		"msg":  "添加成功",
 		"code": 200,
 	})

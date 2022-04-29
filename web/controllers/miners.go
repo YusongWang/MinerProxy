@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"miner_proxy/global"
 	"miner_proxy/pack"
 	"strconv"
@@ -25,6 +26,7 @@ func MinerList(c *gin.Context) {
 	if len(global.OnlinePools[id]) > 0 {
 		for _, miner := range global.OnlinePools[id] {
 			if miner.IsOnline() {
+				miner.OnlineTime = fmt.Sprintf("%d", miner.Login_time.Unix())
 				res = append(res, miner)
 			}
 		}
