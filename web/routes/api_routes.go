@@ -3,25 +3,23 @@ package routes
 import (
 	"miner_proxy/web/controllers"
 	"miner_proxy/web/middleware/jwt"
-	"miner_proxy/web/models"
 	"time"
 
-	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
 func RegisterApiRouter(router *gin.Engine) {
-	models.InsertTest()
-	models.ReadMiners()
-	fs := assetfs.AssetFS{
-		Asset:     Asset,
-		AssetDir:  AssetDir,
-		AssetInfo: AssetInfo,
-		Prefix:    "",
-		Fallback:  "index.html",
-	}
-	router.StaticFS("/", &fs)
+	// models.InsertTest()
+	// models.ReadMiners()
+	// fs := assetfs.AssetFS{
+	// 	Asset:     Asset,
+	// 	AssetDir:  AssetDir,
+	// 	AssetInfo: AssetInfo,
+	// 	Prefix:    "",
+	// 	Fallback:  "index.html",
+	// }
+	// router.StaticFS("/", &fs)
 	router.Use(gin.Logger())
 
 	//	router.StaticFS("/", http.FileServer(
