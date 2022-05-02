@@ -133,7 +133,7 @@ func initRouter() *gin.Engine {
 			"msg":  "找不到该方法",
 		})
 	})
-
+	//router.Handle("/", http.FileServer(AssetFile()))
 	routeRegister.RegisterApiRouter(router)
 
 	return router
