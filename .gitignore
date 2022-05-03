@@ -17,4 +17,4 @@ MinerProxy
 vendor/
 build/
 logs/
-dist/
+#dist/
