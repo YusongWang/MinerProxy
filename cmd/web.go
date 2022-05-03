@@ -119,7 +119,7 @@ func initRouter() *gin.Engine {
 	router := gin.New()
 
 	router.Use(gin.Logger())
-
+	routeRegister.RegisterApiRouter(router)
 	router.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{
 			"code": 404,
@@ -134,7 +134,7 @@ func initRouter() *gin.Engine {
 		})
 	})
 	//router.Handle("/", http.FileServer(AssetFile()))
-	routeRegister.RegisterApiRouter(router)
+	
 
 	return router
 }

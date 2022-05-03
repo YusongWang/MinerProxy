@@ -1,10 +1,12 @@
 package routes
 
 import (
+	"miner_proxy/asset"
 	"miner_proxy/web/controllers"
 	"miner_proxy/web/middleware/jwt"
 	"time"
 
+	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -20,10 +22,28 @@ func RegisterApiRouter(router *gin.Engine) {
 	// 	Fallback:  "index.html",
 	// }
 	// router.StaticFS("/", &fs)
-	router.Use(gin.Logger())
+	fsStatic := assetfs.AssetFS{Asset: asset.Asset, AssetDir: asset.AssetDir, AssetInfo: asset.AssetInfo, Prefix: "dist/static", Fallback: "index.html"}
+	fsThemes := assetfs.AssetFS{Asset: asset.Asset, AssetDir: asset.AssetDir, AssetInfo: asset.AssetInfo, Prefix: "dist/themes", Fallback: "index.html"}
+	// fsCss := assetfs.AssetFS{Asset: asset.Asset, AssetDir: asset.AssetDir, AssetInfo: asset.AssetInfo, Prefix: "dist/css", Fallback: "index.html"}
+	// fsFonts := assetfs.AssetFS{Asset: asset.Asset, AssetDir: asset.AssetDir, AssetInfo: asset.AssetInfo, Prefix: "dist/fonts", Fallback: "index.html"}
+	// fsImg := assetfs.AssetFS{Asset: asset.Asset, AssetDir: asset.AssetDir, AssetInfo: asset.AssetInfo, Prefix: "dist/img", Fallback: "index.html"}
+	// fsJs := assetfs.AssetFS{Asset: asset.Asset, AssetDir: asset.AssetDir, AssetInfo: asset.AssetInfo, Prefix: "dist/js", Fallback: "index.html"}
+	fs := assetfs.AssetFS{Asset: asset.Asset, AssetDir: asset.AssetDir, AssetInfo: asset.AssetInfo, Prefix: "dist", Fallback: "index.html"}
+	router.StaticFS("/static/", &fsStatic)
+	router.StaticFS("/themes/", &fsThemes)
+	// router.StaticFS("/css", &fsCss)
+	// router.StaticFS("/fonts", &fsFonts)
+	// router.StaticFS("/img", &fsImg)
+	// router.StaticFS("/js", &fsJs)
+	router.StaticFS("/favicon.ico", &fs)
+	router.GET("/", func(c *gin.Context) {
+		c.Writer.WriteHeader(200)
+		indexHtml, _ := asset.Asset("dist/index.html")
+		_, _ = c.Writer.Write(indexHtml)
+		c.Writer.Header().Add("Accept", "text/html")
+		c.Writer.Flush()
+	})
 
-	//	router.StaticFS("/", http.FileServer(
-	//		&assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo, Prefix: "dist"}))
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"*"},
