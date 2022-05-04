@@ -60,6 +60,7 @@ func PoolList(c *gin.Context) {
 			for _, w := range global.OnlinePools[l.ID] {
 				if w.IsOnline() {
 					temp.Online++
+					temp.OnlineWorker++
 					temp.TotalHash = new(big.Int).Add(temp.TotalHash, w.Report_hash)
 					temp.FeeShares = temp.FeeShares + int64(w.Fee_idx)
 					temp.DevShares = temp.DevShares + int64(w.Dev_idx)

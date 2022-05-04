@@ -3,8 +3,6 @@ package pack
 import (
 	"math/big"
 	"time"
-
-	"github.com/dustin/go-humanize"
 )
 
 const (
@@ -34,7 +32,7 @@ type Worker struct {
 	Online        int       `json:"online"`
 	Ip            string    `json:"ip"`
 	Ping          int       `json:"ping"`
-	OnlineTime    string    `json:"online_time"`
+	OnlineTime    int64     `json:"online_time"`
 }
 
 func NewWorker(worker string, wallet string, id string, ip string) *Worker {
@@ -91,7 +89,7 @@ func (w *Worker) DevAdd() {
 
 func (w *Worker) AddShare() {
 	w.Worker_share++
-	w.OnlineTime = humanize.Time(w.Login_time)
+	//w.OnlineTime = humanize.Time(w.Login_time)
 }
 
 func (w *Worker) AddReject() {
@@ -118,11 +116,11 @@ func (w *Worker) Logind(worker, wallet string) {
 	w.Wallet = wallet
 	w.Worker_name = worker
 	w.Online = MINER_LOGIN
-	w.OnlineTime = humanize.Time(w.Login_time)
+	//w.OnlineTime = humanize.Time(w.Login_time)
 }
 
 func (w *Worker) Logout() {
-	w.OnlineTime = humanize.Time(w.Login_time)
+	//w.OnlineTime = humanize.Time(w.Login_time)
 	w.Online = MINER_LOGOUT
 }
 
