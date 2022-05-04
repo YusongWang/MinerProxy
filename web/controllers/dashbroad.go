@@ -119,7 +119,7 @@ func Home(c *gin.Context) {
 	etc_res["pool_length"] = etc.PoolLength
 	etc_res["offline_worker"] = etc.OfflineWorker
 	etc_res["total_hash"] = etc.TotalHash
-	etc_res["online_time"] = "2s ago" //TODO
+	etc_res["online_time"] = global.Start_Time
 	etc_res["total_shares"] = etc.TotalShare
 
 	etc_res["fee_shares"] = etc.FeeShares
