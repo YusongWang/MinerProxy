@@ -68,7 +68,6 @@ func PoolList(c *gin.Context) {
 					temp.FeeShares = temp.FeeShares + int64(w.Fee_idx)
 					temp.DevShares = temp.DevShares + int64(w.Dev_idx)
 					temp.TotalShare = temp.TotalShare + int64(w.Worker_share)
-					temp.TotalHash = new(big.Int).Add(temp.TotalHash, w.Report_hash)
 					temp.TotalDiff = new(big.Int).Add(temp.TotalDiff, w.Worker_diff)
 					temp.FeeDiff = new(big.Int).Add(temp.FeeDiff, w.Fee_diff)
 					temp.DevDiff = new(big.Int).Add(temp.DevDiff, w.Dev_diff)
