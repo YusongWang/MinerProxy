@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"miner_proxy/global"
 	"miner_proxy/utils"
@@ -30,6 +31,29 @@ var rootCmd = &cobra.Command{
 	Short: "",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
+		// 判断配置文件是否存在。如果不存在则先创建一个配置文件
+		_, err := os.Stat("config.json")
+		if err != nil {
+			var defaultConfig global.ManageConfig
+			defaultConfig.Web.Port = 9090
+			defaultConfig.Web.Password = "MinerProxy123"
+			config_json, err := json.Marshal(defaultConfig)
+			if err != nil {
+				utils.Logger.Error("Json序列化失败" + err.Error())
+				os.Exit(99)
+				return
+			}
+			config_file, err := os.OpenFile("config.json", os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0777)
+			if err != nil {
+				utils.Logger.Error("打开配置文件失败:" + err.Error())
+				os.Exit(99)
+				return
+			}
+
+			config_file.Write(config_json)
+			config_file.Close()
+		}
+
 		web_notify_ch := make(chan int)
 		proxy_notify_ch := make(chan int)
 		// deamon the watch dog.
