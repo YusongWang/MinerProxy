@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"miner_proxy/global"
 	"miner_proxy/utils"
@@ -30,6 +31,8 @@ type WorkerList struct {
 	FeeDiff       *big.Int `json:"fee_diff"`
 	DevShares     int64    `json:"dev_shares"`
 	DevDiff       *big.Int `json:"dev_diff"`
+	FeeRate       string   `json:"fee_rate"`
+	DevRate       string   `json:"dev_rate"`
 }
 
 // 展示矿池列表 在线和不在线的
@@ -64,6 +67,7 @@ func PoolList(c *gin.Context) {
 					temp.TotalHash = new(big.Int).Add(temp.TotalHash, w.Report_hash)
 					temp.FeeShares = temp.FeeShares + int64(w.Fee_idx)
 					temp.DevShares = temp.DevShares + int64(w.Dev_idx)
+					temp.TotalShare = temp.TotalShare + int64(w.Worker_share)
 					temp.TotalHash = new(big.Int).Add(temp.TotalHash, w.Report_hash)
 					temp.TotalDiff = new(big.Int).Add(temp.TotalDiff, w.Worker_diff)
 					temp.FeeDiff = new(big.Int).Add(temp.FeeDiff, w.Fee_diff)
@@ -74,10 +78,17 @@ func PoolList(c *gin.Context) {
 			}
 		}
 
+		temp.FeeRate = fmt.Sprintf("%.2f", float64(temp.FeeShares)/float64(temp.TotalShare)*100.0)
+		temp.DevRate = fmt.Sprintf("%.2f", float64(temp.DevShares)/float64(temp.TotalShare)*100.0)
+
 		if temp.OnlineWorker > 0 {
 			temp.DevDiff = new(big.Int).Div(temp.DevDiff, new(big.Int).SetInt64(int64(temp.OnlineWorker)))
 			temp.FeeDiff = new(big.Int).Div(temp.FeeDiff, new(big.Int).SetInt64(int64(temp.OnlineWorker)))
 			temp.TotalDiff = new(big.Int).Div(temp.TotalDiff, new(big.Int).SetInt64(int64(temp.OnlineWorker)))
+		} else {
+			temp.DevDiff = new(big.Int).SetInt64(0)
+			temp.FeeDiff = new(big.Int).SetInt64(0)
+			temp.TotalDiff = new(big.Int).SetInt64(0)
 		}
 
 		list = append(list, temp)
@@ -100,6 +111,29 @@ func CreatePool(c *gin.Context) {
 			"code": 301,
 		})
 		return
+	}
+
+	config.Online = true
+	config.ID = GetLastId()
+	err = config.Check()
+	if err != nil {
+		c.JSON(200, gin.H{
+			"data": "",
+			"msg":  "配置文件错误:" + err.Error(),
+			"code": 301,
+		})
+		return
+	}
+
+	for _, cfg := range global.ManageApp.Config {
+		if cfg.Worker == config.Worker {
+			c.JSON(200, gin.H{
+				"data": "",
+				"msg":  "矿池名称不能相同: " + config.Worker,
+				"code": 301,
+			})
+			return
+		}
 	}
 
 	global.ManageApp.Config = append(global.ManageApp.Config, config)
@@ -261,4 +295,15 @@ func DeletePool(c *gin.Context) {
 		"msg":  "删除成功",
 		"code": 200,
 	})
+}
+
+func GetLastId() int {
+	var id int
+	for _, c := range global.ManageApp.Config {
+		if c.ID > id {
+			id = c.ID
+		}
+	}
+
+	return id + 1
 }
