@@ -2,8 +2,6 @@ package utils
 
 import (
 	"errors"
-	"fmt"
-	"net"
 
 	"github.com/spf13/viper"
 )
@@ -74,27 +72,29 @@ func Parse() Config {
 func (c Config) Check() error {
 	if c.Coin == "ETH" || c.Coin == "ETC" {
 		if c.TCP != 0 {
-			tcpAddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf(":%s", c.TCP))
-			if err != nil {
-				return errors.New(fmt.Sprintf("端口号: %s 已经被占用请更换!", c.TCP))
-			}
+			// tcpAddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf(":%s", c.TCP))
+			// if err != nil {
+			// 	return fmt.Errorf("端口号: %d 已经被占用请更换!", c.TCP)
+			// }
 
-			_, err = net.ListenTCP("tcp", tcpAddr)
-			if err != nil {
-				return errors.New(fmt.Sprintf("端口号: %s 已经被占用请更换!", c.TCP))
-			}
+			// ln, err := net.ListenTCP("tcp", tcpAddr)
+			// if err != nil {
+			// 	return fmt.Errorf("端口号: %d 已经被占用请更换!", c.TCP)
+			// }
+			// ln.Close()
 		}
 
 		if c.TLS != 0 {
-			tcpAddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf(":%s", c.TLS))
-			if err != nil {
-				return errors.New(fmt.Sprintf("端口号: %s 已经被占用请更换!", c.TLS))
-			}
+			// tcpAddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf(":%s", c.TLS))
+			// if err != nil {
+			// 	return fmt.Errorf("端口号: %d 已经被占用请更换!", c.TLS)
+			// }
 
-			_, err = net.ListenTCP("tcp", tcpAddr)
-			if err != nil {
-				return errors.New(fmt.Sprintf("端口号: %s 已经被占用请更换!", c.TLS))
-			}
+			// ln, err := net.ListenTCP("tcp", tcpAddr)
+			// if err != nil {
+			// 	return fmt.Errorf("端口号: %d 已经被占用请更换!", c.TLS)
+			// }
+			// ln.Close()
 		}
 		//TODO 校验中转矿池是否正确
 
