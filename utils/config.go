@@ -1,6 +1,10 @@
 package utils
 
 import (
+	"errors"
+	"fmt"
+	"net"
+
 	"github.com/spf13/viper"
 )
 
@@ -68,8 +72,45 @@ func Parse() Config {
 
 // 判断启动参数是否符合要求
 func (c Config) Check() error {
+	if c.Coin == "ETH" || c.Coin == "ETC" {
+		if c.TCP != 0 {
+			tcpAddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf(":%s", c.TCP))
+			if err != nil {
+				return errors.New(fmt.Sprintf("端口号: %s 已经被占用请更换!", c.TCP))
+			}
 
-	return nil
+			_, err = net.ListenTCP("tcp", tcpAddr)
+			if err != nil {
+				return errors.New(fmt.Sprintf("端口号: %s 已经被占用请更换!", c.TCP))
+			}
+		}
+
+		if c.TLS != 0 {
+			tcpAddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf(":%s", c.TLS))
+			if err != nil {
+				return errors.New(fmt.Sprintf("端口号: %s 已经被占用请更换!", c.TLS))
+			}
+
+			_, err = net.ListenTCP("tcp", tcpAddr)
+			if err != nil {
+				return errors.New(fmt.Sprintf("端口号: %s 已经被占用请更换!", c.TLS))
+			}
+		}
+		//TODO 校验中转矿池是否正确
+
+		if c.Mode == 1 {
+			return nil
+		} else if c.Mode == 2 {
+			if !IsValidHexAddress(c.Wallet) {
+				return errors.New("Wallet 钱包地址添加不正确")
+			}
+			return nil
+		} else {
+			return errors.New("不支持的Mode类型")
+		}
+	} else {
+		return errors.New("暂时不支持的币种")
+	}
 }
 
 func (c Config) check_wallet() error {
