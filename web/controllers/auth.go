@@ -7,11 +7,26 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type Password struct {
+	Password string `json:"password"`
+}
+
 // 登录接口,判断密码是否与config.json一致。不一致则进制登录。登录后写入jsonwebtoken . 用中间件进行判断。
 func Login(c *gin.Context) {
 	data := make(map[string]interface{})
-	password := c.PostForm("password")
-	if password == "" {
+
+	var p Password
+	err := c.BindJSON(&p)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"data": "",
+			"msg":  "解析参数失败" + err.Error(),
+			"code": 301,
+		})
+		return
+	}
+
+	if p.Password == "" {
 		c.JSON(200, gin.H{
 			"code": 301,
 			"msg":  "请输入密码",
@@ -19,7 +34,8 @@ func Login(c *gin.Context) {
 		})
 		return
 	}
-	if password != global.ManageApp.Web.Password {
+
+	if p.Password != global.ManageApp.Web.Password {
 		c.JSON(200, gin.H{
 			"code": 302,
 			"msg":  "密码不正确",
@@ -28,7 +44,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	token, err := utils.GenerateToken(password)
+	token, err := utils.GenerateToken(p.Password)
 	if err != nil {
 		c.JSON(200, gin.H{
 			"code": 303,
@@ -51,6 +67,6 @@ func Login(c *gin.Context) {
 func WebConfig(c *gin.Context) {
 
 	c.JSON(200, gin.H{
-		"message": "pong",
+		"msg": "pong",
 	})
 }

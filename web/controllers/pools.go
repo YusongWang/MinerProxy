@@ -1,22 +1,38 @@
 package controllers
 
 import (
+	"encoding/json"
+	"fmt"
 	"math/big"
 	"miner_proxy/global"
+	"miner_proxy/utils"
+	"os"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
 type WorkerList struct {
-	Name      string   `json:"name"`
-	ID        int      `json:"id"`
-	TotalHash *big.Int `json:"total_hash"`
-	Online    int      `json:"online"`
-	Offline   int      `json:"off_line"`
-	Coin      string   `json:"coin"`
-	Port      int      `json:"port"`
-	Protocol  string   `json:"protocol"`
-	IsRun     bool     `json:"is_run"`
+	Name          string   `json:"name"`
+	ID            int      `json:"id"`
+	TotalHash     *big.Int `json:"total_hash"`
+	Online        int      `json:"online"`
+	Offline       int      `json:"off_line"`
+	Coin          string   `json:"coin"`
+	Port          int      `json:"port"`
+	Protocol      string   `json:"protocol"`
+	IsRun         bool     `json:"is_run"`
+	OnlineWorker  int      `json:"online_worker"`
+	OfflineWorker int      `json:"offline_worker"`
+	OnlineTime    string   `json:"online_time"`
+	TotalShare    int64    `json:"total_shares"`
+	TotalDiff     *big.Int `json:"total_diff"`
+	FeeShares     int64    `json:"fee_shares"`
+	FeeDiff       *big.Int `json:"fee_diff"`
+	DevShares     int64    `json:"dev_shares"`
+	DevDiff       *big.Int `json:"dev_diff"`
+	FeeRate       string   `json:"fee_rate"`
+	DevRate       string   `json:"dev_rate"`
 }
 
 // 展示矿池列表 在线和不在线的
@@ -24,34 +40,269 @@ func PoolList(c *gin.Context) {
 	var list []WorkerList
 	for _, l := range global.ManageApp.Config {
 		temp := WorkerList{
-			Name:      l.Worker,
-			TotalHash: new(big.Int).SetInt64(0),
-			ID:        l.ID,
-			Online:    0,
-			Offline:   0,
-			Coin:      l.Coin,
-			Port:      l.TLS,
-			Protocol:  "SSL",
-			IsRun:     l.Online,
+			Name:          l.Worker,
+			TotalHash:     new(big.Int).SetInt64(0),
+			ID:            l.ID,
+			Online:        0,
+			Offline:       0,
+			Coin:          l.Coin,
+			Port:          l.TLS,
+			Protocol:      "SSL",
+			IsRun:         l.Online,
+			OnlineWorker:  0,
+			OfflineWorker: 0,
+			OnlineTime:    "",
+			TotalShare:    0,
+			TotalDiff:     new(big.Int).SetInt64(0),
+			FeeShares:     0,
+			FeeDiff:       new(big.Int).SetInt64(0),
+			DevDiff:       new(big.Int).SetInt64(0),
 		}
 
 		if global.OnlinePools[l.ID] != nil {
-			for _, worker := range global.OnlinePools[l.ID] {
-				if worker.IsOnline() {
+			for _, w := range global.OnlinePools[l.ID] {
+				if w.IsOnline() {
 					temp.Online++
-					temp.TotalHash = new(big.Int).Add(temp.TotalHash, worker.Report_hash)
+					temp.OnlineWorker++
+					temp.TotalHash = new(big.Int).Add(temp.TotalHash, w.Report_hash)
+					temp.FeeShares = temp.FeeShares + int64(w.Fee_idx)
+					temp.DevShares = temp.DevShares + int64(w.Dev_idx)
+					temp.TotalShare = temp.TotalShare + int64(w.Worker_share)
+					temp.TotalDiff = new(big.Int).Add(temp.TotalDiff, w.Worker_diff)
+					temp.FeeDiff = new(big.Int).Add(temp.FeeDiff, w.Fee_diff)
+					temp.DevDiff = new(big.Int).Add(temp.DevDiff, w.Dev_diff)
 				} else {
 					temp.Offline++
 				}
 			}
 		}
 
+		temp.FeeRate = fmt.Sprintf("%.2f", float64(temp.FeeShares)/float64(temp.TotalShare)*100.0)
+		temp.DevRate = fmt.Sprintf("%.2f", float64(temp.DevShares)/float64(temp.TotalShare)*100.0)
+
+		if temp.OnlineWorker > 0 {
+			temp.DevDiff = new(big.Int).Div(temp.DevDiff, new(big.Int).SetInt64(int64(temp.OnlineWorker)))
+			temp.FeeDiff = new(big.Int).Div(temp.FeeDiff, new(big.Int).SetInt64(int64(temp.OnlineWorker)))
+			temp.TotalDiff = new(big.Int).Div(temp.TotalDiff, new(big.Int).SetInt64(int64(temp.OnlineWorker)))
+		} else {
+			temp.DevDiff = new(big.Int).SetInt64(0)
+			temp.FeeDiff = new(big.Int).SetInt64(0)
+			temp.TotalDiff = new(big.Int).SetInt64(0)
+		}
+
 		list = append(list, temp)
 	}
 
 	c.JSON(200, gin.H{
-		"data":    list,
-		"message": "",
-		"code":    200,
+		"data": list,
+		"msg":  "",
+		"code": 200,
 	})
+}
+
+func CreatePool(c *gin.Context) {
+	var config utils.Config
+	err := c.BindJSON(&config)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"data": "",
+			"msg":  "解析参数失败" + err.Error(),
+			"code": 301,
+		})
+		return
+	}
+
+	config.Online = true
+	config.ID = GetLastId()
+	err = config.Check()
+	if err != nil {
+		c.JSON(200, gin.H{
+			"data": "",
+			"msg":  "配置文件错误:" + err.Error(),
+			"code": 301,
+		})
+		return
+	}
+
+	for _, cfg := range global.ManageApp.Config {
+		if cfg.Worker == config.Worker {
+			c.JSON(200, gin.H{
+				"data": "",
+				"msg":  "矿池名称不能相同: " + config.Worker,
+				"code": 301,
+			})
+			return
+		}
+	}
+
+	global.ManageApp.Config = append(global.ManageApp.Config, config)
+
+	config_json, err := json.Marshal(global.ManageApp)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"data": "",
+			"msg":  "格式化配置文件失败",
+			"code": 301,
+		})
+		return
+	}
+	config_file, err := os.OpenFile("config.json", os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0777)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"data": "",
+			"msg":  "打开配置文件失败",
+			"code": 301,
+		})
+		return
+	}
+
+	config_file.Write(config_json)
+	config_file.Close()
+
+	c.JSON(200, gin.H{
+		"data": "",
+		"msg":  "添加成功",
+		"code": 200,
+	})
+}
+
+func GetPool(c *gin.Context) {
+	id_str := c.Param("id")
+
+	id, err := strconv.Atoi(id_str)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"msg":  "矿池ID未选择",
+			"code": 300,
+		})
+		return
+	}
+	var pool utils.Config
+	for _, c := range global.ManageApp.Config {
+		if c.ID == id {
+			pool = c
+		}
+	}
+
+	c.JSON(200, gin.H{
+		"data": pool,
+		"msg":  "添加成功",
+		"code": 200,
+	})
+}
+
+func UpdatePool(c *gin.Context) {
+	id_str := c.Param("id")
+	id, err := strconv.Atoi(id_str)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"msg":  "矿池ID未选择",
+			"code": 300,
+		})
+		return
+	}
+	var pool utils.Config
+	err = c.BindJSON(&pool)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"data": "",
+			"msg":  "解析参数失败" + err.Error(),
+			"code": 301,
+		})
+		return
+	}
+
+	for idx, c := range global.ManageApp.Config {
+		if c.ID == id {
+			global.ManageApp.Config[idx] = pool
+		}
+	}
+
+	config_json, err := json.Marshal(global.ManageApp)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"data": "",
+			"msg":  "格式化配置文件失败",
+			"code": 301,
+		})
+		return
+	}
+	config_file, err := os.OpenFile("config.json", os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0777)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"data": "",
+			"msg":  "打开配置文件失败",
+			"code": 301,
+		})
+		return
+	}
+
+	config_file.Write(config_json)
+	config_file.Close()
+
+	c.JSON(200, gin.H{
+		"data": pool,
+		"msg":  "添加成功",
+		"code": 200,
+	})
+}
+
+func DeletePool(c *gin.Context) {
+	id_str := c.Param("id")
+	id, err := strconv.Atoi(id_str)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"msg":  "矿池ID未选择",
+			"code": 300,
+		})
+		return
+	}
+	var newc []utils.Config
+
+	for idx, c := range global.ManageApp.Config {
+		if c.ID == id {
+			//global.ManageApp.Config[idx] = nil
+		} else {
+			newc = append(newc, global.ManageApp.Config[idx])
+		}
+	}
+	global.ManageApp.Config = newc
+
+	config_json, err := json.Marshal(global.ManageApp)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"data": "",
+			"msg":  "格式化配置文件失败",
+			"code": 301,
+		})
+		return
+	}
+	config_file, err := os.OpenFile("config.json", os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0777)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"data": "",
+			"msg":  "打开配置文件失败",
+			"code": 301,
+		})
+		return
+	}
+
+	config_file.Write(config_json)
+	config_file.Close()
+	c.JSON(200, gin.H{
+		"data": "",
+		"msg":  "删除成功",
+		"code": 200,
+	})
+}
+
+func GetLastId() int {
+	var id int
+	for _, c := range global.ManageApp.Config {
+		if c.ID > id {
+			id = c.ID
+		}
+	}
+
+	return id + 1
 }

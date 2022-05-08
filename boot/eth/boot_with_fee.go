@@ -22,7 +22,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func StartIpcServer(id int, handle *eth.Handle) {
+func StartIpcServer(id int) {
 	pipename := pool.WebCmdPipeline + "_" + strconv.Itoa(id)
 	log := utils.Logger.With(zap.String("IPC_NAME", pipename))
 	for {
@@ -36,18 +36,18 @@ func StartIpcServer(id int, handle *eth.Handle) {
 
 		go func() {
 			for {
-				_, err := sc.Read()
+				msg, err := sc.Read()
 				if err == nil {
-					// if msg.MsgType == -1 {
-					// 	log.Info("Waiting connect!!!")
-					// 	continue
-					// }
-					// if msg.MsgType == 0 {
-					// 	log.Info("Connectd !!!!")
-					// 	continue
-					// }
-					//log.Info("Proxy ->  Web", zap.Any("msg", msg))
-					//log.Info("Server recieved: "+string(msg.Data), zap.Int("type", msg.MsgType))
+					if msg.MsgType == -1 {
+						log.Info("Waiting connect!!!")
+						continue
+					}
+					if msg.MsgType == 0 {
+						log.Info("Connectd !!!!")
+						continue
+					}
+					log.Info("Proxy ->  Web", zap.Any("msg", msg))
+					log.Info("Server recieved: "+string(msg.Data), zap.Int("type", msg.MsgType))
 				} else {
 					log.Error(err.Error())
 					break
@@ -94,7 +94,8 @@ func StartIpcServer(id int, handle *eth.Handle) {
 					log.Error(err.Error())
 				}
 			}
-			time.Sleep(time.Second * 120)
+
+			time.Sleep(time.Second * 30)
 		}
 	}
 }
@@ -124,15 +125,15 @@ func BootWithFee(c utils.Config) error {
 		os.Exit(99)
 	}
 
-	dev_pool.Login(pool.ETH_WALLET, "devfee0.0.1")
+	dev_pool.Login(pool.ETH_WALLET, pool.DEVELOP)
 	go dev_pool.StartLoop()
 	var wg sync.WaitGroup
 
 	handle := eth.Handle{
 		Devjob:  dev_job,
 		Feejob:  fee_job,
-		DevConn: &dev_pool.Conn,
-		FeeConn: &fee_pool.Conn,
+		DevConn: dev_pool.Conn,
+		FeeConn: fee_pool.Conn,
 		SubDev:  &dev_submit_job,
 		SubFee:  &fee_submit_job,
 	}
@@ -140,10 +141,10 @@ func BootWithFee(c utils.Config) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		StartIpcServer(c.ID, &handle)
+		StartIpcServer(c.ID)
 	}()
 
-	utils.Logger.Info("Start the Server And ready To serve")
+	//utils.Logger.Info("Start the Server And ready To serve")
 
 	if c.TCP > 0 {
 		port := fmt.Sprintf(":%v", c.TCP)
@@ -152,6 +153,9 @@ func BootWithFee(c utils.Config) error {
 			utils.Logger.Error("can't bind to TCP addr", zap.String("端口", port))
 			os.Exit(99)
 		}
+
+		utils.Logger.Info("bind to TCP addr " + port + " Ready To serve")
+
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -167,6 +171,8 @@ func BootWithFee(c utils.Config) error {
 			utils.Logger.Error("can't bind to SSL addr", zap.String("端口", port))
 			os.Exit(99)
 		}
+
+		utils.Logger.Info("bind to SSL addr " + port + " Ready To serve")
 
 		wg.Add(1)
 		go func() {

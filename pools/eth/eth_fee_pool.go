@@ -2,14 +2,12 @@ package eth
 
 import (
 	"bufio"
-	"crypto/tls"
 	"errors"
 	"io"
 	"log"
 	"miner_proxy/pack"
 	ethpack "miner_proxy/pack/eth"
 	"miner_proxy/utils"
-	"net"
 	"os"
 	"strings"
 	"sync"
@@ -23,7 +21,7 @@ type setNoDelayer interface {
 }
 
 type EthStratumServer struct {
-	Conn     io.ReadWriteCloser
+	Conn     *io.ReadWriteCloser
 	Job      *pack.Job
 	Submit   chan []byte
 	PoolAddr string
@@ -58,15 +56,20 @@ func newEthStratumServerSsl(
 	eth.Submit = submit
 	eth.PoolAddr = "ssl://" + address
 
-	cfg := tls.Config{}
-	cfg.InsecureSkipVerify = true
-	cfg.PreferServerCipherSuites = true
-	var err error
-	eth.Conn, err = tls.Dial("tcp", address, &cfg)
+	conn, err := utils.Tls(address)
 	if err != nil {
 		return eth, err
 	}
-	if c, ok := eth.Conn.(setNoDelayer); ok {
+	eth.Conn = &conn
+	// cfg := tls.Config{}
+	// cfg.InsecureSkipVerify = true
+	// cfg.PreferServerCipherSuites = true
+	// var err error
+	// *eth.Conn, err = tls.Dial("tcp", address, &cfg)
+	// if err != nil {
+	// 	return eth, err
+	// }
+	if c, ok := (*eth.Conn).(setNoDelayer); ok {
 		c.SetNoDelay(true)
 	}
 	return eth, nil
@@ -82,17 +85,18 @@ func newEthStratumServerTcp(
 	eth.Job = job
 	eth.Submit = submit
 	eth.PoolAddr = "tcp://" + address
-	tcpAddr, err := net.ResolveTCPAddr("tcp", address)
+	// tcpAddr, err := net.ResolveTCPAddr("tcp", address)
+	// if err != nil {
+	// 	return eth, err
+	// }
+
+	conn, err := utils.Tcp(address)
+	eth.Conn = &conn
 	if err != nil {
 		return eth, err
 	}
 
-	eth.Conn, err = net.DialTCP("tcp", nil, tcpAddr)
-	if err != nil {
-		return eth, err
-	}
-
-	if c, ok := eth.Conn.(setNoDelayer); ok {
+	if c, ok := (*eth.Conn).(setNoDelayer); ok {
 		c.SetNoDelay(true)
 	}
 
@@ -126,7 +130,7 @@ func (eth *EthStratumServer) Login(wallet string, worker string) error {
 	}
 
 	write := append(res, '\n')
-	len, err := eth.Conn.Write(write)
+	len, err := (*eth.Conn).Write(write)
 	if err != nil {
 		log.Println("Socket Close", err)
 		return err
@@ -174,7 +178,7 @@ func (eth *EthStratumServer) SubmitJob(job []byte) error {
 
 	//utils.Logger.Info("给服务器提交工作量证明", zap.Any("RPC", json_rpc))
 
-	_, err := eth.Conn.Write([]byte(json_rpc))
+	_, err := (*eth.Conn).Write([]byte(json_rpc))
 	if err != nil {
 		return err
 	}
@@ -199,10 +203,12 @@ func (eth *EthStratumServer) StartLoop() {
 	log := utils.Logger.With(zap.String("Worker", eth.Worker))
 	wg.Add(1)
 	go func() {
-
+		reader := bufio.NewReader(*eth.Conn)
+		var buf []byte
+		var err error
 		defer wg.Done()
 		for {
-			buf_str, err := bufio.NewReader(eth.Conn).ReadString('\n')
+			buf, err = reader.ReadBytes('\n')
 			if err != nil {
 				log.Info("矿池关闭->  尝试重新连接")
 				log.Error(err.Error())
@@ -219,19 +225,21 @@ func (eth *EthStratumServer) StartLoop() {
 					os.Exit(1)
 				}
 
-				eth.Conn = temp.Conn
+				*eth.Conn = *temp.Conn
+				reader = bufio.NewReader(*eth.Conn)
 				continue
 			}
+
 			var json = jsoniter.ConfigCompatibleWithStandardLibrary
 			var push ethpack.JSONPushMessage
-			if err = json.Unmarshal([]byte(buf_str), &push); err == nil {
+			if err = json.Unmarshal(buf, &push); err == nil {
 				if result, ok := push.Result.(bool); ok {
 					//增加份额
 					if result {
 						// TODO
 						//log.Info("有效份额", zap.Any("RPC", buf_str))
 					} else {
-						log.Warn("无效份额", zap.Any("RPC", buf_str))
+						log.Warn("无效份额", zap.String("RPC", string(buf)))
 					}
 				} else if list, ok := push.Result.([]interface{}); ok {
 					job := make([]string, len(list))

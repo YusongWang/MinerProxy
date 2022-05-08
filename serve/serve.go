@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"io"
 	"miner_proxy/fee"
-	"miner_proxy/global"
 	"miner_proxy/handles"
 	"miner_proxy/pack"
 	pool "miner_proxy/pools"
@@ -62,16 +61,12 @@ func (s *Serve) StartLoop() {
 		var fee fee.Fee
 		fee.Dev = make(map[string]bool)
 		fee.Fee = make(map[string]bool)
-		bid, err := uuid.NewRandom()
+		sessionId, err := uuid.NewRandom()
 		if err != nil {
 			s.log.Error(err.Error())
 		}
-		id := bid.String()
-		worker := pack.NewWorker("default", "", id)
 
-		global.GonlineWorkers.Lock()
-		global.GonlineWorkers.Workers[id] = worker
-		global.GonlineWorkers.Unlock()
+		worker := pack.NewWorker("", "", sessionId.String(), conn.RemoteAddr().String())
 
 		pool_net, err := s.handle.OnConnect(conn, s.config, &fee, conn.RemoteAddr().String(), worker)
 		if err != nil {
@@ -84,21 +79,35 @@ func (s *Serve) StartLoop() {
 
 //接受请求
 func (s *Serve) serve(conn io.ReadWriteCloser, pool *io.ReadWriteCloser, fee *fee.Fee, worker *pack.Worker) {
+	defer func() {
+		if x := recover(); x != nil {
+			s.log.Info("Recover", zap.Any("err", x))
+			return
+		}
+	}()
 
 	reader := bufio.NewReader(conn)
 	//TODO 处理通知所有线程结束任务
+
 	for {
 		buf, err := reader.ReadBytes('\n')
 		if err != nil {
-			s.log.Error(err.Error())
+			if err == io.EOF {
+
+			} else {
+				s.log.Error(err.Error())
+			}
 			s.handle.OnClose(worker)
-			conn.Close()
 			return
 		}
 
 		ret, err := s.handle.OnMessage(conn, pool, s.config, fee, &buf, worker)
 		if err != nil {
-			s.log.Error(err.Error())
+			if err == io.EOF {
+
+			} else {
+				s.log.Error(err.Error())
+			}
 			s.handle.OnClose(worker)
 			return
 		}
@@ -107,7 +116,11 @@ func (s *Serve) serve(conn io.ReadWriteCloser, pool *io.ReadWriteCloser, fee *fe
 		if len(ret) > 0 {
 			_, err = conn.Write(ret)
 			if err != nil {
-				s.log.Error(err.Error())
+				if err == io.EOF {
+
+				} else {
+					s.log.Error(err.Error())
+				}
 				s.handle.OnClose(worker)
 				return
 			}

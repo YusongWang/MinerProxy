@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"miner_proxy/global"
+	"miner_proxy/pack"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -9,7 +10,7 @@ import (
 
 // 单个矿池的矿工列表
 func MinerList(c *gin.Context) {
-	id_str := c.PostForm("id")
+	id_str := c.Param("id")
 
 	id, err := strconv.Atoi(id_str)
 	if err != nil {
@@ -20,8 +21,18 @@ func MinerList(c *gin.Context) {
 		return
 	}
 
+	var res []pack.Worker
+	if len(global.OnlinePools[id]) > 0 {
+		for _, miner := range global.OnlinePools[id] {
+			if miner.IsOnline() {
+				miner.OnlineTime = miner.Login_time.Unix()
+				res = append(res, miner)
+			}
+		}
+	}
+
 	c.JSON(200, gin.H{
-		"data": global.OnlinePools[id],
+		"data": res,
 		"msg":  "",
 		"code": 200,
 	})
@@ -30,6 +41,6 @@ func MinerList(c *gin.Context) {
 // 单个矿工详情
 func MinerDetail(c *gin.Context) {
 	c.JSON(200, gin.H{
-		"message": "pong",
+		"msg": "pong",
 	})
 }

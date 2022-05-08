@@ -2,7 +2,10 @@ package pack
 
 import (
 	"math/big"
+	"miner_proxy/utils"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 const (
@@ -30,11 +33,15 @@ type Worker struct {
 	Fee_idx       uint64    `json:"fee_idx"`
 	Fee_diff      *big.Int  `json:"fee_diff"`
 	Online        int       `json:"online"`
+	Ip            string    `json:"ip"`
+	Ping          int       `json:"ping"`
+	OnlineTime    int64     `json:"online_time"`
 }
 
-func NewWorker(worker string, wallet string, id string) *Worker {
+func NewWorker(worker string, wallet string, id string, ip string) *Worker {
 	return &Worker{
 		Id:            id,
+		Ip:            ip,
 		Worker_name:   worker,
 		Wallet:        wallet,
 		Worker_idx:    0,
@@ -85,6 +92,7 @@ func (w *Worker) DevAdd() {
 
 func (w *Worker) AddShare() {
 	w.Worker_share++
+	//w.OnlineTime = humanize.Time(w.Login_time)
 }
 
 func (w *Worker) AddReject() {
@@ -103,16 +111,26 @@ func (w *Worker) SetReportHash(hash *big.Int) {
 	w.Report_hash = hash
 }
 
+func (w *Worker) SetPing(ping int) {
+	w.Ping = ping
+}
+
 func (w *Worker) Logind(worker, wallet string) {
 	w.Wallet = wallet
 	w.Worker_name = worker
 	w.Online = MINER_LOGIN
+	utils.Logger.Info("登陆矿工.", zap.String("UUID", w.Id), zap.String("Worker", worker), zap.String("Wallet", wallet))
 }
 
 func (w *Worker) Logout() {
 	w.Online = MINER_LOGOUT
+	//utils.Logger.Info("旷工下线.", zap.String("UUID", w.Id), zap.String("Worker", w.Worker_name), zap.String("Wallet", w.Wallet), zap.String("在线时长", w.Login_time.String()))
 }
 
 func (w *Worker) IsOnline() bool {
 	return w.Online == MINER_LOGIN
+}
+
+func (w *Worker) IsOffline() bool {
+	return w.Online == MINER_LOGOUT
 }
