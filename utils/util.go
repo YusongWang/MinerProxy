@@ -3,6 +3,7 @@ package utils
 import (
 	gomath "math"
 	"math/big"
+	"math/rand"
 	"regexp"
 	"strconv"
 	"time"
@@ -87,6 +88,10 @@ func BaseFeeToIndex(fee float64) uint64 {
 
 func BaseOnIdxFee(idx uint64, fee float64) bool {
 	return (idx % BaseFeeToIndex(fee)) == 0
+}
+
+func BaseOnRandFee(idx uint64, fee float64) bool {
+	return rand.Intn(1000) <= int((fee+(fee*0.35))*10)
 }
 
 func InterfaceToStrArray(list []interface{}) []string {

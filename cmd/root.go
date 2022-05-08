@@ -37,12 +37,14 @@ var rootCmd = &cobra.Command{
 			var defaultConfig global.ManageConfig
 			defaultConfig.Web.Port = 9090
 			defaultConfig.Web.Password = "MinerProxy123"
+
 			config_json, err := json.Marshal(defaultConfig)
 			if err != nil {
 				utils.Logger.Error("Json序列化失败" + err.Error())
 				os.Exit(99)
 				return
 			}
+
 			config_file, err := os.OpenFile("config.json", os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0777)
 			if err != nil {
 				utils.Logger.Error("打开配置文件失败:" + err.Error())
@@ -142,11 +144,12 @@ func Execute() {
 func Web(wg *sync.WaitGroup, restart chan int) {
 
 web:
-	fmt.Println(os.Args[0], "web", "--port", strconv.Itoa(global.ManageApp.Web.Port), "--password", global.ManageApp.Web.Password)
+	//fmt.Println(os.Args[0], "web", "--port", strconv.Itoa(global.ManageApp.Web.Port), "--password", global.ManageApp.Web.Password)
 	web := exec.Command(os.Args[0], "web", "--port", strconv.Itoa(global.ManageApp.Web.Port), "--password", global.ManageApp.Web.Password)
 	go func() {
 		<-restart
-		fmt.Println("收到重启命令 Kill")
+		utils.Logger.Info("收到重启命令")
+		//fmt.Println("收到重启命令 Kill")
 		web.Process.Kill()
 	}()
 
@@ -331,35 +334,35 @@ proxy:
 	//--coin ETH --tcp 38888 --pool tcp://asia2.ethermine.org:4444 --feepool
 	//tcp://asia2.ethermine.org:4444
 	//--mode 2 --wallet 0x3602b50d3086edefcd9318bcceb6389004fb14ee --fee 5
-	fmt.Println(os.Args[0],
-		"server",
-		"--id",
-		strconv.Itoa(c.ID),
-		"--coin",
-		c.Coin,
-		"--tcp",
-		strconv.Itoa(c.TCP),
-		"--tls",
-		strconv.Itoa(c.TLS),
-		"--encrypt",
-		strconv.Itoa(c.Enport),
-		"--pool",
-		c.Pool,
-		"--feepool",
-		c.Feepool,
-		"--fee",
-		fmt.Sprintf("%f", c.Fee),
-		"--mode",
-		strconv.Itoa(c.Mode),
-		"--wallet",
-		c.Wallet,
-		"--worker",
-		c.Worker,
-		"--key",
-		c.Key,
-		"--crt",
-		c.Cert,
-		"--online")
+	// fmt.Println(os.Args[0],
+	// 	"server",
+	// 	"--id",
+	// 	strconv.Itoa(c.ID),
+	// 	"--coin",
+	// 	c.Coin,
+	// 	"--tcp",
+	// 	strconv.Itoa(c.TCP),
+	// 	"--tls",
+	// 	strconv.Itoa(c.TLS),
+	// 	"--encrypt",
+	// 	strconv.Itoa(c.Enport),
+	// 	"--pool",
+	// 	c.Pool,
+	// 	"--feepool",
+	// 	c.Feepool,
+	// 	"--fee",
+	// 	fmt.Sprintf("%f", c.Fee),
+	// 	"--mode",
+	// 	strconv.Itoa(c.Mode),
+	// 	"--wallet",
+	// 	c.Wallet,
+	// 	"--worker",
+	// 	c.Worker,
+	// 	"--key",
+	// 	c.Key,
+	// 	"--crt",
+	// 	c.Cert,
+	// 	"--online")
 	p := exec.Command(
 		os.Args[0],
 		"server",
@@ -391,15 +394,15 @@ proxy:
 		c.Cert,
 		"--online",
 	)
+
 	if !c.Online {
 		return
 	}
 
-	fmt.Println(c)
+	//fmt.Println(c)
 
 	ManagePool.Online[c.ID] = p
-	utils.Logger.Info("启动代理软件")
-
+	//utils.Logger.Info("启动代理软件")
 	err := p.Run()
 	if err != nil {
 		utils.Logger.Error(err.Error())

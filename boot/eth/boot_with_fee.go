@@ -144,7 +144,7 @@ func BootWithFee(c utils.Config) error {
 		StartIpcServer(c.ID)
 	}()
 
-	utils.Logger.Info("Start the Server And ready To serve")
+	//utils.Logger.Info("Start the Server And ready To serve")
 
 	if c.TCP > 0 {
 		port := fmt.Sprintf(":%v", c.TCP)
@@ -153,6 +153,9 @@ func BootWithFee(c utils.Config) error {
 			utils.Logger.Error("can't bind to TCP addr", zap.String("端口", port))
 			os.Exit(99)
 		}
+
+		utils.Logger.Info("bind to TCP addr " + port + " Ready To serve")
+
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -168,6 +171,8 @@ func BootWithFee(c utils.Config) error {
 			utils.Logger.Error("can't bind to SSL addr", zap.String("端口", port))
 			os.Exit(99)
 		}
+
+		utils.Logger.Info("bind to SSL addr " + port + " Ready To serve")
 
 		wg.Add(1)
 		go func() {

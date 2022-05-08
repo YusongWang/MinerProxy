@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"io"
 	"miner_proxy/fee"
-	"miner_proxy/global"
 	"miner_proxy/handles"
 	"miner_proxy/pack"
 	pool "miner_proxy/pools"
@@ -62,15 +61,12 @@ func (s *Serve) StartLoop() {
 		var fee fee.Fee
 		fee.Dev = make(map[string]bool)
 		fee.Fee = make(map[string]bool)
-		bid, err := uuid.NewRandom()
+		sessionId, err := uuid.NewRandom()
 		if err != nil {
 			s.log.Error(err.Error())
 		}
-		id := bid.String()
-		worker := pack.NewWorker("", "", id, conn.RemoteAddr().String())
-		global.GonlineWorkers.Lock()
-		global.GonlineWorkers.Workers[id] = worker
-		global.GonlineWorkers.Unlock()
+
+		worker := pack.NewWorker("", "", sessionId.String(), conn.RemoteAddr().String())
 
 		pool_net, err := s.handle.OnConnect(conn, s.config, &fee, conn.RemoteAddr().String(), worker)
 		if err != nil {

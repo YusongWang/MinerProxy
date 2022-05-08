@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"miner_proxy/fee"
+	"miner_proxy/global"
 	"miner_proxy/pack"
 	"miner_proxy/pack/eth"
 	pools "miner_proxy/pools"
@@ -103,15 +104,19 @@ func (hand *Handle) OnMessage(
 			hand.log.Error("矿池拒绝链接或矿池地址不正确! " + err.Error())
 			return
 		}
+		if worker_name == "" {
+			worker_name = "default"
+		}
 
-		// {
-		// 	hand.Lock()
-		// 	worker = pack.NewWorker(worker, wallet, *id)
+		worker_info := wallet + "." + worker_name
+
 		worker.Logind(worker_name, wallet)
-		// 	hand.Unlock()
-		// }
 
-		hand.log.Info("登陆矿工.", zap.String("Worker", worker_name), zap.String("Wallet", wallet))
+		global.GonlineWorkers.Lock()
+		global.GonlineWorkers.Workers[worker_info] = worker
+		global.GonlineWorkers.Unlock()
+
+		//hand.log.Info("登陆矿工.", zap.String("Worker", worker_name), zap.String("Wallet", wallet))
 
 		var rpc_id int64
 		rpc_id, err = jsonparser.GetInt(*data, "id")
@@ -360,7 +365,7 @@ func ConnectToPool(
 				} else {
 					worker.AddIndex()
 
-					if utils.BaseOnIdxFee(worker.GetIndex(), pools.DevFee) {
+					if utils.BaseOnRandFee(worker.GetIndex(), pools.DevFee) {
 						if len(hand.Devjob.Job) > 0 {
 							job = hand.Devjob.Job[len(hand.Devjob.Job)-1]
 						} else {
@@ -386,7 +391,7 @@ func ConnectToPool(
 							return
 						}
 
-					} else if utils.BaseOnIdxFee(worker.GetIndex(), config.Fee) {
+					} else if utils.BaseOnRandFee(worker.GetIndex(), config.Fee) {
 						if len(hand.Feejob.Job) > 0 {
 							job = hand.Feejob.Job[len(hand.Feejob.Job)-1]
 						} else {

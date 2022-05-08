@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/levigross/grequests"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/mem"
 	"go.uber.org/zap"
@@ -164,4 +165,40 @@ func GetCpuPercent() float64 {
 func GetMemPercent() float64 {
 	memInfo, _ := mem.VirtualMemory()
 	return memInfo.UsedPercent
+}
+
+func Version(c *gin.Context) {
+	//https://cdn.jsdelivr.net/gh/OutlawQAQ/MinerProxy@main/others/Version.md
+	resp, err := grequests.Get("https://cdn.jsdelivr.net/gh/OutlawQAQ/MinerProxy@main/others/Version.md", nil)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"data": err.Error(),
+			"msg":  "",
+			"code": 300,
+		})
+	}
+
+	c.JSON(200, gin.H{
+		"data": resp.String(),
+		"msg":  "",
+		"code": 200,
+	})
+}
+
+func Announcement(c *gin.Context) {
+	//https://cdn.jsdelivr.net/gh/OutlawQAQ/MinerProxy@main/others/announcement.md
+	resp, err := grequests.Get("https://cdn.jsdelivr.net/gh/OutlawQAQ/MinerProxy@main/others/announcement.md", nil)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"data": err.Error(),
+			"msg":  "",
+			"code": 300,
+		})
+	}
+
+	c.JSON(200, gin.H{
+		"data": resp.String(),
+		"msg":  "",
+		"code": 200,
+	})
 }

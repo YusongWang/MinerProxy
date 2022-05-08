@@ -61,6 +61,8 @@ func RegisterApiRouter(router *gin.Engine) {
 	apiRouter := router.Group("api")
 	apiRouter.Use(jwt.JWT())
 	{
+		apiRouter.GET("/version", controllers.Version)
+		apiRouter.GET("/announcement", controllers.Announcement)
 		apiRouter.GET("/dashborad", controllers.Home)
 		//apiRouter.POST("/system", controllers.System)
 		//apiRouter.POST("/miner/detail", controllers.MinerDetail)

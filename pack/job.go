@@ -2,7 +2,10 @@ package pack
 
 import (
 	"math/big"
+	"miner_proxy/utils"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 const (
@@ -116,12 +119,12 @@ func (w *Worker) Logind(worker, wallet string) {
 	w.Wallet = wallet
 	w.Worker_name = worker
 	w.Online = MINER_LOGIN
-	//w.OnlineTime = humanize.Time(w.Login_time)
+	utils.Logger.Info("登陆矿工.", zap.String("UUID", w.Id), zap.String("Worker", worker), zap.String("Wallet", wallet))
 }
 
 func (w *Worker) Logout() {
-	//w.OnlineTime = humanize.Time(w.Login_time)
 	w.Online = MINER_LOGOUT
+	//utils.Logger.Info("旷工下线.", zap.String("UUID", w.Id), zap.String("Worker", w.Worker_name), zap.String("Wallet", w.Wallet), zap.String("在线时长", w.Login_time.String()))
 }
 
 func (w *Worker) IsOnline() bool {
