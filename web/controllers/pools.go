@@ -212,6 +212,18 @@ func UpdatePool(c *gin.Context) {
 		return
 	}
 
+	pool.Online = true
+	pool.ID = id
+	err = pool.CheckWithoutLocalPort()
+	if err != nil {
+		c.JSON(200, gin.H{
+			"data": "",
+			"msg":  "配置文件错误:" + err.Error(),
+			"code": 301,
+		})
+		return
+	}
+
 	for idx, c := range global.ManageApp.Config {
 		if c.ID == id {
 			global.ManageApp.Config[idx] = pool

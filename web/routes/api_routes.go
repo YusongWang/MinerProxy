@@ -57,6 +57,7 @@ func RegisterApiRouter(router *gin.Engine) {
 	}))
 
 	router.POST("auth/login", controllers.Login)
+	router.GET("logger", controllers.Logger)
 
 	apiRouter := router.Group("api")
 	apiRouter.Use(jwt.JWT())
@@ -77,26 +78,4 @@ func RegisterApiRouter(router *gin.Engine) {
 		apiRouter.POST("/pool/:id", controllers.UpdatePool)
 		apiRouter.DELETE("/pool/:id", controllers.DeletePool)
 	}
-
-	// api := router.Group("/api")
-	// api.GET("/index", controllers.IndexApi)
-	// api.GET("/cookie/set/:userid", controllers.CookieSetExample)
-
-	// cookie auth middleware
-	// api.Use(auth.Middleware(auth.CookieAuthDriverKey))
-	// {
-	// 	api.GET("/orm", controllers.OrmExample)
-	// 	api.GET("/store", controllers.StoreExample)
-	// 	api.GET("/db", controllers.DBExample)
-	// 	api.GET("/cookie/get", controllers.CookieGetExample)
-	// }
-
-	// jwtApi := router.Group("/api")
-	// jwtApi.GET("/jwt/set/:userid", controllers.JwtSetExample)
-
-	// // jwt auth middleware
-	// jwtApi.Use(auth.Middleware(auth.JwtAuthDriverKey))
-	// {
-	// 	jwtApi.GET("/jwt/get", controllers.JwtGetExample)
-	// }
 }
