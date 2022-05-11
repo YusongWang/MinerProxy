@@ -65,12 +65,10 @@ func RegisterApiRouter(router *gin.Engine) {
 		apiRouter.GET("/version", controllers.Version)
 		apiRouter.GET("/announcement", controllers.Announcement)
 		apiRouter.GET("/dashborad", controllers.Home)
-		apiRouter.GET("/cpu", controllers.Cpu)
-		apiRouter.GET("/mem", controllers.Mem)
-		apiRouter.GET("/worker", controllers.Worker)
-		apiRouter.GET("/hashrate", controllers.Hashrate)
-		//apiRouter.POST("/system", controllers.System)
-		//apiRouter.POST("/miner/detail", controllers.MinerDetail)
+
+		apiRouter.GET("/system_chart", controllers.SystemChart)
+		apiRouter.GET("/worker_chart/:coin", controllers.Worker)
+
 		apiRouter.GET("/miners/:id", controllers.MinerList)
 
 		apiRouter.POST("/setpass", controllers.SetPass)

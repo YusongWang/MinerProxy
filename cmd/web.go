@@ -3,10 +3,14 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"miner_proxy/global"
 	"miner_proxy/pack"
 	pool "miner_proxy/pools"
 	"miner_proxy/utils"
+	"miner_proxy/web/logics"
+	"miner_proxy/web/models"
+	_ "miner_proxy/web/models"
 	routeRegister "miner_proxy/web/routes"
 	"net/http"
 	"strconv"
@@ -15,6 +19,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	ipc "github.com/james-barrow/golang-ipc"
+	"github.com/shirou/gopsutil/cpu"
+	"github.com/shirou/gopsutil/mem"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -89,6 +95,8 @@ func StartIpcServer(id int) {
 				msg, err := sc.Read()
 				if err != nil {
 					log.Info("Ipc Channel Close")
+					time.Sleep(time.Second * 30)
+					break
 				}
 
 				//log.Info("Web recieved: "+string(msg.Data), zap.Int("type", msg.MsgType))
@@ -217,7 +225,80 @@ func initRouter() *gin.Engine {
 //计算各个数据的图标
 func clacChart() {
 	for {
+		//time.Sleep(time.Minute * 10)
+		ethRes, etcRes := logics.ClacDashborad()
+
+		insertTime := time.Now().Local().Unix()
+
+		ethOnline := ethRes["online_worker"]
+		ethOffline := ethRes["offline_worker"]
+		ethHashrate := ethRes["total_hash"]
+
+		var ethWorkerInfo models.WorkerChart
+		ethWorkerInfo.Coin = "ETH"
+		ethWorkerInfo.Time = insertTime
+		if hash, ok := ethHashrate.(*big.Int); ok {
+			ethWorkerInfo.Hashrate = hash
+		}
+		if offline, ok := ethOffline.(int); ok {
+			ethWorkerInfo.Offline = offline
+		}
+		if online, ok := ethOnline.(int); ok {
+			ethWorkerInfo.Online = online
+		}
+		err := models.InsertWorkerETH(ethWorkerInfo)
+		if err != nil {
+			utils.Logger.Info("insert Worker clac Chart Error" + err.Error())
+		}
+
+		etcOnline := etcRes["online_worker"]
+
+		etcOffline := etcRes["offline_worker"]
+
+		etcHashrate := etcRes["total_hash"]
+
+		var etcWorkerInfo models.WorkerChart
+		etcWorkerInfo.Coin = "ETC"
+		etcWorkerInfo.Time = insertTime
+		if hash, ok := etcHashrate.(*big.Int); ok {
+			etcWorkerInfo.Hashrate = hash
+		}
+
+		if offline, ok := etcOffline.(int); ok {
+			etcWorkerInfo.Offline = offline
+		}
+
+		if online, ok := etcOnline.(int); ok {
+			etcWorkerInfo.Online = online
+		}
+
+		err = models.InsertWorkerETC(etcWorkerInfo)
+		if err != nil {
+			utils.Logger.Info("insert Worker clac Chart Error" + err.Error())
+		}
+
+		cpu := GetCpuPercent()
+		mem := GetMemPercent()
+
+		var sysinfo models.SystemChart
+		sysinfo.Cpu = cpu
+		sysinfo.Mem = mem
+		sysinfo.Time = insertTime
+		err = models.InsertSys(sysinfo)
+		if err != nil {
+			utils.Logger.Info("insert SystemInfo clac Chart Error" + err.Error())
+		}
+
 		time.Sleep(time.Minute * 10)
-		
 	}
+}
+
+func GetCpuPercent() float64 {
+	percent, _ := cpu.Percent(time.Second, false)
+	return percent[0]
+}
+
+func GetMemPercent() float64 {
+	memInfo, _ := mem.VirtualMemory()
+	return memInfo.UsedPercent
 }
