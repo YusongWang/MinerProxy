@@ -61,7 +61,78 @@ func FristStartIpcClients() {
 	for _, app := range global.ManageApp.Config {
 		// 逐一获得cmd执行任务。
 		//fmt.Println("逐一获得cmd执行任务。")
-		go StartIpcClient(app.ID)
+		go StartIpcServer(app.ID)
+	}
+}
+
+func StartIpcServer(id int) {
+	pipename := pool.WebCmdPipeline + "_" + strconv.Itoa(id)
+	log := utils.Logger.With(zap.String("IPC_NAME", pipename))
+
+	for {
+		sc, err := ipc.StartServer(pipename, nil)
+		if err != nil {
+			log.Error(err.Error())
+			time.Sleep(time.Second * 60)
+			continue
+		}
+
+		log.Info("IPC Server Ready to bind success")
+
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				msg, err := sc.Read()
+				if err != nil {
+					log.Info("Ipc Channel Close")
+				}
+
+				//log.Info("Web recieved: "+string(msg.Data), zap.Int("type", msg.MsgType))
+				if msg.MsgType == -1 {
+					//log.Info("Waiting connect!!!")
+					continue
+				}
+
+				if msg.MsgType == 0 {
+					//log.Info("Connectd !!!!")
+					continue
+				}
+				if msg.MsgType == 10 {
+					err = sc.Write(10, []byte("PONG"))
+					if err != nil {
+						log.Error(err.Error())
+					}
+					continue
+				}
+
+				if msg.MsgType == 100 {
+					var p map[string]pack.Worker
+					err := json.Unmarshal(msg.Data, &p)
+					if err != nil {
+						log.Error("格式化矿工状态失败", zap.String("data", string(msg.Data)))
+						continue
+					}
+					global.OnlinePools[id] = p
+				}
+
+			}
+		}()
+
+		// wg.Add(1)
+		// go func() {
+		// 	defer wg.Done()
+		// 	for {
+		// 		err = sc.Write(111, []byte("PONG"))
+		// 		if err != nil {
+		// 			log.Error(err.Error())
+		// 		}
+		// 		time.Sleep(time.Second * 120)
+		// 	}
+		// }()
+
+		wg.Wait()
 	}
 }
 

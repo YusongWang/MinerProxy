@@ -38,16 +38,11 @@ func StartIpcServer(id int) {
 			for {
 				msg, err := sc.Read()
 				if err == nil {
-					if msg.MsgType == -1 {
-						log.Info("Waiting connect!!!")
-						continue
+					if msg.MsgType == 10 {
+						log.Info("Pong")
 					}
-					if msg.MsgType == 0 {
-						log.Info("Connectd !!!!")
-						continue
-					}
-					log.Info("Proxy ->  Web", zap.Any("msg", msg))
-					log.Info("Server recieved: "+string(msg.Data), zap.Int("type", msg.MsgType))
+					// log.Info("Proxy ->  Web", zap.Any("msg", msg))
+					// log.Info("Server recieved: "+string(msg.Data), zap.Int("type", msg.MsgType))
 				} else {
 					log.Error(err.Error())
 					break
@@ -56,27 +51,6 @@ func StartIpcServer(id int) {
 		}()
 
 		for {
-			// for _, hand := range handle.Workers {
-			// 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-			// 	b, err := json.Marshal(hand)
-			// 	if err != nil {
-			// 		log.Error(err.Error())
-			// 		//time.Sleep(time.Second * 60)
-			// 		continue
-			// 	}
-			// 	log.Info("写入Worker信息!", zap.Any("worker", hand))
-			// 	err = sc.Write(100, b)
-			// 	if err == nil {
-			// 		log.Info("发送成功!", zap.Any("worker", hand))
-			// 	} else {
-			// 		log.Info("发送失败!")
-			// 		log.Error(err.Error())
-			// 	}
-			// }
-			// err = sc.Write(10, []byte("Hello world\n"))
-			// if err != nil {
-			// 	log.Error(err.Error())
-			// }
 			if len(global.GonlineWorkers.Workers) > 0 {
 				var json = jsoniter.ConfigCompatibleWithStandardLibrary
 				b, err := json.Marshal(global.GonlineWorkers.Workers)
@@ -92,6 +66,7 @@ func StartIpcServer(id int) {
 				} else {
 					log.Info("发送失败!")
 					log.Error(err.Error())
+					break
 				}
 			}
 
@@ -100,6 +75,56 @@ func StartIpcServer(id int) {
 	}
 }
 
+func StartIpcClient(id int) {
+	pipename := pool.WebCmdPipeline + "_" + strconv.Itoa(id)
+	log := utils.Logger.With(zap.String("IPC_NAME", pipename))
+	for {
+		cc, err := ipc.StartClient(pipename, nil)
+		if err != nil {
+			log.Error(err.Error())
+			return
+		}
+		log.Info("Start IPC Client Pipeline On: " + pipename)
+
+		cc.Write(10, []byte("PING"))
+		cc.Write(10, []byte("PING"))
+
+		go func() {
+			for {
+				msg, err := cc.Read()
+				if err == nil {
+					if msg.MsgType == 10 {
+						//log.Info("Pong")
+						continue
+					}
+				} else {
+					log.Error(err.Error())
+					break
+				}
+			}
+		}()
+
+		for {
+			if len(global.GonlineWorkers.Workers) > 0 {
+				var json = jsoniter.ConfigCompatibleWithStandardLibrary
+				b, err := json.Marshal(global.GonlineWorkers.Workers)
+				if err != nil {
+					log.Error(err.Error())
+					continue
+				}
+				err = cc.Write(100, b)
+				if err == nil {
+				} else {
+					log.Info("发送失败!")
+					log.Error(err.Error())
+					break
+				}
+			}
+
+			time.Sleep(time.Second * 30)
+		}
+	}
+}
 func BootWithFee(c utils.Config) error {
 
 	dev_job := &pack.Job{}
@@ -141,7 +166,7 @@ func BootWithFee(c utils.Config) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		StartIpcServer(c.ID)
+		StartIpcClient(c.ID)
 	}()
 
 	//utils.Logger.Info("Start the Server And ready To serve")
