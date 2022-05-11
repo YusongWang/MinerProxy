@@ -22,10 +22,6 @@ type PoolConfig struct {
 
 var ManagePool PoolConfig
 
-// func Init() {
-
-// }
-
 var rootCmd = &cobra.Command{
 	Use:   "MinerProxy",
 	Short: "",
