@@ -36,7 +36,7 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			var defaultConfig global.ManageConfig
 			defaultConfig.Web.Port = 9090
-			defaultConfig.Web.Password = "MinerProxy123"
+			defaultConfig.Web.Password = "123456"
 
 			config_json, err := json.Marshal(defaultConfig)
 			if err != nil {
