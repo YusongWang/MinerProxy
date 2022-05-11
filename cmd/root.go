@@ -203,8 +203,8 @@ proxy:
 func FristStart() {
 	for _, app := range global.ManageApp.Config {
 		// 逐一获得cmd执行任务。
-		fmt.Println("逐一获得cmd执行任务。")
-		fmt.Println(app)
+		//fmt.Println("逐一获得cmd执行任务。")
+		//fmt.Println(app)
 		go ProcessProxy(app)
 	}
 }
@@ -272,7 +272,7 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 		utils.Logger.Error(err.Error())
 	}
 
-	fmt.Println(global.ManageApp)
+	//fmt.Println(global.ManageApp)
 	return v
 }
 

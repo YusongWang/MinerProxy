@@ -50,6 +50,9 @@ var WebCmd = &cobra.Command{
 
 		r := initRouter()
 		utils.Logger.Info("Start Web Port On: " + strconv.Itoa(global.WebApp.Port))
+
+		fmt.Println("Start Web Port On: " + strconv.Itoa(global.WebApp.Port) + "Password: " + global.WebApp.Password)
+
 		r.Run(fmt.Sprintf(":%v", global.WebApp.Port))
 	},
 }
@@ -134,7 +137,6 @@ func initRouter() *gin.Engine {
 		})
 	})
 	//router.Handle("/", http.FileServer(AssetFile()))
-	
 
 	return router
 }

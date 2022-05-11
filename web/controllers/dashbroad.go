@@ -178,10 +178,12 @@ func Version(c *gin.Context) {
 			"code": 300,
 		})
 	}
+
 	doc := resp.String()
-	strings.Split(doc, "")
+	doc = strings.Replace(doc, "{BUILD_VERSION}", global.Version, 1)
+
 	c.JSON(200, gin.H{
-		"data": resp.String(),
+		"data": doc,
 		"msg":  "",
 		"code": 200,
 	})
