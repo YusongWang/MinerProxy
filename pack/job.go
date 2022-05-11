@@ -92,6 +92,7 @@ func (w *Worker) DevAdd() {
 
 func (w *Worker) AddShare() {
 	w.Worker_share++
+	//utils.Logger.Info(fmt.Sprintf("Share #%d", w.Worker_share))
 	//w.OnlineTime = humanize.Time(w.Login_time)
 }
 

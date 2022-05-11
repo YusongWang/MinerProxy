@@ -48,6 +48,8 @@ var WebCmd = &cobra.Command{
 		password := viper.GetString("password")
 		global.WebApp.Password = password
 
+		go clacChart()
+
 		r := initRouter()
 		utils.Logger.Info("Start Web Port On: " + strconv.Itoa(global.WebApp.Port))
 
@@ -210,4 +212,12 @@ func initRouter() *gin.Engine {
 	//router.Handle("/", http.FileServer(AssetFile()))
 
 	return router
+}
+
+//计算各个数据的图标
+func clacChart() {
+	for {
+		time.Sleep(time.Minute * 10)
+		
+	}
 }

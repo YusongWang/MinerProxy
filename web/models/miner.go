@@ -7,28 +7,18 @@ import (
 	memdb "github.com/hashicorp/go-memdb"
 )
 
-var MinerDB *memdb.MemDB
+var Chart *memdb.MemDB
 
 func init() {
 	schema := &memdb.DBSchema{
 		Tables: map[string]*memdb.TableSchema{
-			"miners": &memdb.TableSchema{
-				Name: "miners",
+			"chart": &memdb.TableSchema{
+				Name: "chart",
 				Indexes: map[string]*memdb.IndexSchema{
-					"id": &memdb.IndexSchema{
-						Name:    "id",
+					"time": &memdb.IndexSchema{
+						Name:    "time",
 						Unique:  true,
-						Indexer: &memdb.StringFieldIndex{Field: "Id"},
-					},
-					"wallet": &memdb.IndexSchema{
-						Name:    "wallet",
-						Unique:  false,
-						Indexer: &memdb.StringFieldIndex{Field: "Wallet"},
-					},
-					"worker": &memdb.IndexSchema{
-						Name:    "worker",
-						Unique:  false,
-						Indexer: &memdb.StringFieldIndex{Field: "Worker_name"},
+						Indexer: &memdb.UintFieldIndex{Field: "Time"},
 					},
 				},
 			},
@@ -37,7 +27,7 @@ func init() {
 
 	// Create a new data base
 	var err error
-	MinerDB, err = memdb.NewMemDB(schema)
+	Chart, err = memdb.NewMemDB(schema)
 	if err != nil {
 		panic(err)
 	}
@@ -52,7 +42,7 @@ func NewMiner(w pack.Worker) (*Miner, error) {
 }
 
 func InsertTest() {
-	txn := MinerDB.Txn(true)
+	txn := Chart.Txn(true)
 
 	// Insert some people
 	people := []*Miner{
@@ -101,7 +91,7 @@ func InsertTest() {
 
 func ReadMiners() {
 
-	txn := MinerDB.Txn(false)
+	txn := Chart.Txn(false)
 	defer txn.Abort()
 	// Lookup by email
 	raw, err := txn.First("miners", "id", "1231232133")

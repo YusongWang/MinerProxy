@@ -206,3 +206,8 @@ func Announcement(c *gin.Context) {
 		"code": 200,
 	})
 }
+
+func Cpu(c *gin.Context)      {}
+func Mem(c *gin.Context)      {}
+func Worker(c *gin.Context)   {}
+func Hashrate(c *gin.Context) {}

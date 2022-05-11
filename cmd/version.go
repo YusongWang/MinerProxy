@@ -2,13 +2,9 @@ package cmd
 
 import (
 	"fmt"
+	"miner_proxy/global"
 
 	"github.com/spf13/cobra"
-)
-
-var (
-	version string
-	commit  string
 )
 
 func init() {
@@ -20,6 +16,6 @@ var versionCmd = &cobra.Command{
 	Short: "打印当前版本号",
 	Long:  `打印当前版本号`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("当前版本号: %v 当前commit: %v \n", version, commit)
+		fmt.Printf("当前版本号: %v 当前commit: %v \n", global.Version, global.Commit)
 	},
 }
