@@ -10,7 +10,6 @@ import (
 	"miner_proxy/utils"
 	"miner_proxy/web/logics"
 	"miner_proxy/web/models"
-	_ "miner_proxy/web/models"
 	routeRegister "miner_proxy/web/routes"
 	"net/http"
 	"strconv"

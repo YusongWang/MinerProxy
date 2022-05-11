@@ -1,5 +1,0 @@
-make --dry-run --always-make --keep-going --print-directory
-make: Entering directory '/Users/yusong/works/go_works/src/MinerProxy'
-go build -o MinerProxy main.go
-make: Leaving directory '/Users/yusong/works/go_works/src/MinerProxy'
- 

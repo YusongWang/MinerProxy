@@ -2,17 +2,13 @@ package controllers
 
 import (
 	"miner_proxy/global"
-	"miner_proxy/utils"
+
 	"miner_proxy/web/logics"
 	"miner_proxy/web/models"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/levigross/grequests"
-	"github.com/shirou/gopsutil/cpu"
-	"github.com/shirou/gopsutil/mem"
-	"go.uber.org/zap"
 )
 
 // 首页展示数据接口
@@ -25,25 +21,6 @@ func Home(c *gin.Context) {
 		"msg":  "",
 		"code": 200,
 	})
-}
-
-// 系统性能接口
-func System(c *gin.Context) {
-	utils.Logger.Info("cpu", zap.Any("Cpu", GetCpuPercent()))
-	utils.Logger.Info("mem", zap.Any("mem", GetMemPercent()))
-	c.JSON(200, gin.H{
-		"msg": "pong",
-	})
-}
-
-func GetCpuPercent() float64 {
-	percent, _ := cpu.Percent(time.Second, false)
-	return percent[0]
-}
-
-func GetMemPercent() float64 {
-	memInfo, _ := mem.VirtualMemory()
-	return memInfo.UsedPercent
 }
 
 func Version(c *gin.Context) {
