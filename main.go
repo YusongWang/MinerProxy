@@ -7,6 +7,13 @@ import (
 	"runtime"
 )
 
+var (
+	version string
+	commit  string
+	branch  string
+	auther  string
+)
+
 func main() {
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)

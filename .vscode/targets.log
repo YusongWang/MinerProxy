@@ -1,0 +1,359 @@
+make all --print-data-base --no-builtin-variables --no-builtin-rules --question
+# GNU Make 4.3
+# Built for x86_64-apple-darwin20.1.0
+# Copyright (C) 1988-2020 Free Software Foundation, Inc.
+# License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+# This is free software: you are free to change and redistribute it.
+# There is NO WARRANTY, to the extent permitted by law.
+
+# Make data base, printed on Tue May 10 17:43:12 2022
+
+# Variables
+
+# environment
+LC_TERMINAL = iTerm2
+# environment
+GO111MODULE = auto
+# environment
+LC_ALL = C
+# environment
+TMPDIR = /var/folders/vx/fj8nm8zj24x8dg747ts5czfr0000gn/T/
+# environment
+XPC_SERVICE_NAME = application.com.microsoft.VSCode.64071200.64071206.DA889265-4766-4BBC-9226-5D041EA05FAA
+# environment
+rvm_docs_type = 
+# environment
+VSCODE_IPC_HOOK_EXTHOST = /var/folders/vx/fj8nm8zj24x8dg747ts5czfr0000gn/T/vscode-ipc-4665e316-a7ea-4dda-92d4-405b11be3fef.sock
+# environment
+PUB_HOSTED_URL = https://pub.flutter-io.cn
+# environment
+rvm_quiet_flag = 
+# environment
+rvm_ruby_bits = 
+# environment
+VSCODE_CWD = /Users/yusong/works/go_works/src
+# environment
+LC_TERMINAL_VERSION = 3.4.4
+# default
+MAKE_COMMAND := make
+# environment
+GOPATH = /Users/yusong/works/go_works
+# environment
+rvm_bin_path = /Users/yusong/.rvm/bin
+# environment
+__CFBundleIdentifier = com.microsoft.VSCode
+# automatic
+@D = $(patsubst %/,%,$(dir $@))
+# environment
+VSCODE_HANDLES_UNCAUGHT_ERRORS = true
+# default
+.VARIABLES := 
+# environment
+COMMAND_MODE = unix2003
+# environment
+PWD = /Users/yusong/works/go_works/src/MinerProxy
+# automatic
+%D = $(patsubst %/,%,$(dir $%))
+# environment
+LSCOLORS = Gxfxcxdxbxegedabagacad
+# automatic
+^D = $(patsubst %/,%,$(dir $^))
+# environment
+VSCODE_LOG_STACK = false
+# automatic
+%F = $(notdir $%)
+# environment
+VSCODE_CODE_CACHE_PATH = /Users/yusong/Library/Application Support/Code/CachedData/57fd6d0195bb9b9d1b49f6da5db789060795de47
+# environment
+rvm_sdk = 
+# environment
+LANG = C
+# environment
+rvm_gemstone_package_file = 
+# default
+.LOADED := 
+# default
+.INCLUDE_DIRS = /usr/local/Cellar/make/4.3/include /usr/local/include
+# environment
+GEM_PATH = /Users/yusong/.rvm/gems/ruby-2.6.3:/Users/yusong/.rvm/rubies/ruby-2.6.3/lib/ruby/gems/2.6.0
+# environment
+COLORFGBG = 7;0
+# environment
+__CF_USER_TEXT_ENCODING = 0x1F5:0x19:0x34
+# makefile
+MAKEFLAGS = pqrR
+# environment
+ANSIBLE_HOSTS = /Users/yusong/.ansible/hosts
+# makefile
+CURDIR := /Users/yusong/works/go_works/src/MinerProxy
+# environment
+VSCODE_PIPE_LOGGING = true
+# environment
+APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = 1
+# automatic
+*D = $(patsubst %/,%,$(dir $*))
+# environment
+MFLAGS = -pqrR
+# environment
+SSH_AUTH_SOCK = /private/tmp/com.apple.launchd.ZyYoVLeGmx/Listeners
+# default
+.SHELLFLAGS := -c
+# environment
+rvm_gemstone_url = 
+# automatic
++D = $(patsubst %/,%,$(dir $+))
+# makefile (from 'makefile', line 1)
+MAKEFILE_LIST := makefile
+# automatic
+@F = $(notdir $@)
+# environment
+ZSH = /Users/yusong/.oh-my-zsh
+# environment
+VSCODE_VERBOSE_LOGGING = true
+# environment
+VSCODE_PID = 42382
+# environment
+rvm_pretty_print_flag = 
+# automatic
+?D = $(patsubst %/,%,$(dir $?))
+# environment
+rvm_ruby_make = 
+# environment
+rvm_only_path_flag = 
+# automatic
+*F = $(notdir $*)
+# environment
+rvm_ruby_make_install = 
+# automatic
+<D = $(patsubst %/,%,$(dir $<))
+# environment
+ITERM_PROFILE = Default
+# environment
+rvm_nightly_flag = 
+# environment
+VSCODE_NLS_CONFIG = {"locale":"zh-cn","availableLanguages":{"*":"zh-cn"},"_languagePackId":"1a7316c624e1dd66d26cf581ee0fb4ca.zh-cn","_translationsConfigFile":"/Users/yusong/Library/Application Support/Code/clp/1a7316c624e1dd66d26cf581ee0fb4ca.zh-cn/tcf.json","_cacheRoot":"/Users/yusong/Library/Application Support/Code/clp/1a7316c624e1dd66d26cf581ee0fb4ca.zh-cn","_resolvedLanguagePackCoreLocation":"/Users/yusong/Library/Application Support/Code/clp/1a7316c624e1dd66d26cf581ee0fb4ca.zh-cn/57fd6d0195bb9b9d1b49f6da5db789060795de47","_corruptedFile":"/Users/yusong/Library/Application Support/Code/clp/1a7316c624e1dd66d26cf581ee0fb4ca.zh-cn/corrupted.info","_languagePackSupport":true}
+# environment
+ANDROID_SDK_ROOT = /Users/yusong/Library/Android/sdk
+# default
+MAKE_HOST := x86_64-apple-darwin20.1.0
+# makefile
+SHELL = /bin/sh
+# default
+MAKECMDGOALS := all
+# environment
+SHLVL = 3
+# environment
+rvm_path = /Users/yusong/.rvm
+# environment
+rvm_alias_expanded = 
+# environment
+MAKELEVEL := 0
+# environment
+ITERM_SESSION_ID = w0t0p0:7EB5444D-2131-4217-97ED-D51D5E8ABB44
+# default
+MAKE = $(MAKE_COMMAND)
+# environment
+PATH = /usr/local/go/bin:/usr/local/opt/python@3.7/bin:/Users/yusong/works/lang/v/:/usr/local/opt/ruby/bin:/usr/local/opt/php@7.4/sbin:/usr/local/opt/php@7.4/bin:/Users/yusong/.tiup/bin:/Users/yusong/works/software/flutter-sdk/bin:/usr/local/opt/make/libexec/gnubin:/Applications/Julia-1.6.app/Contents/Resources/julia/bin:/usr/local/php73/bin:/Users/yusong/.composer/vendor/bin:/usr/local/sbin:/Users/yusong/works/flutter/flutter/bin:/Users/yusong/works/go_works/bin:/Users/yusong/.cargo/bin:/Users/yusong/.rvm/gems/ruby-2.6.3/bin:/Users/yusong/.rvm/gems/ruby-2.6.3@global/bin:/Users/yusong/.rvm/rubies/ruby-2.6.3/bin:/Users/yusong/works/go_works/bin:/opt/local/bin:/opt/local/sbin:/Users/yusong/.cargo/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin:/Users/yusong/.rvm/bin:/Users/yusong/.rvm/bin:/Users/yusong/.emacs.d/bin/:/Users/yusong/works/zig/
+# default
+MAKEFILES := 
+# automatic
+^F = $(notdir $^)
+# environment
+VIRTUAL_ENV_DISABLE_PROMPT = 1
+# environment
+GOROOT = /usr/local/go
+# environment
+rvm_silent_flag = 
+# environment
+rvm_niceness = 
+# environment
+VSCODE_LOG_NATIVE = false
+# environment
+TERM_PROGRAM = iTerm.app
+# automatic
+?F = $(notdir $?)
+# environment
+rvm_ruby_mode = 
+# environment
+rvm_hook = 
+# automatic
++F = $(notdir $+)
+# environment
+LESS = -R
+# environment
+ORIGINAL_XDG_CURRENT_DESKTOP = undefined
+# 'override' directive
+GNUMAKEFLAGS := 
+# environment
+LOGNAME = yusong
+# environment
+XPC_FLAGS = 0x0
+# makefile
+.DEFAULT_GOAL := all
+# environment
+rvm_version = 1.29.12 (latest)
+# environment
+USER = yusong
+# default
+MAKE_VERSION := 4.3
+# environment
+TERM_SESSION_ID = w0t0p0:7EB5444D-2131-4217-97ED-D51D5E8ABB44
+# environment
+PAGER = less
+# environment
+_ = /usr/local/opt/make/libexec/gnubin/make
+# environment
+GEM_HOME = /Users/yusong/.rvm/gems/ruby-2.6.3
+# environment
+COLORTERM = truecolor
+# environment
+GOMODCACHE = /Users/yusong/works/go_works/pkg/mod
+# environment
+VSCODE_AMD_ENTRYPOINT = vs/workbench/api/node/extensionHostProcess
+# environment
+FLUTTER_STORAGE_BASE_URL = https://storage.flutter-io.cn
+# environment
+HOME = /Users/yusong
+# environment
+rvm_ruby_file = 
+# environment
+ELECTRON_RUN_AS_NODE = 1
+# environment
+TERM = xterm-256color
+# environment
+VSCODE_IPC_HOOK = /Users/yusong/Library/Application Support/Code/1.67.0-main.sock
+# environment
+rvm_use_flag = 
+# environment
+GOPROXY = https://goproxy.cn
+# default
+.RECIPEPREFIX := 
+# automatic
+<F = $(notdir $<)
+# default
+SUFFIXES := 
+# environment
+HOMEBREW_BOTTLE_DOMAIN = https://mirrors.ustc.edu.cn/homebrew-bottles
+# environment
+rvm_bin_flag = 
+# environment
+VSCODE_CLI = 1
+# environment
+ELECTRON_NO_ATTACH_CONSOLE = 1
+# environment
+rvm_proxy = 
+# default
+.FEATURES := target-specific order-only second-expansion else-if shortest-stem undefine oneshell nocomment grouped-target extra-prereqs archives jobserver output-sync check-symlink load
+# environment
+rvm_prefix = /Users/yusong
+# environment
+HOMEBREW_NO_AUTO_UPDATE = true
+# environment
+TERM_PROGRAM_VERSION = 3.4.4
+# environment
+rvm_script_name = 
+# variable set hash-table stats:
+# Load=121/1024=12%, Rehash=0, Collisions=8/152=5%
+
+# Pattern-specific Variable Values
+
+# No pattern-specific variable values.
+
+# Directories
+
+# . (device 16777220, inode 60913141): 36 files, no impossibilities.
+
+# 36 files, no impossibilities in 1 directories.
+
+# Implicit Rules
+
+# No implicit rules.
+
+# Files
+
+prod:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'makefile', line 6):
+	sh ./build-all.sh
+
+vue:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'makefile', line 8):
+	go-bindata-assetfs -o=asset/asset.go -pkg=asset dist/...
+
+ 
+# Not a target:
+.DEFAULT:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+all:
+#  Command line target.
+#  Implicit rule search has not been done.
+#  Implicit/static pattern stem: ''
+#  File does not exist.
+#  File has been updated.
+#  Needs to be updated (-q is set).
+# automatic
+# @ := all
+# automatic
+# * := 
+# automatic
+# < := 
+# automatic
+# + := 
+# automatic
+# % := 
+# automatic
+# ^ := 
+# automatic
+# ? := 
+# automatic
+# | := 
+# variable set hash-table stats:
+# Load=8/32=25%, Rehash=0, Collisions=1/11=9%
+#  recipe to execute (from 'makefile', line 2):
+	go build -o MinerProxy main.go
+
+# Not a target:
+makefile:
+#  Implicit rule search has been done.
+#  Last modified 2022-05-07 16:05:51.744441337
+#  File has been updated.
+#  Successfully updated.
+
+# Not a target:
+.SUFFIXES:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+
+linux:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  recipe to execute (from 'makefile', line 4):
+	CGO_ENABLED=0 GOOS="linux" GOARCH="amd64" go build -a -ldflags '-extldflags "-static"' -o "build/MinerProxy-linux-amd64" main.go
+
+# files hash-table stats:
+# Load=7/1024=1%, Rehash=0, Collisions=0/19=0%
+# VPATH Search Paths
+
+# No 'vpath' search paths.
+
+# No general ('VPATH' variable) search path.
+
+# strcache buffers: 1 (0) / strings = 44 / storage = 351 B / avg = 7 B
+# current buf: size = 8162 B / used = 351 B / count = 44 / avg = 7 B
+
+# strcache performance: lookups = 53 / hit rate = 16%
+# hash-table stats:
+# Load=44/8192=1%, Rehash=0, Collisions=0/53=0%
+# Finished Make data base on Tue May 10 17:43:12 2022
+
+ 

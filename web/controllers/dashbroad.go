@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"miner_proxy/global"
 	"miner_proxy/utils"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -177,7 +178,8 @@ func Version(c *gin.Context) {
 			"code": 300,
 		})
 	}
-
+	doc := resp.String()
+	strings.Split(doc, "")
 	c.JSON(200, gin.H{
 		"data": resp.String(),
 		"msg":  "",
