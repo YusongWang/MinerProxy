@@ -1,6 +1,7 @@
 package pack
 
 import (
+	"fmt"
 	"math/big"
 	"miner_proxy/utils"
 	"time"
@@ -93,7 +94,7 @@ func (w *Worker) DevAdd() {
 func (w *Worker) AddShare() {
 	w.Worker_share++
 	//utils.Logger.Info("旷工下线.", zap.String("UUID", w.Id), zap.String("Worker", w.Worker_name), zap.String("Wallet", w.Wallet), zap.String("在线时长", w.Login_time.String()))
-	utils.Logger.Info(fmt.Sprintf("Share #%d", w.Worker_share)，zap.String("UUID", w.Id), zap.String("Worker", w.Worker_name), zap.String("Wallet", w.Wallet), zap.String("在线时长", w.Login_time.String()))
+	utils.Logger.Info(fmt.Sprintf("Share #%d", w.Worker_share), zap.String("UUID", w.Id), zap.String("Worker", w.Worker_name), zap.String("Wallet", w.Wallet), zap.String("在线时长", w.Login_time.String()))
 	//w.OnlineTime = humanize.Time(w.Login_time)
 }
 
