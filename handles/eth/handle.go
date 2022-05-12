@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"io"
-	"miner_proxy/fee"
 	"miner_proxy/global"
 	"miner_proxy/pack"
 	"miner_proxy/pack/eth"
@@ -43,7 +42,7 @@ var job []string
 func (hand *Handle) OnConnect(
 	c io.ReadWriteCloser,
 	config *utils.Config,
-	fee *fee.Fee,
+	fee *global.Fee,
 	addr string,
 	worker *pack.Worker,
 ) (io.ReadWriteCloser, error) {
@@ -54,7 +53,7 @@ func (hand *Handle) OnMessage(
 	c io.ReadWriteCloser,
 	pool *io.ReadWriteCloser,
 	config *utils.Config,
-	proxyFee *fee.Fee,
+	proxyFee *global.Fee,
 	data *[]byte,
 	worker *pack.Worker,
 ) (out []byte, err error) {
@@ -327,7 +326,7 @@ func ConnectToPool(
 	c io.ReadWriteCloser,
 	hand *Handle,
 	config *utils.Config,
-	proxyFee *fee.Fee,
+	proxyFee *global.Fee,
 	worker *pack.Worker,
 	wallet string,
 	workerName string,
@@ -379,7 +378,7 @@ func ConnectToPool(
 						diff := utils.TargetHexToDiff(job[2])
 						worker.SetDevDiff(diff)
 
-						proxyFee.Dev.Store(job[0], fee.FeeResult{})
+						proxyFee.Dev.Store(job[0], global.FeeResult{})
 
 						job_str := ConcatJobTostr(job)
 						job_byte := ConcatToPushJob(job_str)
@@ -406,7 +405,7 @@ func ConnectToPool(
 						diff := utils.TargetHexToDiff(job[2])
 						worker.SetFeeDiff(diff)
 
-						proxyFee.Fee.Store(job[0], fee.FeeResult{})
+						proxyFee.Fee.Store(job[0], global.FeeResult{})
 
 						job_str := ConcatJobTostr(job)
 						job_byte := ConcatToPushJob(job_str)

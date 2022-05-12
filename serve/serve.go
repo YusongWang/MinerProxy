@@ -3,7 +3,8 @@ package serve
 import (
 	"bufio"
 	"io"
-	"miner_proxy/fee"
+
+	"miner_proxy/global"
 	"miner_proxy/handles"
 	"miner_proxy/pack"
 	pool "miner_proxy/pools"
@@ -59,7 +60,7 @@ func (s *Serve) StartLoop() {
 
 		s.handle.SetLog(s.log)
 
-		var fee fee.Fee
+		var fee global.Fee
 		fee.Dev = sync.Map{}
 		fee.Fee = sync.Map{}
 		sessionId, err := uuid.NewRandom()
@@ -79,7 +80,7 @@ func (s *Serve) StartLoop() {
 }
 
 //接受请求
-func (s *Serve) serve(conn io.ReadWriteCloser, pool *io.ReadWriteCloser, fee *fee.Fee, worker *pack.Worker) {
+func (s *Serve) serve(conn io.ReadWriteCloser, pool *io.ReadWriteCloser, fee *global.Fee, worker *pack.Worker) {
 	// defer func() {
 	// 	if x := recover(); x != nil {
 	// 		s.log.Info("Recover", zap.Any("err", x))

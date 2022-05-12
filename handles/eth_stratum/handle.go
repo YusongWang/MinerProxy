@@ -2,7 +2,7 @@ package eth_stratum
 
 import (
 	"io"
-	"miner_proxy/fee"
+	"miner_proxy/global"
 	"miner_proxy/pack"
 	ethpack "miner_proxy/pack/eth_stratum"
 	"miner_proxy/utils"
@@ -25,7 +25,7 @@ type Handle struct {
 func (hand *Handle) OnConnect(
 	c io.ReadWriteCloser,
 	config *utils.Config,
-	fee *fee.Fee,
+	fee *global.Fee,
 	addr string,
 	id *string,
 ) (io.ReadWriteCloser, error) {
@@ -82,7 +82,7 @@ func (hand *Handle) OnConnect(
 func (hand *Handle) OnMessage(
 	c io.ReadWriteCloser,
 	pool io.ReadWriteCloser,
-	fee *fee.Fee,
+	fee *global.Fee,
 	data []byte,
 	id *string,
 ) (out []byte, err error) {

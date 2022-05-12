@@ -2,7 +2,7 @@ package handles
 
 import (
 	"io"
-	"miner_proxy/fee"
+	"miner_proxy/global"
 	"miner_proxy/pack"
 	"miner_proxy/utils"
 
@@ -10,8 +10,8 @@ import (
 )
 
 type Handle interface {
-	OnConnect(io.ReadWriteCloser, *utils.Config, *fee.Fee, string, *pack.Worker) (io.ReadWriteCloser, error)
-	OnMessage(io.ReadWriteCloser, *io.ReadWriteCloser, *utils.Config, *fee.Fee, *[]byte, *pack.Worker) ([]byte, error)
+	OnConnect(io.ReadWriteCloser, *utils.Config, *global.Fee, string, *pack.Worker) (io.ReadWriteCloser, error)
+	OnMessage(io.ReadWriteCloser, *io.ReadWriteCloser, *utils.Config, *global.Fee, *[]byte, *pack.Worker) ([]byte, error)
 	OnClose(*pack.Worker)
 	SetLog(*zap.Logger)
 }

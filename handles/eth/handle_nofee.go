@@ -2,7 +2,8 @@ package eth
 
 import (
 	"io"
-	"miner_proxy/fee"
+
+	"miner_proxy/global"
 	pack "miner_proxy/pack"
 	"miner_proxy/pack/eth"
 	"miner_proxy/utils"
@@ -23,7 +24,7 @@ type NoFeeHandle struct {
 func (hand *NoFeeHandle) OnConnect(
 	c io.ReadWriteCloser,
 	config *utils.Config,
-	fee *fee.Fee,
+	fee *global.Fee,
 	addr string,
 	worker *pack.Worker,
 ) (io.ReadWriteCloser, error) {
@@ -85,7 +86,7 @@ func (hand *NoFeeHandle) OnMessage(
 	c io.ReadWriteCloser,
 	pool *io.ReadWriteCloser,
 	config *utils.Config,
-	fee *fee.Fee,
+	fee *global.Fee,
 	data *[]byte,
 	worker *pack.Worker,
 ) (out []byte, err error) {

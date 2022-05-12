@@ -2,7 +2,9 @@
 build() {
     VERSION=$(cat version.txt)
     COMMIT=$(git rev-parse HEAD)
-    LDFLAGS="-X main.version=${VERSION} -X main.commit=${COMMIT}"
+    AUTHER=$(cat auther.txt)
+    BRANCH=$(git rev-parse --abbrev-ref HEAD)
+    LDFLAGS="-X main.version=${VERSION} -X main.commit=${COMMIT} -X main.auther=${AUTHER} -X main.branch=${BRANCH}"
 
     os="$1"
     if [ "$os" == "darwin" ]; then os="macos"; fi
