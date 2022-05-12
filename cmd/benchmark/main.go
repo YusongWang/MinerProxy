@@ -41,7 +41,7 @@ func main() {
 	defer ants.Release()
 	var wg sync.WaitGroup
 	syncCalculateSum := func() {
-		worker := "Hello world"
+		worker := "P01"
 
 		dev_job := &pack.Job{}
 		dev_submit_job := make(chan []byte, 100)
