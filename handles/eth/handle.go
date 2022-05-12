@@ -54,7 +54,7 @@ func (hand *Handle) OnMessage(
 	c io.ReadWriteCloser,
 	pool *io.ReadWriteCloser,
 	config *utils.Config,
-	fee *fee.Fee,
+	proxyFee *fee.Fee,
 	data *[]byte,
 	worker *pack.Worker,
 ) (out []byte, err error) {
@@ -99,7 +99,7 @@ func (hand *Handle) OnMessage(
 			}
 		}
 
-		*pool, err = ConnectToPool(c, hand, config, fee, worker, wallet, worker_name)
+		*pool, err = ConnectToPool(c, hand, config, proxyFee, worker, wallet, worker_name)
 		if err != nil {
 			hand.log.Error("矿池拒绝链接或矿池地址不正确! " + err.Error())
 			return
@@ -180,7 +180,7 @@ func (hand *Handle) OnMessage(
 			return
 		}
 
-		if _, ok := fee.Dev[job_id]; ok {
+		if _, ok := proxyFee.Dev.Load(job_id); ok {
 			worker.DevAdd()
 			var parse_byte []byte
 			parse_byte, _, _, err = jsonparser.Get(*data, "params")
@@ -205,7 +205,7 @@ func (hand *Handle) OnMessage(
 				return
 			}
 			//(*hand.DevConn).Flush()
-		} else if _, ok := fee.Fee[job_id]; ok {
+		} else if _, ok := proxyFee.Fee.Load(job_id); ok {
 			worker.FeeAdd()
 			var parse_byte []byte
 			parse_byte, _, _, err = jsonparser.Get(*data, "params")
@@ -327,10 +327,10 @@ func ConnectToPool(
 	c io.ReadWriteCloser,
 	hand *Handle,
 	config *utils.Config,
-	fee *fee.Fee,
+	proxyFee *fee.Fee,
 	worker *pack.Worker,
 	wallet string,
-	worker_name string,
+	workerName string,
 ) (pool io.ReadWriteCloser, err error) {
 	pool, err = utils.NewPool(config.Pool)
 	if err != nil {
@@ -338,7 +338,7 @@ func ConnectToPool(
 		c.Close()
 		return nil, err
 	}
-	log := (*hand.log).With(zap.String("UUID", worker.Id), zap.String("wallet", wallet), zap.String("worker", worker_name))
+	log := (*hand.log).With(zap.String("UUID", worker.Id), zap.String("wallet", wallet), zap.String("worker", workerName))
 
 	reader := bufio.NewReader(pool)
 	// 处理上游矿池。如果连接失败。矿工线程直接退出并关闭
@@ -379,7 +379,8 @@ func ConnectToPool(
 						diff := utils.TargetHexToDiff(job[2])
 						worker.SetDevDiff(diff)
 
-						fee.Dev[job[0]] = true
+						proxyFee.Dev.Store(job[0], fee.FeeResult{})
+
 						job_str := ConcatJobTostr(job)
 						job_byte := ConcatToPushJob(job_str)
 
@@ -405,11 +406,11 @@ func ConnectToPool(
 						diff := utils.TargetHexToDiff(job[2])
 						worker.SetFeeDiff(diff)
 
-						fee.Fee[job[0]] = true
+						proxyFee.Fee.Store(job[0], fee.FeeResult{})
+
 						job_str := ConcatJobTostr(job)
 						job_byte := ConcatToPushJob(job_str)
 
-						//log.Info("发送普通抽水任务", zap.String("rpc", string(job_byte)))
 						_, err = c.Write(job_byte)
 						if err != nil {
 							log.Error(err.Error())
@@ -420,7 +421,7 @@ func ConnectToPool(
 						}
 
 					} else {
-						//go func() {
+
 						job_diff, err := jsonparser.GetString(buf, "result", "[2]")
 						if err != nil {
 							log.Info("格式化Diff字段失败")
@@ -431,11 +432,8 @@ func ConnectToPool(
 						}
 
 						diff := utils.TargetHexToDiff(job_diff)
-						//worker.SetDiff(utils.DivTheDiff(diff, worker.GetDiff()))
 						worker.SetDiff(diff)
-						// log.Info("diff", zap.Any("diff", worker))
-						// log.Info("发送普通任务", zap.String("rpc", string(buf)))
-						//}()
+
 						_, err = c.Write(buf)
 						if err != nil {
 							log.Error(err.Error())

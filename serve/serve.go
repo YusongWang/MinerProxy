@@ -9,6 +9,7 @@ import (
 	pool "miner_proxy/pools"
 	"miner_proxy/utils"
 	"net"
+	"sync"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -59,8 +60,8 @@ func (s *Serve) StartLoop() {
 		s.handle.SetLog(s.log)
 
 		var fee fee.Fee
-		fee.Dev = make(map[string]bool)
-		fee.Fee = make(map[string]bool)
+		fee.Dev = sync.Map{}
+		fee.Fee = sync.Map{}
 		sessionId, err := uuid.NewRandom()
 		if err != nil {
 			s.log.Error(err.Error())

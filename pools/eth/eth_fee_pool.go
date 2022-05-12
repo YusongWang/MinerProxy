@@ -188,8 +188,8 @@ func (eth *EthStratumServer) SubmitJob(job []byte) error {
 
 // bradcase 当前工作
 func (eth *EthStratumServer) NotifyWorks(job []string) error {
-	if len(eth.Job.Job) >= 500 {
-		eth.Job.Job = eth.Job.Job[400:len(eth.Job.Job)]
+	if len(eth.Job.Job) >= 1000 {
+		eth.Job.Job = eth.Job.Job[800:len(eth.Job.Job)]
 	}
 
 	eth.Job.Job = append(eth.Job.Job, job)
