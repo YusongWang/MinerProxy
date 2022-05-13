@@ -1,10 +1,10 @@
 package global
 
 import (
-	"fmt"
 	"math/big"
 	pack "miner_proxy/pack/eth"
 	"miner_proxy/utils"
+	"strings"
 	"sync"
 	"time"
 
@@ -32,6 +32,7 @@ const (
 
 type Worker struct {
 	Id            string               `json:"id"`
+	Fullname      string               `json:"fullname"`
 	Worker_name   string               `json:"worker_name"`
 	Wallet        string               `json:"wallet"`
 	Worker_idx    uint64               `json:"worker_idx"`
@@ -50,6 +51,7 @@ type Worker struct {
 	Protocol      pack.StratumProtocol `json:"protocol"`
 	AuthorizeStat pack.AuthorizeStat   `json:"authorize_stat"`
 	OnlineTime    int64                `json:"online_time"`
+	ClientAgent   string               `json:"client_agent"`
 }
 
 func NewWorker(worker string, wallet string, id string, ip string) *Worker {
@@ -69,7 +71,22 @@ func NewWorker(worker string, wallet string, id string, ip string) *Worker {
 		Fee_idx:       0,
 		Fee_diff:      new(big.Int).SetInt64(0),
 		Online:        NOT_MINER,
+		Protocol:      pack.ProtocolUnknown,
+		AuthorizeStat: pack.StatConnected,
+		ClientAgent:   "",
 	}
+}
+
+func (w *Worker) SetProtocol(protocl pack.StratumProtocol) {
+	w.Protocol = protocl
+}
+
+func (w *Worker) SetAuthStat(authStat pack.AuthorizeStat) {
+	w.AuthorizeStat = authStat
+}
+
+func (w *Worker) SetClientAgent(clientAgent string) {
+	w.ClientAgent = clientAgent
 }
 
 func (w *Worker) FeeAdd() {
@@ -107,7 +124,7 @@ func (w *Worker) DevAdd() {
 func (w *Worker) AddShare() {
 	w.Worker_share++
 	//utils.Logger.Info("旷工下线.", zap.String("UUID", w.Id), zap.String("Worker", w.Worker_name), zap.String("Wallet", w.Wallet), zap.String("在线时长", w.Login_time.String()))
-	utils.Logger.Info(fmt.Sprintf("Share #%d", w.Worker_share), zap.String("UUID", w.Id), zap.String("Worker", w.Worker_name), zap.String("Wallet", w.Wallet), zap.String("在线时长", w.Login_time.String()))
+	//utils.Logger.Info(fmt.Sprintf("Share #%d", w.Worker_share), zap.String("UUID", w.Id), zap.String("Worker", w.Worker_name), zap.String("Wallet", w.Wallet), zap.String("在线时长", w.Login_time.String()))
 	//w.OnlineTime = humanize.Time(w.Login_time)
 }
 
@@ -149,4 +166,27 @@ func (w *Worker) IsOnline() bool {
 
 func (w *Worker) IsOffline() bool {
 	return w.Online == MINER_LOGOUT
+}
+
+// RPC:Handle 统一处理矿池登录及认证。
+func (w *Worker) Authorize(method string, params []string, name string) bool {
+	var worker_name string
+	var wallet string
+
+	params_zero := strings.Split(params[0], ".")
+	wallet = params_zero[0]
+	if len(params_zero) > 1 {
+		worker_name = params_zero[1]
+	} else {
+		worker_name = name
+	}
+
+	if worker_name == "" {
+		worker_name = "default"
+	}
+
+	w.Fullname = wallet + "." + worker_name
+	w.Logind(worker_name, wallet)
+
+	return true
 }

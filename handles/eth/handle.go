@@ -3,13 +3,13 @@ package eth
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"io"
 	"miner_proxy/global"
 	"miner_proxy/pack/eth"
 	pools "miner_proxy/pools"
 	"miner_proxy/utils"
 	"strings"
-	"sync"
 
 	//"github.com/pkg/profile"
 
@@ -63,10 +63,41 @@ func (hand *Handle) OnMessage(
 		return
 	}
 
+	var rpc_id int64
+	rpc_id, err = jsonparser.GetInt(*data, "id")
+	if err != nil {
+		err = nil
+		rpc_id = 0
+	}
+
 	switch method {
+	case "mining.subscribe":
+		// 直接返回
+		out, err = eth.EthSuccess(rpc_id)
+		if err != nil {
+			hand.log.Error(err.Error())
+			c.Close()
+			return
+		}
+		*pool, err = ConnectToPool(c, hand, config, proxyFee, worker)
+		if err != nil {
+			hand.log.Error("矿池拒绝链接或矿池地址不正确! " + err.Error())
+			return
+		}
+		_, err = (*pool).Write(*data)
+		if err != nil {
+			hand.log.Error("写入矿池失败: " + err.Error())
+			c.Close()
+			return
+		}
+
+		return
+	case "mining.authorize":
+		fallthrough
 	case "eth_submitLogin":
 		var params []string
 		var parse_byte []byte
+		var name string
 		parse_byte, _, _, err = jsonparser.Get(*data, "params")
 		if err != nil {
 			hand.log.Error(err.Error())
@@ -81,46 +112,25 @@ func (hand *Handle) OnMessage(
 			return
 		}
 
-		var worker_name string
-		var wallet string
-
-		params_zero := strings.Split(params[0], ".")
-		wallet = params_zero[0]
-		if len(params_zero) > 1 {
-			worker_name = params_zero[1]
-		} else {
-			worker_name, err = jsonparser.GetString(*data, "worker")
-			if err != nil {
-				hand.log.Error(err.Error())
-				c.Close()
-				return
-			}
-		}
-
-		*pool, err = ConnectToPool(c, hand, config, proxyFee, worker, wallet, worker_name)
-		if err != nil {
-			hand.log.Error("矿池拒绝链接或矿池地址不正确! " + err.Error())
-			return
-		}
-		if worker_name == "" {
-			worker_name = "default"
-		}
-
-		worker_info := wallet + "." + worker_name
-
-		worker.Logind(worker_name, wallet)
-
-		global.GonlineWorkers.Lock()
-		global.GonlineWorkers.Workers[worker_info] = worker
-		global.GonlineWorkers.Unlock()
-
-		//hand.log.Info("登陆矿工.", zap.String("Worker", worker_name), zap.String("Wallet", wallet))
-
-		var rpc_id int64
-		rpc_id, err = jsonparser.GetInt(*data, "id")
+		name, err = jsonparser.GetString(*data, "worker")
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()
+			return
+		}
+
+		if !worker.Authorize(method, params, name) {
+			err = errors.New("矿工登录失败")
+			return
+		}
+
+		global.GonlineWorkers.Lock()
+		global.GonlineWorkers.Workers[worker.Wallet] = worker
+		global.GonlineWorkers.Unlock()
+
+		*pool, err = ConnectToPool(c, hand, config, proxyFee, worker)
+		if err != nil {
+			hand.log.Error("矿池拒绝链接或矿池地址不正确! " + err.Error())
 			return
 		}
 
@@ -139,10 +149,9 @@ func (hand *Handle) OnMessage(
 		}
 
 		return
+	case "mining.set_difficulty":
+		fallthrough
 	case "eth_getWork":
-		// if _, ok := hand.Workers[*id]; !ok {
-		// 	return
-		// }
 		_, err = (*pool).Write(*data)
 		if err != nil {
 			hand.log.Error("写入矿池失败: " + err.Error())
@@ -150,25 +159,9 @@ func (hand *Handle) OnMessage(
 			return
 		}
 		return
+	case "mining.submit":
+		fallthrough
 	case "eth_submitWork":
-		var wg sync.WaitGroup
-		wg.Add(1)
-		go func() {
-			id, err := jsonparser.GetInt(*data, "id")
-			if err != nil {
-				hand.log.Error(err.Error())
-				c.Close()
-				return
-			}
-			out, err = eth.EthSuccess(id)
-			if err != nil {
-				hand.log.Error(err.Error())
-				c.Close()
-				return
-			}
-			c.Write(out)
-			wg.Done()
-		}()
 
 		var job_id string
 		job_id, err = jsonparser.GetString(*data, "params", "[1]")
@@ -238,19 +231,20 @@ func (hand *Handle) OnMessage(
 			}
 		}
 
-		wg.Wait()
-		out = nil
-		err = nil
-		return
-	case "eth_submitHashrate":
-		var rpc_id int64
-		rpc_id, err = jsonparser.GetInt(*data, "id")
+		out, err = eth.EthSuccess(rpc_id)
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()
 			return
 		}
 
+		c.Write(out)
+		out = nil
+		err = nil
+		return
+	case "mining.extranonce.subscribe":
+		fallthrough
+	case "eth_submitHashrate":
 		{
 			var hashrate string
 			hashrate, err = jsonparser.GetString(*data, "params", "[0]")
@@ -275,10 +269,24 @@ func (hand *Handle) OnMessage(
 			return
 		}
 		return
+	// ignore unimplemented methods
+	case "mining.multi_version":
+		fallthrough
+	case "mining.suggest_difficulty":
+		// If no response, the miner may wait indefinitely
+		_, err = (*pool).Write(*data)
+		if err != nil {
+			hand.log.Error("写入矿池失败: " + err.Error())
+			c.Close()
+			return
+		}
+		return
 	default:
 		hand.log.Info("KnownRpc")
 		return
 	}
+
+	return
 }
 
 func (hand *Handle) OnClose(worker *global.Worker) {
@@ -327,8 +335,6 @@ func ConnectToPool(
 	config *utils.Config,
 	proxyFee *global.Fee,
 	worker *global.Worker,
-	wallet string,
-	workerName string,
 ) (pool io.ReadWriteCloser, err error) {
 	pool, err = utils.NewPool(config.Pool)
 	if err != nil {
@@ -336,7 +342,8 @@ func ConnectToPool(
 		c.Close()
 		return nil, err
 	}
-	log := (*hand.log).With(zap.String("UUID", worker.Id), zap.String("wallet", wallet), zap.String("worker", workerName))
+
+	log := (*hand.log).With(zap.String("UUID", worker.Id), zap.String("wallet", worker.Wallet), zap.String("worker", worker.Worker_name))
 
 	reader := bufio.NewReader(pool)
 	// 处理上游矿池。如果连接失败。矿工线程直接退出并关闭
