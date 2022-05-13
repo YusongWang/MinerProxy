@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"miner_proxy/pack"
+	"miner_proxy/global"
 	ethpool "miner_proxy/pools/eth"
 	"miner_proxy/utils"
 	"os"
@@ -43,7 +43,7 @@ func main() {
 	syncCalculateSum := func() {
 		worker := "P01"
 
-		dev_job := &pack.Job{}
+		dev_job := &global.Job{}
 		dev_submit_job := make(chan []byte, 100)
 
 		dev_pool, err := ethpool.New(pool, dev_job, dev_submit_job)

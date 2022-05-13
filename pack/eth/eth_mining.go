@@ -8,6 +8,37 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
+// AuthorizeStat 认证状态
+type AuthorizeStat uint8
+
+const (
+	StatConnected AuthorizeStat = iota
+	StatSubScribed
+	StatAuthorized
+	StatDisconnected
+	StatExit
+)
+
+// Stratum协议类型
+type StratumProtocol uint8
+
+const (
+	// 未知协议
+	ProtocolUnknown StratumProtocol = iota
+	// ETHProxy 协议
+	ProtocolETHProxy
+	// NiceHash 的 EthereumStratum/1.0.0 协议
+	ProtocolEthereumStratum
+	// 传统 Stratum 协议
+	ProtocolLegacyStratum
+)
+
+// NiceHash Ethereum Stratum Protocol 的协议类型前缀
+const EthereumStratumPrefix = "ethereumstratum/"
+
+// 响应中使用的 NiceHash Ethereum Stratum Protocol 的版本
+const EthereumStratumVersion = "EthereumStratum/1.0.0"
+
 //TODO 直接返回字符串。不用json解析
 
 var ethsuccess = `{"id":`

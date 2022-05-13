@@ -5,7 +5,6 @@ import (
 	"miner_proxy/global"
 	"miner_proxy/handles/eth"
 	"miner_proxy/network"
-	"miner_proxy/pack"
 	"strconv"
 	"time"
 
@@ -127,8 +126,8 @@ func StartIpcClient(id int) {
 }
 func BootWithFee(c utils.Config) error {
 
-	dev_job := &pack.Job{}
-	fee_job := &pack.Job{}
+	dev_job := &global.Job{}
+	fee_job := &global.Job{}
 
 	dev_submit_job := make(chan []byte, 100)
 	fee_submit_job := make(chan []byte, 100)

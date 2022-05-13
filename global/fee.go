@@ -17,3 +17,8 @@ type Fee struct {
 	Dev sync.Map
 	Fee sync.Map
 }
+
+// 保存当前JOB
+type Job struct {
+	Job [][]string
+}

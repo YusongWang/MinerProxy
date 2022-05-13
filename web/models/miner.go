@@ -3,7 +3,7 @@ package models
 import (
 	"fmt"
 	"math/big"
-	"miner_proxy/pack"
+	"miner_proxy/global"
 
 	memdb "github.com/hashicorp/go-memdb"
 )
@@ -109,10 +109,10 @@ func init() {
 }
 
 type Miner struct {
-	pack.Worker
+	global.Worker
 }
 
-func NewMiner(w pack.Worker) (*Miner, error) {
+func NewMiner(w global.Worker) (*Miner, error) {
 	return &Miner{w}, nil
 }
 
@@ -210,7 +210,7 @@ func InsertTest() {
 
 	// Insert some people
 	people := []*Miner{
-		&Miner{pack.Worker{
+		&Miner{global.Worker{
 			Id:            "1231232132",
 			Worker_name:   "t1",
 			Wallet:        "0x123",
@@ -218,7 +218,7 @@ func InsertTest() {
 			Worker_share:  10,
 			Worker_reject: 2,
 		}},
-		&Miner{pack.Worker{
+		&Miner{global.Worker{
 			Id:            "1231232132",
 			Worker_name:   "t1",
 			Wallet:        "0x123",
@@ -226,7 +226,7 @@ func InsertTest() {
 			Worker_share:  10,
 			Worker_reject: 2,
 		}},
-		&Miner{pack.Worker{
+		&Miner{global.Worker{
 			Id:            "1231232133",
 			Worker_name:   "t1",
 			Wallet:        "0x123",
@@ -234,7 +234,7 @@ func InsertTest() {
 			Worker_share:  10,
 			Worker_reject: 2,
 		}},
-		&Miner{pack.Worker{
+		&Miner{global.Worker{
 			Id:            "1231232134",
 			Worker_name:   "t1",
 			Wallet:        "0x123",

@@ -6,7 +6,6 @@ import (
 
 	"miner_proxy/global"
 	"miner_proxy/handles"
-	"miner_proxy/pack"
 	pool "miner_proxy/pools"
 	"miner_proxy/utils"
 	"net"
@@ -68,7 +67,7 @@ func (s *Serve) StartLoop() {
 			s.log.Error(err.Error())
 		}
 
-		worker := pack.NewWorker("", "", sessionId.String(), conn.RemoteAddr().String())
+		worker := global.NewWorker("", "", sessionId.String(), conn.RemoteAddr().String())
 
 		pool_net, err := s.handle.OnConnect(conn, s.config, &fee, conn.RemoteAddr().String(), worker)
 		if err != nil {
@@ -80,7 +79,7 @@ func (s *Serve) StartLoop() {
 }
 
 //接受请求
-func (s *Serve) serve(conn io.ReadWriteCloser, pool *io.ReadWriteCloser, fee *global.Fee, worker *pack.Worker) {
+func (s *Serve) serve(conn io.ReadWriteCloser, pool *io.ReadWriteCloser, fee *global.Fee, worker *global.Worker) {
 	// defer func() {
 	// 	if x := recover(); x != nil {
 	// 		s.log.Info("Recover", zap.Any("err", x))

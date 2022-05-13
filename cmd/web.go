@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/big"
 	"miner_proxy/global"
-	"miner_proxy/pack"
 	pool "miner_proxy/pools"
 	"miner_proxy/utils"
 	"miner_proxy/web/logics"
@@ -117,7 +116,7 @@ func StartIpcServer(id int) {
 				}
 
 				if msg.MsgType == 100 {
-					var p map[string]pack.Worker
+					var p map[string]global.Worker
 					err := json.Unmarshal(msg.Data, &p)
 					if err != nil {
 						log.Error("格式化矿工状态失败", zap.String("data", string(msg.Data)))
@@ -167,7 +166,7 @@ func StartIpcClient(id int) {
 				if err != nil {
 					log.Info("Ipc Channel Close")
 				}
-				var p map[string]pack.Worker
+				var p map[string]global.Worker
 				if msg.MsgType == 100 {
 					err := json.Unmarshal(msg.Data, &p)
 					if err != nil {

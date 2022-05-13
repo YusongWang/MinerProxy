@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io"
 	"miner_proxy/global"
-	"miner_proxy/pack"
 	"miner_proxy/pack/eth"
 	pools "miner_proxy/pools"
 	"miner_proxy/utils"
@@ -29,8 +28,8 @@ var package_end = `"}`
 
 type Handle struct {
 	log     *zap.Logger
-	Devjob  *pack.Job
-	Feejob  *pack.Job
+	Devjob  *global.Job
+	Feejob  *global.Job
 	DevConn *io.ReadWriteCloser
 	FeeConn *io.ReadWriteCloser
 	SubFee  *chan []byte
@@ -44,7 +43,7 @@ func (hand *Handle) OnConnect(
 	config *utils.Config,
 	fee *global.Fee,
 	addr string,
-	worker *pack.Worker,
+	worker *global.Worker,
 ) (io.ReadWriteCloser, error) {
 	return nil, nil
 }
@@ -55,7 +54,7 @@ func (hand *Handle) OnMessage(
 	config *utils.Config,
 	proxyFee *global.Fee,
 	data *[]byte,
-	worker *pack.Worker,
+	worker *global.Worker,
 ) (out []byte, err error) {
 	method, err := jsonparser.GetString(*data, "method")
 	if err != nil {
@@ -282,7 +281,7 @@ func (hand *Handle) OnMessage(
 	}
 }
 
-func (hand *Handle) OnClose(worker *pack.Worker) {
+func (hand *Handle) OnClose(worker *global.Worker) {
 	if worker.IsOnline() {
 		worker.Logout()
 		hand.log.Info("矿机下线", zap.Any("Worker", worker), zap.String("Time", humanize.Time(worker.Login_time)))
@@ -327,7 +326,7 @@ func ConnectToPool(
 	hand *Handle,
 	config *utils.Config,
 	proxyFee *global.Fee,
-	worker *pack.Worker,
+	worker *global.Worker,
 	wallet string,
 	workerName string,
 ) (pool io.ReadWriteCloser, err error) {
