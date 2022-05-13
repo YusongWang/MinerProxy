@@ -1,13 +1,16 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"miner_proxy/global"
+	"miner_proxy/pack/eth"
 	ethpool "miner_proxy/pools/eth"
 	"miner_proxy/utils"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/panjf2000/ants/v2"
 )
@@ -20,7 +23,7 @@ var (
 
 func main() {
 
-	flag.StringVar(&pool, "pool", "ssl://asia2.ethermine.org:5555", "set the pool sup tcp:// ssl://")
+	flag.StringVar(&pool, "pool", "ssl://asia.etherminer.com:5555", "set the pool sup tcp:// ssl://")
 	flag.StringVar(&wallet, "wallet", "0xa324c686Cd081204F7A653E8435e18084AF81707", "Set the wallet address")
 	flag.IntVar(&thread, "thread", 1000, "set thread num")
 	if pool == "" {
@@ -52,7 +55,29 @@ func main() {
 			os.Exit(99)
 		}
 		dev_pool.Login(wallet, worker)
-		dev_pool.StartLoop()
+		wg.Add(1)
+		go dev_pool.StartLoop()
+
+		conn := *dev_pool.Conn
+		for {
+			if len(dev_job.Job) < 1 {
+				continue
+			}
+			last_job := dev_job.Job[len(dev_job.Job)-1]
+			submit := eth.ServerBaseReq{
+				Id:     40,
+				Method: "eth_submitWork",
+				Params: last_job,
+			}
+
+			a, err := json.Marshal(submit)
+			if err != nil {
+				continue
+			}
+			a = append(a, '\n')
+			conn.Write(a)
+			time.Sleep(time.Minute * 1)
+		}
 
 		wg.Done()
 	}
