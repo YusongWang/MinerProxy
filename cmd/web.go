@@ -79,7 +79,7 @@ func ChangeWorkerOffline(id int) {
 	for {
 		for fullname, worker := range global.OnlinePools[id] {
 			if !worker.IsOffline() {
-				share_time_out := worker.ShareTime.Add(time.Minute * 30)
+				share_time_out := worker.ShareTime.Add(time.Minute * 5)
 				now := time.Now()
 				if now.Before(share_time_out) {
 					worker.Logout()
