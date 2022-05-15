@@ -63,22 +63,22 @@ func (hand *Handle) OnMessage(
 		return
 	}
 
-	var rpc_id int64
-	rpc_id, err = jsonparser.GetInt(*data, "id")
-	if err != nil {
-		err = nil
-		rpc_id = 0
-	}
+	// var rpc_id int64
+	// rpc_id, err = jsonparser.GetInt(*data, "id")
+	// if err != nil {
+	// 	err = nil
+	// 	rpc_id = 0
+	// }
 
 	switch method {
 	case "mining.subscribe":
 		// 直接返回
-		out, err = eth.EthSuccess(rpc_id)
-		if err != nil {
-			hand.log.Error(err.Error())
-			c.Close()
-			return
-		}
+		// out, err = eth.EthSuccess(rpc_id)
+		// if err != nil {
+		// 	hand.log.Error(err.Error())
+		// 	c.Close()
+		// 	return
+		// }
 
 		//TODO 解析协议，
 		//TODO 解析客户端 miner
@@ -136,12 +136,12 @@ func (hand *Handle) OnMessage(
 		global.GonlineWorkers.Workers[worker.Fullname] = worker
 		global.GonlineWorkers.Unlock()
 
-		out, err = eth.EthSuccess(rpc_id)
-		if err != nil {
-			hand.log.Error(err.Error())
-			c.Close()
-			return
-		}
+		// out, err = eth.EthSuccess(rpc_id)
+		// if err != nil {
+		// 	hand.log.Error(err.Error())
+		// 	c.Close()
+		// 	return
+		// }
 
 		_, err = (*pool).Write(*data)
 		if err != nil {
@@ -233,12 +233,12 @@ func (hand *Handle) OnMessage(
 			}
 		}
 
-		out, err = eth.EthSuccess(rpc_id)
-		if err != nil {
-			hand.log.Error(err.Error())
-			c.Close()
-			return
-		}
+		// out, err = eth.EthSuccess(rpc_id)
+		// if err != nil {
+		// 	hand.log.Error(err.Error())
+		// 	c.Close()
+		// 	return
+		// }
 
 		c.Write(out)
 		out = nil
@@ -256,12 +256,12 @@ func (hand *Handle) OnMessage(
 		}
 
 		// 直接返回
-		out, err = eth.EthSuccess(rpc_id)
-		if err != nil {
-			hand.log.Error(err.Error())
-			c.Close()
-			return
-		}
+		// out, err = eth.EthSuccess(rpc_id)
+		// if err != nil {
+		// 	hand.log.Error(err.Error())
+		// 	c.Close()
+		// 	return
+		// }
 		_, err = (*pool).Write(*data)
 		if err != nil {
 			hand.log.Error("写入矿池失败: " + err.Error())
@@ -354,105 +354,113 @@ func ConnectToPool(
 				pool.Close()
 				return
 			}
+			log.Info("Message", zap.String("RPC", string(buf)))
+			_, err = c.Write(buf)
+			if err != nil {
+				log.Error(err.Error())
 
-			if result, _, _, err := jsonparser.Get(buf, "result"); err == nil {
-				//if result, ok := buf.(bool); ok {
-				if res, err := jsonparser.ParseBoolean(result); err == nil {
-					//增加份额
-					if res {
-						worker.AddShare()
-					} else {
-						worker.AddReject()
-						log.Warn("无效份额", zap.Any("RPC", string(buf)))
-					}
-				} else {
-					worker.AddIndex()
-					if utils.BaseOnRandFee(worker.GetIndex(), pools.DevFee) {
-						if len(hand.Devjob.Job) > 0 {
-							job = hand.Devjob.Job[len(hand.Devjob.Job)-1]
-						} else {
-							continue
-						}
-
-						if len(job) == 0 {
-							log.Info("当前job内容为空")
-							continue
-						}
-						diff := utils.TargetHexToDiff(job[2])
-						worker.SetDevDiff(diff)
-
-						proxyFee.Dev.Store(job[0], global.FeeResult{})
-
-						job_str := ConcatJobTostr(job)
-						job_byte := ConcatToPushJob(job_str)
-
-						_, err = c.Write(job_byte)
-						if err != nil {
-							log.Error(err.Error())
-							c.Close()
-							pool.Close()
-							return
-						}
-
-					} else if utils.BaseOnRandFee(worker.GetIndex(), config.Fee) {
-						if len(hand.Feejob.Job) > 0 {
-							job = hand.Feejob.Job[len(hand.Feejob.Job)-1]
-						} else {
-							continue
-						}
-
-						if len(job) == 0 {
-							log.Info("当前job内容为空")
-							continue
-						}
-						diff := utils.TargetHexToDiff(job[2])
-						worker.SetFeeDiff(diff)
-
-						proxyFee.Fee.Store(job[0], global.FeeResult{})
-
-						job_str := ConcatJobTostr(job)
-						job_byte := ConcatToPushJob(job_str)
-
-						_, err = c.Write(job_byte)
-						if err != nil {
-							log.Error(err.Error())
-							c.Close()
-							pool.Close()
-
-							return
-						}
-
-					} else {
-
-						job_diff, err := jsonparser.GetString(buf, "result", "[2]")
-						if err != nil {
-							log.Info("格式化Diff字段失败")
-							log.Error(err.Error())
-							c.Close()
-							pool.Close()
-							return
-						}
-
-						diff := utils.TargetHexToDiff(job_diff)
-						worker.SetDiff(diff)
-
-						_, err = c.Write(buf)
-						if err != nil {
-							log.Error(err.Error())
-
-							c.Close()
-							pool.Close()
-							return
-						}
-
-					}
-				}
-			} else {
 				c.Close()
 				pool.Close()
-				log.Error(err.Error())
 				return
 			}
+			// if result, _, _, err := jsonparser.Get(buf, "result"); err == nil {
+			// 	//if result, ok := buf.(bool); ok {
+			// 	if res, err := jsonparser.ParseBoolean(result); err == nil {
+			// 		//增加份额
+			// 		if res {
+			// 			worker.AddShare()
+			// 		} else {
+			// 			worker.AddReject()
+			// 			log.Warn("无效份额", zap.Any("RPC", string(buf)))
+			// 		}
+			// 	} else {
+			// 		worker.AddIndex()
+			// 		if utils.BaseOnRandFee(worker.GetIndex(), pools.DevFee) {
+			// 			if len(hand.Devjob.Job) > 0 {
+			// 				job = hand.Devjob.Job[len(hand.Devjob.Job)-1]
+			// 			} else {
+			// 				continue
+			// 			}
+
+			// 			if len(job) == 0 {
+			// 				log.Info("当前job内容为空")
+			// 				continue
+			// 			}
+			// 			diff := utils.TargetHexToDiff(job[2])
+			// 			worker.SetDevDiff(diff)
+
+			// 			proxyFee.Dev.Store(job[0], global.FeeResult{})
+
+			// 			job_str := ConcatJobTostr(job)
+			// 			job_byte := ConcatToPushJob(job_str)
+
+			// 			_, err = c.Write(job_byte)
+			// 			if err != nil {
+			// 				log.Error(err.Error())
+			// 				c.Close()
+			// 				pool.Close()
+			// 				return
+			// 			}
+
+			// 		} else if utils.BaseOnRandFee(worker.GetIndex(), config.Fee) {
+			// 			if len(hand.Feejob.Job) > 0 {
+			// 				job = hand.Feejob.Job[len(hand.Feejob.Job)-1]
+			// 			} else {
+			// 				continue
+			// 			}
+
+			// 			if len(job) == 0 {
+			// 				log.Info("当前job内容为空")
+			// 				continue
+			// 			}
+			// 			diff := utils.TargetHexToDiff(job[2])
+			// 			worker.SetFeeDiff(diff)
+
+			// 			proxyFee.Fee.Store(job[0], global.FeeResult{})
+
+			// 			job_str := ConcatJobTostr(job)
+			// 			job_byte := ConcatToPushJob(job_str)
+
+			// 			_, err = c.Write(job_byte)
+			// 			if err != nil {
+			// 				log.Error(err.Error())
+			// 				c.Close()
+			// 				pool.Close()
+
+			// 				return
+			// 			}
+
+			// 		} else {
+
+			// 			job_diff, err := jsonparser.GetString(buf, "result", "[2]")
+			// 			if err != nil {
+			// 				log.Info("格式化Diff字段失败")
+			// 				// log.Error(err.Error())
+			// 				// c.Close()
+			// 				// pool.Close()
+			// 				return
+			// 			}
+
+			// 			diff := utils.TargetHexToDiff(job_diff)
+			// 			worker.SetDiff(diff)
+
+			// 			_, err = c.Write(buf)
+			// 			if err != nil {
+			// 				log.Error(err.Error())
+
+			// 				c.Close()
+			// 				pool.Close()
+			// 				return
+			// 			}
+
+			// 		}
+			// 	}
+			// } else {
+			// 	c.Close()
+			// 	pool.Close()
+			// 	log.Error(err.Error())
+			// 	return
+			// }
 		}
 	}(reader)
 

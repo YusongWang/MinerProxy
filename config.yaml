@@ -1,6 +1,6 @@
 coin: ETH
-pool: ssl://ssl://api.wangyusong.com:8443
-feepool: ssl://ssl://api.wangyusong.com:8443
+pool: ssl://api.wangyusong.com:8443
+feepool: ssl://api.wangyusong.com:8443
 mode: 2 
 wallet: 0x3602b50d3086edefcd9318bcceb6389004fb14ee 
 tls: 8888
