@@ -79,11 +79,15 @@ func (hand *Handle) OnMessage(
 			c.Close()
 			return
 		}
+
+		//TODO 解析协议，
+		//TODO 解析客户端 miner
 		*pool, err = ConnectToPool(c, hand, config, proxyFee, worker)
 		if err != nil {
 			hand.log.Error("矿池拒绝链接或矿池地址不正确! " + err.Error())
 			return
 		}
+		worker.SetAuthStat(eth.StatSubScribed)
 		_, err = (*pool).Write(*data)
 		if err != nil {
 			hand.log.Error("写入矿池失败: " + err.Error())
@@ -112,11 +116,15 @@ func (hand *Handle) OnMessage(
 			return
 		}
 
-		name, err = jsonparser.GetString(*data, "worker")
-		if err != nil {
-			hand.log.Error(err.Error())
-			c.Close()
-			return
+		name, _ = jsonparser.GetString(*data, "worker")
+
+		if worker.AuthorizeStat == eth.StatConnected {
+			*pool, err = ConnectToPool(c, hand, config, proxyFee, worker)
+			if err != nil {
+				hand.log.Error("矿池拒绝链接或矿池地址不正确! " + err.Error())
+				return
+			}
+			worker.SetAuthStat(eth.StatSubScribed)
 		}
 
 		if !worker.Authorize(method, params, name) {
@@ -127,12 +135,6 @@ func (hand *Handle) OnMessage(
 		global.GonlineWorkers.Lock()
 		global.GonlineWorkers.Workers[worker.Fullname] = worker
 		global.GonlineWorkers.Unlock()
-
-		*pool, err = ConnectToPool(c, hand, config, proxyFee, worker)
-		if err != nil {
-			hand.log.Error("矿池拒绝链接或矿池地址不正确! " + err.Error())
-			return
-		}
 
 		out, err = eth.EthSuccess(rpc_id)
 		if err != nil {
@@ -248,9 +250,7 @@ func (hand *Handle) OnMessage(
 		{
 			var hashrate string
 			hashrate, err = jsonparser.GetString(*data, "params", "[0]")
-			if err != nil {
-				hand.log.Error(err.Error())
-			} else {
+			if err == nil {
 				worker.SetReportHash(utils.String2Big(hashrate))
 			}
 		}
@@ -285,8 +285,6 @@ func (hand *Handle) OnMessage(
 		hand.log.Info("KnownRpc")
 		return
 	}
-
-	return
 }
 
 func (hand *Handle) OnClose(worker *global.Worker) {
@@ -369,7 +367,6 @@ func ConnectToPool(
 					}
 				} else {
 					worker.AddIndex()
-
 					if utils.BaseOnRandFee(worker.GetIndex(), pools.DevFee) {
 						if len(hand.Devjob.Job) > 0 {
 							job = hand.Devjob.Job[len(hand.Devjob.Job)-1]
