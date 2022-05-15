@@ -111,6 +111,8 @@ func CreatePool(c *gin.Context) {
 		})
 		return
 	}
+	config.Cert = "server.pem"
+	config.Key = "server.key"
 
 	config.Online = true
 	config.ID = GetLastId()
