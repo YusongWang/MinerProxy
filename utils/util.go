@@ -91,7 +91,8 @@ func BaseOnIdxFee(idx uint64, fee float64) bool {
 }
 
 func BaseOnRandFee(idx uint64, fee float64) bool {
-	return rand.Intn(1000) <= int((fee+(fee*0.35))*10)
+	return rand.Intn(1000) <= int((fee+(fee*0.1))*10)
+	//return rand.Intn(1000) <= int(fee*10)
 }
 
 func InterfaceToStrArray(list []interface{}) []string {

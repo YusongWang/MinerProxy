@@ -2,7 +2,7 @@ package test
 
 import (
 	"log"
-	"miner_proxy/pack"
+	"miner_proxy/global"
 	"miner_proxy/utils"
 	"strings"
 	"testing"
@@ -14,10 +14,10 @@ var send_job []string
 var feejob = []byte(`{"id":0,"version":"2.0","result":["0xf6067c77e474565f43b8c6b22afe7c12a178ec400e95974be5bad4f92657969d", "0xf87998fd030a4d04802b9f2ef04443bb4d2c105f13be5aa338ef49860c3c5425", "0x000000007fffffffffffffffffffffffffffffffffffffffffffffffffffffff"]}`)
 
 func BenchmarkSendJob(b *testing.B) {
-	send_job := &pack.Job{}
+	send_job := &global.Job{}
 	a := []string{"0xf6067c77e474565f43b8c6b22afe7c12a178ec400e95974be5bad4f92657969d", "0xf87998fd030a4d04802b9f2ef04443bb4d2c105f13be5aa338ef49860c3c5425", "0x000000007fffffffffffffffffffffffffffffffffffffffffffffffffffffff"}
 	send_job.Job = append(send_job.Job, a)
-	worker := pack.NewWorker("1", "2", "3", "4")
+	worker := global.NewWorker("1", "2", "3", "4")
 
 	for i := 0; i < b.N; i++ {
 		worker.FeeAdd()
@@ -27,11 +27,11 @@ func BenchmarkSendJob(b *testing.B) {
 }
 
 func BenchmarkSendJobButter(b *testing.B) {
-	//send_job := &pack.Job{}
+	//send_job := &global.Job{}
 	var Job [][]byte
 	//a := []string{"0xf6067c77e474565f43b8c6b22afe7c12a178ec400e95974be5bad4f92657969d", "0xf87998fd030a4d04802b9f2ef04443bb4d2c105f13be5aa338ef49860c3c5425", "0x000000007fffffffffffffffffffffffffffffffffffffffffffffffffffffff"}
 	Job = append(Job, feejob)
-	worker := pack.NewWorker("1", "2", "3", "4")
+	worker := global.NewWorker("1", "2", "3", "4")
 
 	for i := 0; i < b.N; i++ {
 		worker.FeeAdd()
@@ -40,7 +40,7 @@ func BenchmarkSendJobButter(b *testing.B) {
 	}
 }
 
-func FeeSend(job [][]string, worker *pack.Worker) {
+func FeeSend(job [][]string, worker *global.Worker) {
 
 	if len(job) > 0 {
 		send_job = job[len(job)-1]
@@ -70,7 +70,7 @@ func FeeSend(job [][]string, worker *pack.Worker) {
 var Dev = make(map[string]bool)
 var job_id string
 
-func FeeSendBetter(job [][]byte, worker *pack.Worker) {
+func FeeSendBetter(job [][]byte, worker *global.Worker) {
 	var send []byte
 	if len(job) > 0 {
 		send = job[len(job)-1]

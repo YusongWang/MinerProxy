@@ -5,7 +5,6 @@ import (
 	"miner_proxy/global"
 	"miner_proxy/handles/eth"
 	"miner_proxy/network"
-	"miner_proxy/pack"
 	"strconv"
 	"time"
 
@@ -22,88 +21,74 @@ import (
 	"go.uber.org/zap"
 )
 
-func StartIpcServer(id int) {
+func StartIpcClient(id int) {
 	pipename := pool.WebCmdPipeline + "_" + strconv.Itoa(id)
 	log := utils.Logger.With(zap.String("IPC_NAME", pipename))
 	for {
-		sc, err := ipc.StartServer(pipename, nil)
+		time.Sleep(time.Second * 5)
+
+		cc, err := ipc.StartClient(pipename, nil)
 		if err != nil {
 			log.Error(err.Error())
 			return
 		}
 
-		log.Info("Start IPC Server Pipeline On: " + pipename)
+		log.Info("Start IPC Client Pipeline On: " + pipename)
 
 		go func() {
 			for {
-				msg, err := sc.Read()
+				msg, err := cc.Read()
 				if err == nil {
-					if msg.MsgType == -1 {
-						log.Info("Waiting connect!!!")
-						continue
-					}
 					if msg.MsgType == 0 {
-						log.Info("Connectd !!!!")
+						log.Info("Clinet Connected")
+					}
+					if msg.MsgType == -1 {
+						log.Info("Clinet Try Connect")
+					}
+
+					if msg.MsgType == -2 {
+						log.Info("Server Clone Channel Reconnect To Server")
+					}
+
+					if msg.MsgType == 10 {
+						//log.Info("Pong")
 						continue
 					}
-					log.Info("Proxy ->  Web", zap.Any("msg", msg))
-					log.Info("Server recieved: "+string(msg.Data), zap.Int("type", msg.MsgType))
 				} else {
+					time.Sleep(time.Second * 30)
+					cc, err = ipc.StartClient(pipename, nil)
+					if err != nil {
+						log.Error(err.Error())
+						return
+					}
 					log.Error(err.Error())
-					break
 				}
 			}
 		}()
 
 		for {
-			// for _, hand := range handle.Workers {
-			// 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-			// 	b, err := json.Marshal(hand)
-			// 	if err != nil {
-			// 		log.Error(err.Error())
-			// 		//time.Sleep(time.Second * 60)
-			// 		continue
-			// 	}
-			// 	log.Info("写入Worker信息!", zap.Any("worker", hand))
-			// 	err = sc.Write(100, b)
-			// 	if err == nil {
-			// 		log.Info("发送成功!", zap.Any("worker", hand))
-			// 	} else {
-			// 		log.Info("发送失败!")
-			// 		log.Error(err.Error())
-			// 	}
-			// }
-			// err = sc.Write(10, []byte("Hello world\n"))
-			// if err != nil {
-			// 	log.Error(err.Error())
-			// }
+			global.GonlineWorkers.Lock()
 			if len(global.GonlineWorkers.Workers) > 0 {
 				var json = jsoniter.ConfigCompatibleWithStandardLibrary
 				b, err := json.Marshal(global.GonlineWorkers.Workers)
 				if err != nil {
+					global.GonlineWorkers.Unlock()
 					log.Error(err.Error())
-					//time.Sleep(time.Second * 60)
 					continue
 				}
-				//log.Info("写入Worker信息!", zap.Any("worker", handle.Workers))
-				err = sc.Write(100, b)
-				if err == nil {
-					//log.Info("发送成功!", zap.Any("worker", handle.Workers))
-				} else {
-					log.Info("发送失败!")
-					log.Error(err.Error())
-				}
+				cc.Write(100, b)
 			}
 
-			time.Sleep(time.Second * 30)
+			global.GonlineWorkers.Unlock()
+			time.Sleep(time.Second * 10)
 		}
 	}
 }
 
 func BootWithFee(c utils.Config) error {
 
-	dev_job := &pack.Job{}
-	fee_job := &pack.Job{}
+	dev_job := &global.Job{}
+	fee_job := &global.Job{}
 
 	dev_submit_job := make(chan []byte, 100)
 	fee_submit_job := make(chan []byte, 100)
@@ -141,7 +126,7 @@ func BootWithFee(c utils.Config) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		StartIpcServer(c.ID)
+		StartIpcClient(c.ID)
 	}()
 
 	//utils.Logger.Info("Start the Server And ready To serve")

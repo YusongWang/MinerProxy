@@ -3,8 +3,7 @@ package test
 import (
 	"bufio"
 	"io"
-	"miner_proxy/fee"
-	"miner_proxy/pack"
+	"miner_proxy/global"
 	"miner_proxy/utils"
 
 	"go.uber.org/zap"
@@ -17,9 +16,9 @@ type Test struct {
 func (hand *Test) OnConnect(
 	c io.ReadWriteCloser,
 	config *utils.Config,
-	fee *fee.Fee,
+	fee *global.Fee,
 	addr string,
-	worker *pack.Worker,
+	worker *global.Worker,
 ) (io.ReadWriteCloser, error) {
 	hand.log.Info("On Miner Connect To Pool " + config.Pool)
 	pool, err := utils.NewPool(config.Pool)
@@ -49,9 +48,9 @@ func (hand *Test) OnMessage(
 	c io.ReadWriteCloser,
 	pool *io.ReadWriteCloser,
 	config *utils.Config,
-	fee *fee.Fee,
+	fee *global.Fee,
 	data *[]byte,
-	worker *pack.Worker,
+	worker *global.Worker,
 ) (out []byte, err error) {
 	hand.log.Info("矿机: " + string(*data))
 	(*pool).Write(*data)
@@ -61,7 +60,7 @@ func (hand *Test) OnMessage(
 	return
 }
 
-func (hand *Test) OnClose(worker *pack.Worker) {
+func (hand *Test) OnClose(worker *global.Worker) {
 	hand.log.Info("OnClose !!!!!")
 }
 

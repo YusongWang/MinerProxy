@@ -3,12 +3,13 @@ package serve
 import (
 	"bufio"
 	"io"
-	"miner_proxy/fee"
+
+	"miner_proxy/global"
 	"miner_proxy/handles"
-	"miner_proxy/pack"
 	pool "miner_proxy/pools"
 	"miner_proxy/utils"
 	"net"
+	"sync"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -58,15 +59,15 @@ func (s *Serve) StartLoop() {
 
 		s.handle.SetLog(s.log)
 
-		var fee fee.Fee
-		fee.Dev = make(map[string]bool)
-		fee.Fee = make(map[string]bool)
+		var fee global.Fee
+		fee.Dev = sync.Map{}
+		fee.Fee = sync.Map{}
 		sessionId, err := uuid.NewRandom()
 		if err != nil {
 			s.log.Error(err.Error())
 		}
 
-		worker := pack.NewWorker("", "", sessionId.String(), conn.RemoteAddr().String())
+		worker := global.NewWorker("", "", sessionId.String(), conn.RemoteAddr().String())
 
 		pool_net, err := s.handle.OnConnect(conn, s.config, &fee, conn.RemoteAddr().String(), worker)
 		if err != nil {
@@ -78,13 +79,13 @@ func (s *Serve) StartLoop() {
 }
 
 //接受请求
-func (s *Serve) serve(conn io.ReadWriteCloser, pool *io.ReadWriteCloser, fee *fee.Fee, worker *pack.Worker) {
-	defer func() {
-		if x := recover(); x != nil {
-			s.log.Info("Recover", zap.Any("err", x))
-			return
-		}
-	}()
+func (s *Serve) serve(conn io.ReadWriteCloser, pool *io.ReadWriteCloser, fee *global.Fee, worker *global.Worker) {
+	// defer func() {
+	// 	if x := recover(); x != nil {
+	// 		s.log.Info("Recover", zap.Any("err", x))
+	// 		return
+	// 	}
+	// }()
 
 	reader := bufio.NewReader(conn)
 	//TODO 处理通知所有线程结束任务

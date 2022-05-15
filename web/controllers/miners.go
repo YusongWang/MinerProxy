@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"miner_proxy/global"
-	"miner_proxy/pack"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -21,7 +20,7 @@ func MinerList(c *gin.Context) {
 		return
 	}
 
-	var res []pack.Worker
+	var res []global.Worker
 	if len(global.OnlinePools[id]) > 0 {
 		for _, miner := range global.OnlinePools[id] {
 			if miner.IsOnline() {

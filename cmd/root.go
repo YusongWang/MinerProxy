@@ -14,6 +14,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 type PoolConfig struct {
@@ -21,10 +22,6 @@ type PoolConfig struct {
 }
 
 var ManagePool PoolConfig
-
-// func Init() {
-
-// }
 
 var rootCmd = &cobra.Command{
 	Use:   "MinerProxy",
@@ -36,7 +33,7 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			var defaultConfig global.ManageConfig
 			defaultConfig.Web.Port = 9090
-			defaultConfig.Web.Password = "MinerProxy123"
+			defaultConfig.Web.Password = "123456"
 
 			config_json, err := json.Marshal(defaultConfig)
 			if err != nil {
@@ -95,61 +92,14 @@ func Execute() {
 	}
 }
 
-// 解析-配置文件。
-// func FristStart(wg *sync.WaitGroup) {
-// 	sc, err := ipc.StartServer(pool.ManageCmdPipeline, nil)
-// 	if err != nil {
-// 		utils.Logger.Error(err.Error())
-// 		return
-// 	}
-
-// 	utils.Logger.Info("Start Pipeline On " + pool.ManageCmdPipeline)
-
-// 	for {
-// 		msg, err := sc.Read()
-// 		if err == nil {
-// 			utils.Logger.Info("Server recieved: " + string(msg.Data))
-// 		} else {
-// 			utils.Logger.Error(err.Error())
-// 			time.Sleep(time.Nanosecond * 10)
-// 			break
-// 		}
-// 	}
-// 	utils.Logger.Info("IPC exit()")
-// 	wg.Done()
-// }
-
-// func Manage(wg *sync.WaitGroup) {
-// 	sc, err := ipc.StartServer(pool.ManageCmdPipeline, nil)
-// 	if err != nil {
-// 		utils.Logger.Error(err.Error())
-// 		return
-// 	}
-
-// 	utils.Logger.Info("Start Pipeline On " + pool.ManageCmdPipeline)
-
-// 	for {
-// 		msg, err := sc.Read()
-// 		if err == nil {
-// 			utils.Logger.Info("Server recieved: "+string(msg.Data), zap.Int("type", msg.MsgType))
-// 		} else {
-// 			utils.Logger.Error(err.Error())
-// 			break
-// 		}
-// 	}
-
-// 	wg.Done()
-// }
-
 func Web(wg *sync.WaitGroup, restart chan int) {
 
 web:
-	//fmt.Println(os.Args[0], "web", "--port", strconv.Itoa(global.ManageApp.Web.Port), "--password", global.ManageApp.Web.Password)
 	web := exec.Command(os.Args[0], "web", "--port", strconv.Itoa(global.ManageApp.Web.Port), "--password", global.ManageApp.Web.Password)
 	go func() {
 		<-restart
 		utils.Logger.Info("收到重启命令")
-		//fmt.Println("收到重启命令 Kill")
+
 		web.Process.Kill()
 	}()
 
@@ -163,48 +113,45 @@ web:
 }
 
 func Proxy(wg *sync.WaitGroup, restart chan int) {
+	// 启动所有proxy_worker
 	FristStart()
-proxy:
-	//TODO 启动所有proxy_worker
+
 	// 注册为一个临时数组、管理所有worker. id 为当前结构注册的 ID
 	//func() {
 	for {
-		select {
-		case id := <-restart:
-			utils.Logger.Info("重启代理ID: " + strconv.Itoa(id))
-			//FIXME 处理旧任务？ 如果任务ID 变更旧任务就要删掉。
+		id := <-restart
+		utils.Logger.Info("重启代理ID: " + strconv.Itoa(id))
+		//FIXME 处理旧任务？ 如果任务ID 变更旧任务就要删掉。
 
-			// for online_id, cmd := range ManagePool.Online {
-			// 	for _, app := range ManageApp.Config {
-			// 		if app.ID == online_id {
-			// 			ProcessProxy(&app)
-			// 		}
-			// 	}
-			// }
+		// for online_id, cmd := range ManagePool.Online {
+		// 	for _, app := range ManageApp.Config {
+		// 		if app.ID == online_id {
+		// 			ProcessProxy(&app)
+		// 		}
+		// 	}
+		// }
 
-			if ManagePool.Online[id] == nil {
-				for _, app := range global.ManageApp.Config {
-					if app.ID == id {
-						ProcessProxy(app)
-					}
+		if ManagePool.Online[id] == nil {
+			for _, app := range global.ManageApp.Config {
+				if app.ID == id {
+					ProcessProxy(app)
 				}
-			} else {
-				ManagePool.Online[id].Process.Kill()
 			}
+		} else {
+			ManagePool.Online[id].Process.Kill()
 		}
 	}
-	//}()
 
 	// 注册一个chan 接收ID作为重启。如果这个ID不在数组中就新增一个代理池
-	time.Sleep(time.Second * 10)
-	goto proxy
+	//time.Sleep(time.Second * 10)
+	//goto proxy
 }
 
 func FristStart() {
 	for _, app := range global.ManageApp.Config {
 		// 逐一获得cmd执行任务。
-		fmt.Println("逐一获得cmd执行任务。")
-		fmt.Println(app)
+		//fmt.Println("逐一获得cmd执行任务。")
+		//fmt.Println(app)
 		go ProcessProxy(app)
 	}
 }
@@ -246,23 +193,36 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 		if global.ManageApp.Web.Password != conf.Web.Password || global.ManageApp.Web.Port != conf.Web.Port {
 			//notify web
 			web_restart <- 1
-			fmt.Println("发送重启命令1")
+			utils.Logger.Info("Web need restart")
+		}
+
+		//kill old job
+		need_kill := true
+
+		// 内存中管理的进程池
+		for _, app := range global.ManageApp.Config {
+			// 新的进程池配置文件
+			for _, old_app := range conf.Config {
+				if app.ID == old_app.ID {
+					need_kill = false
+				}
+			}
+			utils.Logger.Info("Need Kill Proxy Process", zap.Int("ID", app.ID))
+			// kill
+			if need_kill {
+				ManagePool.Online[app.ID].Process.Kill()
+			}
 		}
 
 		// 检查 proxy 是否重启。
 		for _, app := range global.ManageApp.Config {
-			is_new := true
-			//FIXME 如果这里为空可能不会新增代理
 			for _, old_app := range conf.Config {
 				if app.ID == old_app.ID {
 					if checkConfigChange(old_app, app) {
-						is_new = false
+						//is_new = false
 						proxy_restart <- app.ID
 					}
 				}
-			}
-			if is_new {
-				proxy_restart <- app.ID
 			}
 		}
 	})
@@ -272,7 +232,7 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 		utils.Logger.Error(err.Error())
 	}
 
-	fmt.Println(global.ManageApp)
+	//fmt.Println(global.ManageApp)
 	return v
 }
 

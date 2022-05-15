@@ -1,7 +1,6 @@
 package global
 
 import (
-	"miner_proxy/pack"
 	"miner_proxy/utils"
 	"time"
 
@@ -11,7 +10,7 @@ import (
 type Application struct {
 	ConfigViper *viper.Viper
 	Config      []utils.Config
-	Pools       [][]pack.Worker
+	Pools       [][]Worker
 }
 
 var App = new(Application)
@@ -19,7 +18,7 @@ var App = new(Application)
 type WebApplication struct {
 	ConfigViper *viper.Viper
 	Config      []utils.Config `json:"config"`
-	Pools       [][]pack.Worker
+	Pools       [][]Worker
 	Port        int
 	Password    string
 	Jwt_secret  string
@@ -37,7 +36,7 @@ type ManageConfig struct {
 
 var ManageApp = new(ManageConfig)
 
-var OnlinePools [1000]map[string]pack.Worker
+var OnlinePools [1000]map[string]Worker
 
 var Start_Time = time.Now().Unix()
 

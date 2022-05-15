@@ -1,13 +1,19 @@
 package main
 
 import (
+	"bytes"
+	"crypto/rand"
+	"encoding/json"
 	"flag"
 	"fmt"
-	"miner_proxy/pack"
+	"math/big"
+	"miner_proxy/global"
+	"miner_proxy/pack/eth"
 	ethpool "miner_proxy/pools/eth"
 	"miner_proxy/utils"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/panjf2000/ants/v2"
 )
@@ -18,11 +24,23 @@ var (
 	wallet string
 )
 
+func CreateRandomString(len int) string {
+	var container string
+	var str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+	b := bytes.NewBufferString(str)
+	length := b.Len()
+	bigInt := big.NewInt(int64(length))
+	for i := 0; i < len; i++ {
+		randomInt, _ := rand.Int(rand.Reader, bigInt)
+		container += string(str[randomInt.Int64()])
+	}
+	return container
+}
 func main() {
 
-	flag.StringVar(&pool, "pool", "ssl://asia2.ethermine.org:5555", "set the pool sup tcp:// ssl://")
+	flag.StringVar(&pool, "pool", "tcp://localhost:8812", "set the pool sup tcp:// ssl://")
 	flag.StringVar(&wallet, "wallet", "0xa324c686Cd081204F7A653E8435e18084AF81707", "Set the wallet address")
-	flag.IntVar(&thread, "thread", 1000, "set thread num")
+	flag.IntVar(&thread, "thread", 10, "set thread num")
 	if pool == "" {
 		fmt.Println("Pool Is empty!")
 		os.Exit(-1)
@@ -41,9 +59,9 @@ func main() {
 	defer ants.Release()
 	var wg sync.WaitGroup
 	syncCalculateSum := func() {
-		worker := "Hello world"
+		worker := CreateRandomString(10)
 
-		dev_job := &pack.Job{}
+		dev_job := &global.Job{}
 		dev_submit_job := make(chan []byte, 100)
 
 		dev_pool, err := ethpool.New(pool, dev_job, dev_submit_job)
@@ -52,7 +70,29 @@ func main() {
 			os.Exit(99)
 		}
 		dev_pool.Login(wallet, worker)
-		dev_pool.StartLoop()
+		wg.Add(1)
+		go dev_pool.StartLoop()
+
+		conn := *dev_pool.Conn
+		for {
+			if len(dev_job.Job) < 1 {
+				continue
+			}
+			last_job := dev_job.Job[len(dev_job.Job)-1]
+			submit := eth.ServerBaseReq{
+				Id:     40,
+				Method: "eth_submitWork",
+				Params: last_job,
+			}
+
+			a, err := json.Marshal(submit)
+			if err != nil {
+				continue
+			}
+			a = append(a, '\n')
+			conn.Write(a)
+			time.Sleep(time.Minute * 1)
+		}
 
 		wg.Done()
 	}

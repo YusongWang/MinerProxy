@@ -2,8 +2,8 @@ package eth
 
 import (
 	"io"
-	"miner_proxy/fee"
-	pack "miner_proxy/pack"
+
+	"miner_proxy/global"
 	"miner_proxy/pack/eth"
 	"miner_proxy/utils"
 	"strings"
@@ -23,9 +23,9 @@ type NoFeeHandle struct {
 func (hand *NoFeeHandle) OnConnect(
 	c io.ReadWriteCloser,
 	config *utils.Config,
-	fee *fee.Fee,
+	fee *global.Fee,
 	addr string,
-	worker *pack.Worker,
+	worker *global.Worker,
 ) (io.ReadWriteCloser, error) {
 	hand.log.Info("On Miner Connect To Pool " + config.Pool)
 	pool, err := utils.NewPool(config.Pool)
@@ -85,9 +85,9 @@ func (hand *NoFeeHandle) OnMessage(
 	c io.ReadWriteCloser,
 	pool *io.ReadWriteCloser,
 	config *utils.Config,
-	fee *fee.Fee,
+	fee *global.Fee,
 	data *[]byte,
-	worker *pack.Worker,
+	worker *global.Worker,
 ) (out []byte, err error) {
 	hand.log.Info(string(*data))
 	req, err := eth.EthStratumReq(*data)
@@ -211,7 +211,7 @@ func (hand *NoFeeHandle) OnMessage(
 	}
 }
 
-func (hand *NoFeeHandle) OnClose(worker *pack.Worker) {
+func (hand *NoFeeHandle) OnClose(worker *global.Worker) {
 	hand.log.Info("OnClose !!!!!")
 }
 

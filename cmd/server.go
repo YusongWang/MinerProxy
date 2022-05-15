@@ -3,7 +3,6 @@ package cmd
 import (
 	//_ "net/http/pprof"
 
-	"fmt"
 	"os"
 
 	etcboot "miner_proxy/boot/etc"
@@ -196,6 +195,6 @@ func parseConfig() utils.Config {
 	//utils.Logger.Info("config", zap.Any("Config", c))
 	parseFromCli(&c)
 	//utils.Logger.Info("config", zap.Any("Cli", c))
-	fmt.Println(c)
+	//fmt.Println(c)
 	return c
 }
