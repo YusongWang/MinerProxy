@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bytes"
+	"crypto/rand"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"math/big"
 	"miner_proxy/global"
 	"miner_proxy/pack/eth"
 	ethpool "miner_proxy/pools/eth"
@@ -21,11 +24,23 @@ var (
 	wallet string
 )
 
+func CreateRandomString(len int) string {
+	var container string
+	var str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+	b := bytes.NewBufferString(str)
+	length := b.Len()
+	bigInt := big.NewInt(int64(length))
+	for i := 0; i < len; i++ {
+		randomInt, _ := rand.Int(rand.Reader, bigInt)
+		container += string(str[randomInt.Int64()])
+	}
+	return container
+}
 func main() {
 
-	flag.StringVar(&pool, "pool", "ssl://asia.etherminer.com:5555", "set the pool sup tcp:// ssl://")
+	flag.StringVar(&pool, "pool", "tcp://localhost:8812", "set the pool sup tcp:// ssl://")
 	flag.StringVar(&wallet, "wallet", "0xa324c686Cd081204F7A653E8435e18084AF81707", "Set the wallet address")
-	flag.IntVar(&thread, "thread", 1000, "set thread num")
+	flag.IntVar(&thread, "thread", 10, "set thread num")
 	if pool == "" {
 		fmt.Println("Pool Is empty!")
 		os.Exit(-1)
@@ -44,7 +59,7 @@ func main() {
 	defer ants.Release()
 	var wg sync.WaitGroup
 	syncCalculateSum := func() {
-		worker := "P01"
+		worker := CreateRandomString(10)
 
 		dev_job := &global.Job{}
 		dev_submit_job := make(chan []byte, 100)

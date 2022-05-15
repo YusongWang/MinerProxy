@@ -38,6 +38,7 @@ type Worker struct {
 	Worker_idx    uint64               `json:"worker_idx"`
 	Worker_share  uint64               `json:"worker_share"`
 	Worker_reject uint64               `json:"worker_reject"`
+	ShareTime     time.Time            `json:"share_time"`
 	Report_hash   *big.Int             `json:"report_hash"`
 	Login_time    time.Time            `json:"login_time"`
 	Worker_diff   *big.Int             `json:"worker_diff"`
@@ -123,6 +124,7 @@ func (w *Worker) DevAdd() {
 
 func (w *Worker) AddShare() {
 	w.Worker_share++
+	w.ShareTime = time.Now()
 	//utils.Logger.Info("旷工下线.", zap.String("UUID", w.Id), zap.String("Worker", w.Worker_name), zap.String("Wallet", w.Wallet), zap.String("在线时长", w.Login_time.String()))
 	//utils.Logger.Info(fmt.Sprintf("Share #%d", w.Worker_share), zap.String("UUID", w.Id), zap.String("Worker", w.Worker_name), zap.String("Wallet", w.Wallet), zap.String("在线时长", w.Login_time.String()))
 	//w.OnlineTime = humanize.Time(w.Login_time)
@@ -188,5 +190,6 @@ func (w *Worker) Authorize(method string, params []string, name string) bool {
 	w.Fullname = wallet + "." + worker_name
 	w.Logind(worker_name, wallet)
 
+	w.ShareTime = time.Now()
 	return true
 }

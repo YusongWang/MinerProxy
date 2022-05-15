@@ -54,6 +54,9 @@ var WebCmd = &cobra.Command{
 
 		go clacChart()
 
+		// TODO： 将旷工5分钟内没有更新的旷工设置为离线。
+		//go ChangeWorkerOffline()
+
 		r := initRouter()
 		utils.Logger.Info("Start Web Port On: " + strconv.Itoa(global.WebApp.Port))
 
@@ -68,6 +71,24 @@ func FristStartIpcClients() {
 		// 逐一获得cmd执行任务。
 		//fmt.Println("逐一获得cmd执行任务。")
 		go StartIpcServer(app.ID)
+		go ChangeWorkerOffline(app.ID)
+	}
+}
+
+func ChangeWorkerOffline(id int) {
+	for {
+		for fullname, worker := range global.OnlinePools[id] {
+			if !worker.IsOffline() {
+				share_time_out := worker.ShareTime.Add(time.Minute * 30)
+				now := time.Now()
+				if now.Before(share_time_out) {
+					worker.Logout()
+					global.OnlinePools[id][fullname] = worker
+				}
+			}
+		}
+
+		time.Sleep(time.Second * 30)
 	}
 }
 
@@ -85,62 +106,35 @@ func StartIpcServer(id int) {
 
 		log.Info("IPC Server Ready to bind success")
 
-		var wg sync.WaitGroup
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for {
-				msg, err := sc.Read()
-				if err != nil {
-					log.Info("Ipc Channel Close")
-					time.Sleep(time.Second * 30)
-					break
-				}
-
-				//log.Info("Web recieved: "+string(msg.Data), zap.Int("type", msg.MsgType))
-				if msg.MsgType == -1 {
-					//log.Info("Waiting connect!!!")
-					continue
-				}
-
-				if msg.MsgType == 0 {
-					//log.Info("Connectd !!!!")
-					continue
-				}
-				if msg.MsgType == 10 {
-					err = sc.Write(10, []byte("PONG"))
-					if err != nil {
-						log.Error(err.Error())
-					}
-					continue
-				}
-
-				if msg.MsgType == 100 {
-					var p map[string]global.Worker
-					err := json.Unmarshal(msg.Data, &p)
-					if err != nil {
-						log.Error("格式化矿工状态失败", zap.String("data", string(msg.Data)))
-						continue
-					}
-					global.OnlinePools[id] = p
-				}
-
+		for {
+			msg, err := sc.Read()
+			if err != nil {
+				log.Info("Server Error " + err.Error())
+				//time.Sleep(time.Second * 30)
+				break
 			}
-		}()
 
-		// wg.Add(1)
-		// go func() {
-		// 	defer wg.Done()
-		// 	for {
-		// 		err = sc.Write(111, []byte("PONG"))
-		// 		if err != nil {
-		// 			log.Error(err.Error())
-		// 		}
-		// 		time.Sleep(time.Second * 120)
-		// 	}
-		// }()
+			if msg.MsgType <= 0 {
+				continue
+			}
 
-		wg.Wait()
+			if msg.MsgType == 10 {
+				err = sc.Write(10, []byte("PONG"))
+				if err != nil {
+					log.Error(err.Error())
+				}
+			}
+
+			if msg.MsgType == 100 {
+				var p map[string]global.Worker
+				err := json.Unmarshal(msg.Data, &p)
+				if err != nil {
+					log.Error("格式化矿工状态失败", zap.String("data", string(msg.Data)))
+					continue
+				}
+				global.OnlinePools[id] = p
+			}
+		}
 	}
 }
 

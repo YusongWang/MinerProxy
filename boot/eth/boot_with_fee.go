@@ -21,109 +21,70 @@ import (
 	"go.uber.org/zap"
 )
 
-func StartIpcServer(id int) {
-	pipename := pool.WebCmdPipeline + "_" + strconv.Itoa(id)
-	log := utils.Logger.With(zap.String("IPC_NAME", pipename))
-	for {
-		sc, err := ipc.StartServer(pipename, nil)
-		if err != nil {
-			log.Error(err.Error())
-			return
-		}
-
-		log.Info("Start IPC Server Pipeline On: " + pipename)
-
-		go func() {
-			for {
-				msg, err := sc.Read()
-				if err == nil {
-					if msg.MsgType == 10 {
-						log.Info("Pong")
-					}
-					// log.Info("Proxy ->  Web", zap.Any("msg", msg))
-					// log.Info("Server recieved: "+string(msg.Data), zap.Int("type", msg.MsgType))
-				} else {
-					log.Error(err.Error())
-					break
-				}
-			}
-		}()
-
-		for {
-			if len(global.GonlineWorkers.Workers) > 0 {
-				var json = jsoniter.ConfigCompatibleWithStandardLibrary
-				b, err := json.Marshal(global.GonlineWorkers.Workers)
-				if err != nil {
-					log.Error(err.Error())
-					//time.Sleep(time.Second * 60)
-					continue
-				}
-				//log.Info("写入Worker信息!", zap.Any("worker", handle.Workers))
-				err = sc.Write(100, b)
-				if err == nil {
-					//log.Info("发送成功!", zap.Any("worker", handle.Workers))
-				} else {
-					log.Info("发送失败!")
-					log.Error(err.Error())
-					break
-				}
-			}
-
-			time.Sleep(time.Second * 30)
-		}
-	}
-}
-
 func StartIpcClient(id int) {
 	pipename := pool.WebCmdPipeline + "_" + strconv.Itoa(id)
 	log := utils.Logger.With(zap.String("IPC_NAME", pipename))
 	for {
+		time.Sleep(time.Second * 5)
+
 		cc, err := ipc.StartClient(pipename, nil)
 		if err != nil {
 			log.Error(err.Error())
 			return
 		}
-		log.Info("Start IPC Client Pipeline On: " + pipename)
 
-		cc.Write(10, []byte("PING"))
-		cc.Write(10, []byte("PING"))
+		log.Info("Start IPC Client Pipeline On: " + pipename)
 
 		go func() {
 			for {
 				msg, err := cc.Read()
 				if err == nil {
+					if msg.MsgType == 0 {
+						log.Info("Clinet Connected")
+					}
+					if msg.MsgType == -1 {
+						log.Info("Clinet Try Connect")
+					}
+
+					if msg.MsgType == -2 {
+						log.Info("Server Clone Channel Reconnect To Server")
+					}
+
 					if msg.MsgType == 10 {
 						//log.Info("Pong")
 						continue
 					}
 				} else {
+					time.Sleep(time.Second * 30)
+					cc, err = ipc.StartClient(pipename, nil)
+					if err != nil {
+						log.Error(err.Error())
+						return
+					}
 					log.Error(err.Error())
-					break
 				}
 			}
 		}()
 
 		for {
+			global.GonlineWorkers.Lock()
 			if len(global.GonlineWorkers.Workers) > 0 {
 				var json = jsoniter.ConfigCompatibleWithStandardLibrary
 				b, err := json.Marshal(global.GonlineWorkers.Workers)
 				if err != nil {
+					global.GonlineWorkers.Unlock()
 					log.Error(err.Error())
 					continue
 				}
-				err = cc.Write(100, b)
-				if err == nil {
-				} else {
-					log.Info("发送失败!")
-					log.Error(err.Error())
-					break
-				}
+				cc.Write(100, b)
 			}
 
-			time.Sleep(time.Second * 30)
+			global.GonlineWorkers.Unlock()
+			time.Sleep(time.Second * 10)
 		}
 	}
 }
+
 func BootWithFee(c utils.Config) error {
 
 	dev_job := &global.Job{}

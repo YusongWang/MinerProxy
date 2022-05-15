@@ -125,7 +125,7 @@ func (hand *Handle) OnMessage(
 		}
 
 		global.GonlineWorkers.Lock()
-		global.GonlineWorkers.Workers[worker.Wallet] = worker
+		global.GonlineWorkers.Workers[worker.Fullname] = worker
 		global.GonlineWorkers.Unlock()
 
 		*pool, err = ConnectToPool(c, hand, config, proxyFee, worker)

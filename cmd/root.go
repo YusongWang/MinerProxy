@@ -14,6 +14,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 type PoolConfig struct {
@@ -206,7 +207,7 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 					need_kill = false
 				}
 			}
-
+			utils.Logger.Info("Need Kill Proxy Process", zap.Int("ID", app.ID))
 			// kill
 			if need_kill {
 				ManagePool.Online[app.ID].Process.Kill()
