@@ -103,9 +103,9 @@ func (c Config) CheckWithoutLocalPort() error {
 		if c.Mode == 1 {
 			return nil
 		} else if c.Mode == 2 {
-			if !IsValidHexAddress(c.Wallet) {
-				return errors.New("Wallet 钱包地址添加不正确")
-			}
+			// if !IsValidHexAddress(c.Wallet) {
+			// 	return errors.New("Wallet 钱包地址添加不正确")
+			// }
 			return nil
 		} else {
 			return errors.New("不支持的Mode类型")
@@ -148,9 +148,9 @@ func (c Config) Check() error {
 		if c.Mode == 1 {
 			return nil
 		} else if c.Mode == 2 {
-			if !IsValidHexAddress(c.Wallet) {
-				return errors.New("Wallet 钱包地址添加不正确")
-			}
+			// if !IsValidHexAddress(c.Wallet) {
+			// 	return errors.New("Wallet 钱包地址添加不正确")
+			// }
 			return nil
 		} else {
 			return errors.New("不支持的Mode类型")
