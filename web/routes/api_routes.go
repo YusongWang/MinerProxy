@@ -29,6 +29,7 @@ func RegisterApiRouter(router *gin.Engine) {
 	// fsImg := assetfs.AssetFS{Asset: asset.Asset, AssetDir: asset.AssetDir, AssetInfo: asset.AssetInfo, Prefix: "dist/img", Fallback: "index.html"}
 	// fsJs := assetfs.AssetFS{Asset: asset.Asset, AssetDir: asset.AssetDir, AssetInfo: asset.AssetInfo, Prefix: "dist/js", Fallback: "index.html"}
 	fs := assetfs.AssetFS{Asset: asset.Asset, AssetDir: asset.AssetDir, AssetInfo: asset.AssetInfo, Prefix: "dist", Fallback: "index.html"}
+	//fs := assetfs.AssetFS{Asset: asset.Asset, AssetDir: asset.AssetDir, AssetInfo: asset.AssetInfo, Prefix: "dist", Fallback: "index.html"}
 	router.StaticFS("/static/", &fsStatic)
 	router.StaticFS("/themes/", &fsThemes)
 	// router.StaticFS("/css", &fsCss)
@@ -36,6 +37,8 @@ func RegisterApiRouter(router *gin.Engine) {
 	// router.StaticFS("/img", &fsImg)
 	// router.StaticFS("/js", &fsJs)
 	router.StaticFS("/favicon.ico", &fs)
+	router.StaticFS("/icon.png", &fs)
+
 	router.GET("/", func(c *gin.Context) {
 		c.Writer.WriteHeader(200)
 		indexHtml, _ := asset.Asset("dist/index.html")
