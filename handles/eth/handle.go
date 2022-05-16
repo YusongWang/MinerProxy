@@ -317,8 +317,6 @@ func (hand *Handle) OnMessage(
 			}
 		}
 
-		c.Write(out)
-		out = nil
 		err = nil
 		return
 	case "mining.extranonce.subscribe":

@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"bytes"
+	"encoding/gob"
 	gomath "math"
 	"math/big"
 	"math/rand"
@@ -132,7 +134,7 @@ func IncreaseFDLimit() {
 
 	// checking
 	syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rlm)
-	Logger.Info("[OPTION] File descriptor limits")
+	//Logger.Info("[OPTION] File descriptor limits")
 	if rlm.Max < 5000 {
 		Logger.Error("[OPTION] File descriptor hard limit is too small")
 	}
@@ -147,4 +149,12 @@ func HexRemovePrefix(hexStr string) string {
 		hexStr = hexStr[2:]
 	}
 	return hexStr
+}
+
+func DeepCopy(dst, src interface{}) error {
+	var buf bytes.Buffer
+	if err := gob.NewEncoder(&buf).Encode(src); err != nil {
+		return err
+	}
+	return gob.NewDecoder(bytes.NewBuffer(buf.Bytes())).Decode(dst)
 }

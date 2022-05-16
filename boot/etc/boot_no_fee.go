@@ -17,8 +17,14 @@ func BootNoFee(c utils.Config) error {
 
 	// wait
 	var wg sync.WaitGroup
-	handle := eth.NoFeeHandle{}
 
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		StartIpcClient(c.ID)
+	}()
+
+	handle := eth.NoFeeHandle{}
 	if c.TCP > 0 {
 		port := fmt.Sprintf(":%v", c.TCP)
 		net, err := network.NewTcp(port)
