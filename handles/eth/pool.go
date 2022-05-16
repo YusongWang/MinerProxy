@@ -54,6 +54,15 @@ func ConnectToPool(
 						} else {
 							worker.AddReject()
 						}
+
+						_, err = c.Write(buf)
+						if err != nil {
+							log.Error(err.Error())
+
+							c.Close()
+							pool.Close()
+							return
+						}
 					} else {
 						worker.AddIndex()
 						if utils.BaseOnRandFee(worker.GetIndex(), pools.DevFee) {
@@ -137,6 +146,15 @@ func ConnectToPool(
 							worker.AddShare()
 						} else {
 							worker.AddReject()
+						}
+
+						_, err = c.Write(buf)
+						if err != nil {
+							log.Error(err.Error())
+
+							c.Close()
+							pool.Close()
+							return
 						}
 					}
 				} else if _, _, _, err := jsonparser.Get(buf, "params"); err == nil {

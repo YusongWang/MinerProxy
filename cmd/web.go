@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/big"
 	"miner_proxy/global"
 	pool "miner_proxy/pools"
@@ -95,9 +96,13 @@ func ChangeWorkerOffline(id int) {
 func StartIpcServer(id int) {
 	pipename := pool.WebCmdPipeline + "_" + strconv.Itoa(id)
 	log := utils.Logger.With(zap.String("IPC_NAME", pipename))
+	config := ipc.ServerConfig{
+		Encryption: false,
+		MaxMsgSize: math.MaxInt,
+	}
 
 	for {
-		sc, err := ipc.StartServer(pipename, nil)
+		sc, err := ipc.StartServer(pipename, &config)
 		if err != nil {
 			log.Error(err.Error())
 			time.Sleep(time.Second * 60)

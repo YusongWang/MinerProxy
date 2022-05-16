@@ -129,6 +129,7 @@ func EthError(id json.RawMessage, code int32, msg string) ([]byte, error) {
 	return nil, errors.New("TODO")
 }
 
+///{"id":1,"method":"mining.subscribe","params":["MinerName/1.0.0",""]}
 type MiningNotify struct {
 	ID      int      `json:"id"`
 	Jsonrpc string   `json:"jsonrpc"`
