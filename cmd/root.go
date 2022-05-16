@@ -28,6 +28,7 @@ var rootCmd = &cobra.Command{
 	Short: "",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
+
 		// 判断配置文件是否存在。如果不存在则先创建一个配置文件
 		_, err := os.Stat("config.json")
 		if err != nil {
@@ -207,18 +208,22 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 					need_kill = false
 				}
 			}
-			utils.Logger.Info("Need Kill Proxy Process", zap.Int("ID", app.ID))
+
 			// kill
 			if need_kill {
+				utils.Logger.Info("Need Kill Proxy Process", zap.Int("ID", app.ID), zap.Any("need_kill", need_kill))
 				ManagePool.Online[app.ID].Process.Kill()
 			}
 		}
 
+		fmt.Println(conf, global.ManageApp.Config)
 		// 检查 proxy 是否重启。
 		for _, app := range global.ManageApp.Config {
 			for _, old_app := range conf.Config {
 				if app.ID == old_app.ID {
+					utils.Logger.Info("找到相同矿池判断参数是否变动.")
 					if checkConfigChange(old_app, app) {
+						utils.Logger.Info("参数变动发送restart命令.")
 						//is_new = false
 						proxy_restart <- app.ID
 					}
@@ -238,9 +243,6 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 
 func checkConfigChange(old, new utils.Config) bool {
 	if old.Cert != new.Cert {
-		return true
-	}
-	if old.ID != new.ID {
 		return true
 	}
 	if old.TCP != new.TCP {

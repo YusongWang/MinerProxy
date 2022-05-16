@@ -55,6 +55,8 @@ func main() {
 		fmt.Println("Thread Is empty!")
 		os.Exit(-1)
 	}
+	// 增大文件描述符上限
+	utils.IncreaseFDLimit()
 
 	defer ants.Release()
 	var wg sync.WaitGroup

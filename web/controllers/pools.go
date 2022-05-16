@@ -113,10 +113,10 @@ func CreatePool(c *gin.Context) {
 	}
 	config.Cert = "server.pem"
 	config.Key = "server.key"
-
 	config.Online = true
 	config.ID = GetLastId()
 	err = config.Check()
+
 	if err != nil {
 		c.JSON(200, gin.H{
 			"data": "",

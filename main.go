@@ -4,6 +4,7 @@ import (
 	"miner_proxy/cmd"
 	"miner_proxy/global"
 	_ "miner_proxy/global"
+	"miner_proxy/utils"
 	_ "miner_proxy/utils"
 	"runtime"
 )
@@ -25,6 +26,9 @@ func main() {
 	global.Version = version
 	global.Branch = branch
 	global.Auther = auther
+
+	// 增大文件描述符上限
+	utils.IncreaseFDLimit()
 
 	cmd.Execute()
 }

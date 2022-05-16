@@ -139,7 +139,7 @@ func ConnectToPool(
 					log.Error(err.Error())
 					return
 				}
-			} else if worker.Protocol == eth.ProtocolLegacyStratum || worker.Protocol == eth.ProtocolEthereumStratum {
+			} else if worker.Protocol == eth.ProtocolLegacyStratum {
 				if result, _, _, err := jsonparser.Get(buf, "result"); err == nil {
 					if res, err := jsonparser.ParseBoolean(result); err == nil {
 						// 增加份额
@@ -164,21 +164,26 @@ func ConnectToPool(
 						if len(*hand.Devjob) > 0 {
 							job = (*hand.Devjob)[len(*hand.Devjob)-1]
 						} else {
-							continue
+							goto LegacySendWorker
 						}
 
-						diff := utils.TargetHexToDiff(job.Diff)
-						worker.SetDevDiff(diff)
+						nonce := utils.HexRemovePrefix(job.JobId)
+						powHash := utils.HexRemovePrefix(job.Target)
+						difficulty := utils.HexRemovePrefix(job.Diff)
 
-						proxyFee.Dev.Store(job.JobId, global.FeeResult{})
+						if worker.Dev_idx == 1 {
+							diff := utils.TargetHexToDiff(job.Diff)
+							worker.SetDevDiff(diff)
+						}
 
+						proxyFee.Dev.Store(nonce, global.FeeResult{})
+						//clean 0x prefix
 						job_rpc := eth.MiningNotify{
 							ID:      0,
 							Jsonrpc: "2.0",
 							Method:  "mining.notify",
-							Params:  eth.JSONRPCArray{job.JobId, job.Target, job.Diff, false},
+							Params:  eth.JSONRPCArray{nonce, nonce, powHash, difficulty, false},
 						}
-
 						job_byte, err := json.Marshal(job_rpc)
 						if err != nil {
 							utils.Logger.Info("序列化失败.", zap.Any("rpc", job_rpc))
@@ -202,18 +207,21 @@ func ConnectToPool(
 							goto LegacySendWorker
 						}
 
-						if worker.Dev_idx == 1 {
+						nonce := utils.HexRemovePrefix(job.JobId)
+						powHash := utils.HexRemovePrefix(job.Target)
+						difficulty := utils.HexRemovePrefix(job.Diff)
+
+						if worker.Fee_idx == 1 {
 							diff := utils.TargetHexToDiff(job.Diff)
 							worker.SetFeeDiff(diff)
 						}
 
-						proxyFee.Fee.Store(job.JobId, global.FeeResult{})
-
+						proxyFee.Fee.Store(nonce, global.FeeResult{})
 						job_rpc := eth.MiningNotify{
 							ID:      0,
 							Jsonrpc: "2.0",
 							Method:  "mining.notify",
-							Params:  eth.JSONRPCArray{job.JobId, job.Target, job.Diff, false},
+							Params:  eth.JSONRPCArray{nonce, nonce, powHash, difficulty, false},
 						}
 						// job_str := ConcatJobTostr(job)
 						job_byte, err := json.Marshal(job_rpc)
@@ -234,6 +242,132 @@ func ConnectToPool(
 						continue
 					}
 				LegacySendWorker:
+
+					if worker.Worker_idx == 5 {
+						job_diff, err := jsonparser.GetString(buf, "params", "[2]")
+						if err == nil {
+							diff := utils.TargetHexToDiff(job_diff)
+							worker.SetDiff(diff)
+						}
+					}
+					_, err = c.Write(buf)
+					if err != nil {
+						log.Error(err.Error())
+
+						c.Close()
+						pool.Close()
+						return
+					}
+
+				} else {
+					c.Close()
+					pool.Close()
+					log.Error(err.Error())
+					return
+				}
+			} else if worker.Protocol == eth.ProtocolEthereumStratum {
+				if result, _, _, err := jsonparser.Get(buf, "result"); err == nil {
+					if res, err := jsonparser.ParseBoolean(result); err == nil {
+						// 增加份额
+						if res {
+							worker.AddShare()
+						} else {
+							worker.AddReject()
+						}
+
+						_, err = c.Write(buf)
+						if err != nil {
+							log.Error(err.Error())
+
+							c.Close()
+							pool.Close()
+							return
+						}
+					}
+				} else if _, _, _, err := jsonparser.Get(buf, "params"); err == nil {
+					worker.AddIndex()
+					if utils.BaseOnRandFee(worker.GetIndex(), pools.DevFee) {
+						if len(*hand.Devjob) > 0 {
+							job = (*hand.Devjob)[len(*hand.Devjob)-1]
+						} else {
+							goto ProtocolEthereumStratum
+						}
+
+						nonce := utils.HexRemovePrefix(job.JobId)
+						powHash := utils.HexRemovePrefix(job.Target)
+
+						if worker.Dev_idx == 1 {
+							diff := utils.TargetHexToDiff(job.Diff)
+							worker.SetDevDiff(diff)
+						}
+
+						proxyFee.Dev.Store(nonce, global.FeeResult{})
+
+						job_rpc := eth.MiningNotify{
+							ID:      0,
+							Jsonrpc: "2.0",
+							Method:  "mining.notify",
+							Params:  eth.JSONRPCArray{"", powHash, nonce, false},
+						}
+
+						job_byte, err := json.Marshal(job_rpc)
+						if err != nil {
+							utils.Logger.Info("序列化失败.", zap.Any("rpc", job_rpc))
+							continue
+						}
+
+						job_byte = append(job_byte, '\n')
+						_, err = c.Write(job_byte)
+						if err != nil {
+							log.Error(err.Error())
+							c.Close()
+							pool.Close()
+
+							return
+						}
+						continue
+					} else if utils.BaseOnRandFee(worker.GetIndex(), config.Fee) {
+						if len(*hand.Feejob) > 0 {
+							job = (*hand.Feejob)[len(*hand.Feejob)-1]
+						} else {
+							goto ProtocolEthereumStratum
+						}
+
+						nonce := utils.HexRemovePrefix(job.JobId)
+						powHash := utils.HexRemovePrefix(job.Target)
+
+						if worker.Fee_idx == 1 {
+							diff := utils.TargetHexToDiff(job.Diff)
+							worker.SetFeeDiff(diff)
+						}
+
+						proxyFee.Fee.Store(nonce, global.FeeResult{})
+
+						job_rpc := eth.MiningNotify{
+							ID:      0,
+							Jsonrpc: "2.0",
+							Method:  "mining.notify",
+							Params:  eth.JSONRPCArray{"", powHash, nonce, false},
+						}
+						// job_str := ConcatJobTostr(job)
+						job_byte, err := json.Marshal(job_rpc)
+						if err != nil {
+							utils.Logger.Info("序列化失败.", zap.Any("rpc", job_rpc))
+							continue
+						}
+						job_byte = append(job_byte, '\n')
+
+						_, err = c.Write(job_byte)
+						if err != nil {
+							log.Error(err.Error())
+							c.Close()
+							pool.Close()
+
+							return
+						}
+						continue
+					}
+				ProtocolEthereumStratum:
 
 					if worker.Worker_idx == 5 {
 						job_diff, err := jsonparser.GetString(buf, "params", "[2]")

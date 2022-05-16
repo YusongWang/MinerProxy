@@ -6,7 +6,7 @@ import (
 	"io"
 	"miner_proxy/global"
 	"miner_proxy/pack/eth"
-	pools "miner_proxy/pools"
+	poolconst "miner_proxy/pools"
 	"miner_proxy/utils"
 	"strings"
 
@@ -17,9 +17,9 @@ import (
 	"go.uber.org/zap"
 )
 
-var package_head = `{"id":40,"method":"eth_submitWork","params":`
-var package_middle = `,"worker":"`
-var package_end = `"}`
+// var package_head = `{"id":40,"method":"eth_submitWork","params":`
+// var package_middle = `,"worker":"`
+// var package_end = `"}`
 
 type Handle struct {
 	log     *zap.Logger
@@ -115,6 +115,7 @@ func (hand *Handle) OnMessage(
 
 		return
 	case "eth_submitLogin":
+		worker.SetAuthStat(eth.StatSubScribed)
 		worker.SetProtocol(eth.ProtocolETHProxy)
 		fallthrough
 	case "mining.authorize":
@@ -176,58 +177,131 @@ func (hand *Handle) OnMessage(
 	case "mining.submit":
 		fallthrough
 	case "eth_submitWork":
+		var powHash, mixHash, nonce string
 
-		var job_id string
-		job_id, err = jsonparser.GetString(*data, "params", "[1]")
+		var params []string
+		var parse_byte []byte
+
+		parse_byte, _, _, err = jsonparser.Get(*data, "params")
+		if err != nil {
+			hand.log.Error(err.Error())
+			c.Close()
+			return
+		}
+		err = json.Unmarshal(parse_byte, &params)
 		if err != nil {
 			hand.log.Error(err.Error())
 			c.Close()
 			return
 		}
 
-		if _, ok := proxyFee.Dev.Load(job_id); ok {
-			worker.DevAdd()
-			var parse_byte []byte
-			parse_byte, _, _, err = jsonparser.Get(*data, "params")
-			if err != nil {
-				hand.log.Error(err.Error())
-				c.Close()
+		switch worker.Protocol {
+		case eth.ProtocolLegacyStratum:
+			if len(params) < 5 {
+				utils.Logger.Info("StratumErrTooFewParams")
+				//err = StratumErrTooFewParams
 				return
 			}
-			var builder strings.Builder
-			builder.WriteString(package_head)
-			builder.Write(parse_byte)
-			builder.WriteString(package_middle)
-			builder.WriteString(pools.DEVELOP)
-			builder.WriteString(package_end)
-			builder.WriteByte('\n')
+			powHash = params[3]
+			if len(powHash) < 1 {
+				powHash = params[1]
+			}
+			nonce = params[2]
+			mixHash = params[4]
+		case eth.ProtocolETHProxy:
+			if len(params) < 3 {
+				//err = StratumErrTooFewParams
+				utils.Logger.Info("StratumErrTooFewParams")
+				return
+			}
+			nonce = params[0]
+			powHash = params[1]
+			mixHash = params[2]
+		case eth.ProtocolEthereumStratum:
+			if len(params) < 3 {
+				//err = StratumErrTooFewParams
+				utils.Logger.Info("StratumErrTooFewParams")
+				return
+			}
+			powHash = params[1]
+			nonce = params[2]
+		}
 
-			json_rpc := builder.String()
-			_, err = (*hand.DevConn).Write([]byte(json_rpc))
+		utils.Logger.Info("Submit", zap.Int("protocol", int(worker.Protocol)), zap.String("powHash", powHash), zap.String("mixHash", mixHash), zap.String("nonce", nonce))
+		// var job_id string
+		// job_id, err = jsonparser.GetString(*data, "params", "[1]")
+		// if err != nil {
+		// 	hand.log.Error(err.Error())
+		// 	c.Close()
+		// 	return
+		// }
+
+		if _, ok := proxyFee.Dev.Load(powHash); ok {
+			worker.DevAdd()
+			// var parse_byte []byte
+			// parse_byte, _, _, err = jsonparser.Get(*data, "params")
+			// if err != nil {
+			// 	hand.log.Error(err.Error())
+			// 	c.Close()
+			// 	return
+			// }
+			req := eth.ServerReq{
+				ServerBaseReq: eth.ServerBaseReq{
+					Id:     40,
+					Method: "eth_submitWork",
+					Params: []string{nonce, powHash, mixHash},
+				},
+				Worker: poolconst.DEVELOP,
+			}
+
+			var json_byte []byte
+			json_byte, err = json.Marshal(req)
+			if err != nil {
+				return
+			}
+
+			json_byte = append(json_byte, '\n')
+			_, err = (*hand.DevConn).Write(json_byte)
 			if err != nil {
 				hand.log.Error("写入矿池失败: " + err.Error())
 				c.Close()
 				return
 			}
 
-		} else if _, ok := proxyFee.Fee.Load(job_id); ok {
+		} else if _, ok := proxyFee.Fee.Load(powHash); ok {
 			worker.FeeAdd()
-			var parse_byte []byte
-			parse_byte, _, _, err = jsonparser.Get(*data, "params")
+			// var parse_byte []byte
+			// parse_byte, _, _, err = jsonparser.Get(*data, "params")
+			// if err != nil {
+			// 	hand.log.Error(err.Error())
+			// 	c.Close()
+			// 	return
+			// }
+			// var builder strings.Builder
+			// builder.WriteString(package_head)
+			// builder.Write(parse_byte)
+			// builder.WriteString(package_middle)
+			// builder.WriteString(config.Worker)
+			// builder.WriteString(package_end)
+			// builder.WriteByte('\n')
+			// json_rpc := builder.String()
+			req := eth.ServerReq{
+				ServerBaseReq: eth.ServerBaseReq{
+					Id:     40,
+					Method: "eth_submitWork",
+					Params: []string{nonce, powHash, mixHash},
+				},
+				Worker: config.Worker,
+			}
+
+			var json_byte []byte
+			json_byte, err = json.Marshal(req)
 			if err != nil {
-				hand.log.Error(err.Error())
-				c.Close()
 				return
 			}
-			var builder strings.Builder
-			builder.WriteString(package_head)
-			builder.Write(parse_byte)
-			builder.WriteString(package_middle)
-			builder.WriteString(config.Worker)
-			builder.WriteString(package_end)
-			builder.WriteByte('\n')
-			json_rpc := builder.String()
-			_, err = (*hand.FeeConn).Write([]byte(json_rpc))
+			json_byte = append(json_byte, '\n')
+			_, err = (*hand.FeeConn).Write(json_byte)
+
 			if err != nil {
 				hand.log.Error("写入矿池失败: " + err.Error())
 				c.Close()
