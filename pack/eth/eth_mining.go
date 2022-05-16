@@ -128,3 +128,10 @@ func EthSuccess(id int64) (out []byte, err error) {
 func EthError(id json.RawMessage, code int32, msg string) ([]byte, error) {
 	return nil, errors.New("TODO")
 }
+
+type MiningNotify struct {
+	ID      int      `json:"id"`
+	Jsonrpc string   `json:"jsonrpc"`
+	Method  string   `json:"method"`
+	Params  []string `json:"params"`
+}
