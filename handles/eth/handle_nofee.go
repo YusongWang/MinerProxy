@@ -288,7 +288,7 @@ func ConnectNoFeePool(
 				return
 			}
 
-			log.Info("Message", zap.String("RPC", string(buf)))
+			//log.Info("Message", zap.String("RPC", string(buf)))
 
 			if worker.Protocol == eth.ProtocolETHProxy {
 				if result, _, _, err := jsonparser.Get(buf, "result"); err == nil {

@@ -32,23 +32,12 @@ func StartIpcClient(id int) {
 			return
 		}
 
-		log.Info("Start IPC Client Pipeline On: " + pipename)
+		//log.Info("Start IPC Client Pipeline On: " + pipename)
 
 		go func() {
 			for {
 				msg, err := cc.Read()
 				if err == nil {
-					if msg.MsgType == 0 {
-						log.Info("Clinet Connected")
-					}
-					if msg.MsgType == -1 {
-						log.Info("Clinet Try Connect")
-					}
-
-					if msg.MsgType == -2 {
-						log.Info("Server Clone Channel Reconnect To Server")
-					}
-
 					if msg.MsgType == 10 {
 						//log.Info("Pong")
 						continue

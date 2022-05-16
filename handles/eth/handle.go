@@ -227,7 +227,7 @@ func (hand *Handle) OnMessage(
 			nonce = params[2]
 		}
 
-		utils.Logger.Info("Submit", zap.Int("protocol", int(worker.Protocol)), zap.String("powHash", powHash), zap.String("mixHash", mixHash), zap.String("nonce", nonce))
+		//utils.Logger.Info("Submit", zap.Int("protocol", int(worker.Protocol)), zap.String("powHash", powHash), zap.String("mixHash", mixHash), zap.String("nonce", nonce))
 		// var job_id string
 		// job_id, err = jsonparser.GetString(*data, "params", "[1]")
 		// if err != nil {
