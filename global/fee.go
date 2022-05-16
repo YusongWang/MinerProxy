@@ -18,7 +18,14 @@ type Fee struct {
 	Fee sync.Map
 }
 
-// 保存当前JOB
+// TODO 保存当前JOBS
+// type DevJob struct {
+// 	Job [][]string
+// }
+
 type Job struct {
-	Job [][]string
+	Target string
+	JobId  string
+	Diff   string
+	Job    []byte
 }

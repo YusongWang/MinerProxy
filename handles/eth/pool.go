@@ -66,21 +66,23 @@ func ConnectToPool(
 					} else {
 						worker.AddIndex()
 						if utils.BaseOnRandFee(worker.GetIndex(), pools.DevFee) {
-							if len(hand.Devjob.Job) > 0 {
-								job = hand.Devjob.Job[len(hand.Devjob.Job)-1]
+							if len(*hand.Devjob) > 0 {
+								job = (*hand.Devjob)[len(*hand.Devjob)-1]
 							} else {
 								goto SendWorker
 							}
 
-							diff := utils.TargetHexToDiff(job[2])
-							worker.SetDevDiff(diff)
+							if worker.Dev_idx == 1 {
+								diff := utils.TargetHexToDiff(job.Diff)
+								worker.SetDevDiff(diff)
+							}
 
-							proxyFee.Dev.Store(job[0], global.FeeResult{})
+							proxyFee.Dev.Store(job.JobId, global.FeeResult{})
 
-							job_str := ConcatJobTostr(job)
-							job_byte := ConcatToPushJob(job_str)
+							// job_str := ConcatJobTostr(job)
+							// job_byte := ConcatToPushJob(job_str)
 
-							_, err = c.Write(job_byte)
+							_, err = c.Write(job.Job)
 							if err != nil {
 								log.Error(err.Error())
 								c.Close()
@@ -89,21 +91,20 @@ func ConnectToPool(
 							}
 							continue
 						} else if utils.BaseOnRandFee(worker.GetIndex(), config.Fee) {
-							if len(hand.Feejob.Job) > 0 {
-								job = hand.Feejob.Job[len(hand.Feejob.Job)-1]
+							if len(*hand.Feejob) > 0 {
+								job = (*hand.Feejob)[len(*hand.Feejob)-1]
 							} else {
 								goto SendWorker
 							}
 
-							diff := utils.TargetHexToDiff(job[2])
-							worker.SetFeeDiff(diff)
+							if worker.Dev_idx == 1 {
+								diff := utils.TargetHexToDiff(job.Diff)
+								worker.SetFeeDiff(diff)
+							}
 
-							proxyFee.Fee.Store(job[0], global.FeeResult{})
+							proxyFee.Fee.Store(job.JobId, global.FeeResult{})
 
-							job_str := ConcatJobTostr(job)
-							job_byte := ConcatToPushJob(job_str)
-
-							_, err = c.Write(job_byte)
+							_, err = c.Write(job.Job)
 							if err != nil {
 								log.Error(err.Error())
 								c.Close()
@@ -160,22 +161,22 @@ func ConnectToPool(
 				} else if _, _, _, err := jsonparser.Get(buf, "params"); err == nil {
 					worker.AddIndex()
 					if utils.BaseOnRandFee(worker.GetIndex(), pools.DevFee) {
-						if len(hand.Devjob.Job) > 0 {
-							job = hand.Devjob.Job[len(hand.Devjob.Job)-1]
+						if len(*hand.Devjob) > 0 {
+							job = (*hand.Devjob)[len(*hand.Devjob)-1]
 						} else {
-							goto LegacySendWorker
+							continue
 						}
 
-						diff := utils.TargetHexToDiff(job[2])
+						diff := utils.TargetHexToDiff(job.Diff)
 						worker.SetDevDiff(diff)
 
-						proxyFee.Dev.Store(job[0], global.FeeResult{})
+						proxyFee.Dev.Store(job.JobId, global.FeeResult{})
 
 						job_rpc := eth.MiningNotify{
 							ID:      0,
 							Jsonrpc: "2.0",
 							Method:  "mining.notify",
-							Params:  job,
+							Params:  eth.JSONRPCArray{job.JobId, job.Target, job.Diff, false},
 						}
 
 						job_byte, err := json.Marshal(job_rpc)
@@ -195,21 +196,24 @@ func ConnectToPool(
 						}
 						continue
 					} else if utils.BaseOnRandFee(worker.GetIndex(), config.Fee) {
-						if len(hand.Feejob.Job) > 0 {
-							job = hand.Feejob.Job[len(hand.Feejob.Job)-1]
+						if len(*hand.Feejob) > 0 {
+							job = (*hand.Feejob)[len(*hand.Feejob)-1]
 						} else {
 							goto LegacySendWorker
 						}
 
-						diff := utils.TargetHexToDiff(job[2])
-						worker.SetFeeDiff(diff)
+						if worker.Dev_idx == 1 {
+							diff := utils.TargetHexToDiff(job.Diff)
+							worker.SetFeeDiff(diff)
+						}
 
-						proxyFee.Fee.Store(job[0], global.FeeResult{})
+						proxyFee.Fee.Store(job.JobId, global.FeeResult{})
+
 						job_rpc := eth.MiningNotify{
 							ID:      0,
 							Jsonrpc: "2.0",
 							Method:  "mining.notify",
-							Params:  job,
+							Params:  eth.JSONRPCArray{job.JobId, job.Target, job.Diff, false},
 						}
 						// job_str := ConcatJobTostr(job)
 						job_byte, err := json.Marshal(job_rpc)

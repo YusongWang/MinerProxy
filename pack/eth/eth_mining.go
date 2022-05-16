@@ -129,10 +129,12 @@ func EthError(id json.RawMessage, code int32, msg string) ([]byte, error) {
 	return nil, errors.New("TODO")
 }
 
+type JSONRPCArray []interface{}
+
 ///{"id":1,"method":"mining.subscribe","params":["MinerName/1.0.0",""]}
 type MiningNotify struct {
-	ID      int      `json:"id"`
-	Jsonrpc string   `json:"jsonrpc"`
-	Method  string   `json:"method"`
-	Params  []string `json:"params"`
+	ID      int          `json:"id"`
+	Jsonrpc string       `json:"jsonrpc"`
+	Method  string       `json:"method"`
+	Params  JSONRPCArray `json:"params"`
 }

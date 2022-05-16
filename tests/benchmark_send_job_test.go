@@ -3,69 +3,71 @@ package test
 import (
 	"log"
 	"miner_proxy/global"
-	"miner_proxy/utils"
 	"strings"
-	"testing"
 
 	"github.com/buger/jsonparser"
 )
 
-var send_job []string
-var feejob = []byte(`{"id":0,"version":"2.0","result":["0xf6067c77e474565f43b8c6b22afe7c12a178ec400e95974be5bad4f92657969d", "0xf87998fd030a4d04802b9f2ef04443bb4d2c105f13be5aa338ef49860c3c5425", "0x000000007fffffffffffffffffffffffffffffffffffffffffffffffffffffff"]}`)
+// var send_job []string
+// var feejob = []byte(`{"id":0,"version":"2.0","result":["0xf6067c77e474565f43b8c6b22afe7c12a178ec400e95974be5bad4f92657969d", "0xf87998fd030a4d04802b9f2ef04443bb4d2c105f13be5aa338ef49860c3c5425", "0x000000007fffffffffffffffffffffffffffffffffffffffffffffffffffffff"]}`)
 
-func BenchmarkSendJob(b *testing.B) {
-	send_job := &global.Job{}
-	a := []string{"0xf6067c77e474565f43b8c6b22afe7c12a178ec400e95974be5bad4f92657969d", "0xf87998fd030a4d04802b9f2ef04443bb4d2c105f13be5aa338ef49860c3c5425", "0x000000007fffffffffffffffffffffffffffffffffffffffffffffffffffffff"}
-	send_job.Job = append(send_job.Job, a)
-	worker := global.NewWorker("1", "2", "3", "4")
+// func BenchmarkSendJob(b *testing.B) {
+// 	send_job := &global.Job{}
+// 	//a := []string{"0xf6067c77e474565f43b8c6b22afe7c12a178ec400e95974be5bad4f92657969d", "0xf87998fd030a4d04802b9f2ef04443bb4d2c105f13be5aa338ef49860c3c5425", "0x000000007fffffffffffffffffffffffffffffffffffffffffffffffffffffff"}
+// 	send_job.Target = "0xf6067c77e474565f43b8c6b22afe7c12a178ec400e95974be5bad4f92657969d"
+// 	send_job.JobId = "0xf87998fd030a4d04802b9f2ef04443bb4d2c105f13be5aa338ef49860c3c5425"
+// 	send_job.Diff = "0x000000007fffffffffffffffffffffffffffffffffffffffffffffffffffffff"
 
-	for i := 0; i < b.N; i++ {
-		worker.FeeAdd()
-		//Repeat(`b`, 5)
-		FeeSend(send_job.Job, worker)
-	}
-}
+// 	send_job.Job = append(send_job.Job, a)
+// 	worker := global.NewWorker("1", "2", "3", "4")
 
-func BenchmarkSendJobButter(b *testing.B) {
-	//send_job := &global.Job{}
-	var Job [][]byte
-	//a := []string{"0xf6067c77e474565f43b8c6b22afe7c12a178ec400e95974be5bad4f92657969d", "0xf87998fd030a4d04802b9f2ef04443bb4d2c105f13be5aa338ef49860c3c5425", "0x000000007fffffffffffffffffffffffffffffffffffffffffffffffffffffff"}
-	Job = append(Job, feejob)
-	worker := global.NewWorker("1", "2", "3", "4")
+// 	for i := 0; i < b.N; i++ {
+// 		worker.FeeAdd()
+// 		//Repeat(`b`, 5)
+// 		FeeSend(send_job.Job, worker)
+// 	}
+// }
 
-	for i := 0; i < b.N; i++ {
-		worker.FeeAdd()
-		//Repeat(`b`, 5)
-		FeeSendBetter(Job, worker)
-	}
-}
+// func BenchmarkSendJobButter(b *testing.B) {
+// 	//send_job := &global.Job{}
+// 	var Job [][]byte
+// 	//a := []string{"0xf6067c77e474565f43b8c6b22afe7c12a178ec400e95974be5bad4f92657969d", "0xf87998fd030a4d04802b9f2ef04443bb4d2c105f13be5aa338ef49860c3c5425", "0x000000007fffffffffffffffffffffffffffffffffffffffffffffffffffffff"}
+// 	Job = append(Job, feejob)
+// 	worker := global.NewWorker("1", "2", "3", "4")
 
-func FeeSend(job [][]string, worker *global.Worker) {
+// 	for i := 0; i < b.N; i++ {
+// 		worker.FeeAdd()
+// 		//Repeat(`b`, 5)
+// 		FeeSendBetter(Job, worker)
+// 	}
+// }
 
-	if len(job) > 0 {
-		send_job = job[len(job)-1]
-	} else {
-		return
-	}
+// func FeeSend(job [][]string, worker *global.Worker) {
 
-	if len(send_job) == 0 {
-		log.Println("当前job内容为空")
-		return
-	}
+// 	if len(job) > 0 {
+// 		send_job = job[len(job)-1]
+// 	} else {
+// 		return
+// 	}
 
-	diff := utils.TargetHexToDiff(send_job[2])
-	worker.SetDevDiff(diff)
+// 	if len(send_job) == 0 {
+// 		log.Println("当前job内容为空")
+// 		return
+// 	}
 
-	//dev[send_job[0]] = true
-	job_str := ConcatJobTostr(send_job)
-	_ = ConcatToPushJob(job_str)
+// 	diff := utils.TargetHexToDiff(send_job[2])
+// 	worker.SetDevDiff(diff)
 
-	// _, err := c.Write(job_byte)
-	// if err != nil {
-	// 	log.Error(err.Error())
-	// 	return
-	// }
-}
+// 	//dev[send_job[0]] = true
+// 	job_str := ConcatJobTostr(send_job)
+// 	_ = ConcatToPushJob(job_str)
+
+// 	// _, err := c.Write(job_byte)
+// 	// if err != nil {
+// 	// 	log.Error(err.Error())
+// 	// 	return
+// 	// }
+// }
 
 var Dev = make(map[string]bool)
 var job_id string

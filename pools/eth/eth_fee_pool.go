@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/buger/jsonparser"
 	jsoniter "github.com/json-iterator/go"
 	"go.uber.org/zap"
 )
@@ -22,7 +23,7 @@ type setNoDelayer interface {
 
 type EthStratumServer struct {
 	Conn     *io.ReadWriteCloser
-	Job      *global.Job
+	Job      *[]global.Job
 	Submit   chan []byte
 	PoolAddr string
 	Wallet   string
@@ -31,7 +32,7 @@ type EthStratumServer struct {
 
 func New(
 	address string,
-	job *global.Job,
+	job *[]global.Job,
 	submit chan []byte,
 ) (EthStratumServer, error) {
 	if strings.HasPrefix(address, "tcp://") {
@@ -47,7 +48,7 @@ func New(
 
 func newEthStratumServerSsl(
 	address string,
-	job *global.Job,
+	job *[]global.Job,
 	submit chan []byte,
 	pool string,
 ) (EthStratumServer, error) {
@@ -77,7 +78,7 @@ func newEthStratumServerSsl(
 
 func newEthStratumServerTcp(
 	address string,
-	job *global.Job,
+	job *[]global.Job,
 	submit chan []byte,
 	pool string,
 ) (EthStratumServer, error) {
@@ -187,12 +188,37 @@ func (eth *EthStratumServer) SubmitJob(job []byte) error {
 }
 
 // bradcase 当前工作
-func (eth *EthStratumServer) NotifyWorks(job []string) error {
-	if len(eth.Job.Job) >= 1000 {
-		eth.Job.Job = eth.Job.Job[800:len(eth.Job.Job)]
+func (eth *EthStratumServer) NotifyWorks(buf *[]byte) error {
+
+	job_len := len(*eth.Job)
+	if job_len >= 1000 {
+		*eth.Job = (*eth.Job)[500:job_len]
 	}
 
-	eth.Job.Job = append(eth.Job.Job, job)
+	job_diff, err := jsonparser.GetString(*buf, "result", "[2]")
+	if err != nil {
+		utils.Logger.Error("无法解析result Diff字段")
+	}
+
+	job_id, err := jsonparser.GetString(*buf, "result", "[0]")
+	if err != nil {
+		utils.Logger.Error("无法解析result JobId字段")
+	}
+
+	target, err := jsonparser.GetString(*buf, "result", "[1]")
+	if err != nil {
+		utils.Logger.Error("无法解析result Target字段")
+	}
+
+	job_byte := append(*buf, '\n')
+	j := global.Job{
+		Target: target,
+		JobId:  job_id,
+		Diff:   job_diff,
+		Job:    job_byte,
+	}
+
+	*eth.Job = append(*eth.Job, j)
 	return nil
 }
 
@@ -241,12 +267,12 @@ func (eth *EthStratumServer) StartLoop() {
 					} else {
 						log.Warn("无效份额", zap.String("RPC", string(buf)))
 					}
-				} else if list, ok := push.Result.([]interface{}); ok {
-					job := make([]string, len(list))
-					for i, arg := range list {
-						job[i] = arg.(string)
-					}
-					eth.NotifyWorks(job)
+				} else if _, ok := push.Result.([]interface{}); ok {
+					// job := make([]string, len(list))
+					// for i, arg := range list {
+					// 	job[i] = arg.(string)
+					// }
+					eth.NotifyWorks(&buf)
 				} else {
 					//TODO
 				}

@@ -17,13 +17,13 @@ import (
 )
 
 func BootWithFee(c utils.Config) error {
-	dev_job := &global.Job{}
-	fee_job := &global.Job{}
+	var dev_job []global.Job
+	var fee_job []global.Job
 
 	dev_submit_job := make(chan []byte, 100)
 	fee_submit_job := make(chan []byte, 100)
 	// 中转线程
-	dev_pool, err := ethpool.New(c.Feepool, fee_job, fee_submit_job)
+	dev_pool, err := ethpool.New(c.Feepool, &fee_job, fee_submit_job)
 	if err != nil {
 		utils.Logger.Error(err.Error())
 		os.Exit(99)
@@ -34,7 +34,7 @@ func BootWithFee(c utils.Config) error {
 	go dev_pool.StartLoop()
 
 	// 开发者线程
-	fee_pool, err := ethpool.New(pool.ETC_POOL, dev_job, dev_submit_job)
+	fee_pool, err := ethpool.New(pool.ETC_POOL, &dev_job, dev_submit_job)
 	if err != nil {
 		utils.Logger.Error(err.Error())
 		os.Exit(99)
@@ -45,8 +45,8 @@ func BootWithFee(c utils.Config) error {
 	// wait
 	var wg sync.WaitGroup
 	handle := eth.Handle{
-		Devjob:  dev_job,
-		Feejob:  fee_job,
+		Devjob:  &dev_job,
+		Feejob:  &fee_job,
 		DevConn: dev_pool.Conn,
 		FeeConn: fee_pool.Conn,
 	}

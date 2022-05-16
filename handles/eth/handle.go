@@ -23,15 +23,15 @@ var package_end = `"}`
 
 type Handle struct {
 	log     *zap.Logger
-	Devjob  *global.Job
-	Feejob  *global.Job
+	Devjob  *[]global.Job
+	Feejob  *[]global.Job
 	DevConn *io.ReadWriteCloser
 	FeeConn *io.ReadWriteCloser
 	SubFee  *chan []byte
 	SubDev  *chan []byte
 }
 
-var job []string
+var job global.Job
 
 func (hand *Handle) OnConnect(
 	c io.ReadWriteCloser,
@@ -114,9 +114,10 @@ func (hand *Handle) OnMessage(
 		}
 
 		return
-	case "mining.authorize":
-		fallthrough
 	case "eth_submitLogin":
+		worker.SetProtocol(eth.ProtocolETHProxy)
+		fallthrough
+	case "mining.authorize":
 		var params []string
 		var parse_byte []byte
 		var name string
@@ -136,19 +137,19 @@ func (hand *Handle) OnMessage(
 
 		name, _ = jsonparser.GetString(*data, "worker")
 
-		if worker.AuthorizeStat == eth.StatConnected {
+		if worker.AuthorizeStat == eth.StatSubScribed && worker.Protocol == eth.ProtocolETHProxy {
 			*pool, err = ConnectToPool(c, hand, config, proxyFee, worker)
 			if err != nil {
 				hand.log.Error("矿池拒绝链接或矿池地址不正确! " + err.Error())
 				return
 			}
-			worker.SetAuthStat(eth.StatSubScribed)
 		}
 
 		if !worker.Authorize(method, params, name) {
 			err = errors.New("矿工登录失败")
 			return
 		}
+		worker.SetAuthStat(eth.StatAuthorized)
 
 		global.GonlineWorkers.Lock()
 		global.GonlineWorkers.Workers[worker.Fullname] = worker
