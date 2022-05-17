@@ -26,15 +26,15 @@ build() {
 cd "$(dirname "$0")"
 mkdir -p build
 
-build linux 386
+#build linux 386
 build linux amd64
-build linux arm
-build linux arm64
-build linux mipsle
-build linux mips64le
+#build linux arm
+#build linux arm64
+#build linux mipsle
+#build linux mips64le
 
-build windows 386
+#build windows 386
 build windows amd64
 
-build darwin amd64
-build darwin arm64
+#build darwin amd64
+#build darwin arm64
