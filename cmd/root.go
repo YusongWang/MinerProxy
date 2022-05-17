@@ -179,8 +179,8 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 	// 监听配置文件
 	v.WatchConfig()
 	v.OnConfigChange(func(in fsnotify.Event) {
-		utils.Logger.Info("config file changed:" + in.Name)
-		fmt.Printf("%+v\n", *global.ManageApp)
+		// utils.Logger.Info("config file changed:" + in.Name)
+		// fmt.Printf("%+v\n", *global.ManageApp)
 
 		// 将 tmp 的内存地址赋给指针变量 stud2
 		var conf global.ManageConfig
@@ -201,9 +201,9 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 		need_kill := true
 
 		// 内存中管理的进程池
-		for _, app := range global.ManageApp.Config {
+		for _, old_app := range conf.Config {
 			// 新的进程池配置文件
-			for _, old_app := range conf.Config {
+			for _, app := range global.ManageApp.Config {
 				if app.ID == old_app.ID {
 					need_kill = false
 				}
@@ -212,7 +212,7 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 			// kill
 			if need_kill {
 				//utils.Logger.Info("Need Kill Proxy Process", zap.Int("ID", app.ID), zap.Any("need_kill", need_kill))
-				ManagePool.Online[app.ID].Process.Kill()
+				ManagePool.Online[old_app.ID].Process.Kill()
 			}
 		}
 

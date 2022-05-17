@@ -97,7 +97,7 @@ func StartIpcServer(id int) {
 	pipename := pool.WebCmdPipeline + "_" + strconv.Itoa(id)
 	log := utils.Logger.With(zap.String("IPC_NAME", pipename))
 	config := ipc.ServerConfig{
-		Encryption: false,
+		Encryption: true,
 		MaxMsgSize: math.MaxInt,
 	}
 
