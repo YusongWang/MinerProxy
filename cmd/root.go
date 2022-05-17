@@ -14,6 +14,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 type PoolConfig struct {
@@ -134,9 +135,11 @@ func Proxy(wg *sync.WaitGroup, restart chan int) {
 		if ManagePool.Online[id] == nil {
 			for _, app := range global.ManageApp.Config {
 				if app.ID == id {
+					//utils.Logger.Info("Start ID: " + strconv.Itoa(id))
 					ProcessProxy(app)
 				}
 			}
+			//ProcessProxy(app)
 		} else {
 			ManagePool.Online[id].Process.Kill()
 		}
@@ -179,8 +182,7 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 	// 监听配置文件
 	v.WatchConfig()
 	v.OnConfigChange(func(in fsnotify.Event) {
-		// utils.Logger.Info("config file changed:" + in.Name)
-		// fmt.Printf("%+v\n", *global.ManageApp)
+		utils.Logger.Info("config file changed:" + in.Name)
 
 		// 将 tmp 的内存地址赋给指针变量 stud2
 		var conf global.ManageConfig
@@ -211,11 +213,12 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 
 			// kill
 			if need_kill {
-				//utils.Logger.Info("Need Kill Proxy Process", zap.Int("ID", app.ID), zap.Any("need_kill", need_kill))
+				utils.Logger.Info("Need Kill Proxy Process", zap.Int("ID", old_app.ID), zap.Any("need_kill", need_kill))
 				ManagePool.Online[old_app.ID].Process.Kill()
 			}
 		}
 
+		isNew := true
 		// 检查 proxy 是否重启。
 		for _, app := range global.ManageApp.Config {
 			for _, old_app := range conf.Config {
@@ -223,10 +226,14 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 					//utils.Logger.Info("找到相同矿池判断参数是否变动.")
 					if checkConfigChange(old_app, app) {
 						//utils.Logger.Info("参数变动发送restart命令.")
-						//is_new = false
+						isNew = false
 						proxy_restart <- app.ID
 					}
 				}
+			}
+
+			if isNew {
+				proxy_restart <- app.ID
 			}
 		}
 	})

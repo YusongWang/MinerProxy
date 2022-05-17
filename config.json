@@ -1,1 +1,0 @@
-{"config":[{"coin":"ETH","id":1,"tcp":12345,"tls":0,"enport":0,"cert":"server.pem","key":"server.key","pool":"ssl://asia1.ethermine.org:5555","feepool":"","fee":0,"worker":"test","wallet":"","mode":1,"online":true}],"web":{"port":9090,"password":"123456"}}
