@@ -36,6 +36,7 @@ func CreateRandomString(len int) string {
 	}
 	return container
 }
+
 func main() {
 
 	flag.StringVar(&pool, "pool", "tcp://localhost:8812", "set the pool sup tcp:// ssl://")
@@ -55,8 +56,9 @@ func main() {
 		fmt.Println("Thread Is empty!")
 		os.Exit(-1)
 	}
+
 	// 增大文件描述符上限
-	utils.IncreaseFDLimit()
+	//utils.IncreaseFDLimit()
 
 	defer ants.Release()
 	var wg sync.WaitGroup

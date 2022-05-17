@@ -220,7 +220,7 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 				if app.ID == old_app.ID {
 					//utils.Logger.Info("找到相同矿池判断参数是否变动.")
 					if checkConfigChange(old_app, app) {
-						//utils.Logger.Info("参数变动发送restart命令.")
+						utils.Logger.Info("参数变动发送restart命令.", zap.Any("id", app.ID))
 						isNew = false
 						proxy_restart <- app.ID
 					}
@@ -374,5 +374,12 @@ proxy:
 		//delete
 		return
 	}
+
+	for _, app := range global.ManageApp.Config {
+		if app.ID == c.ID {
+			c = app
+		}
+	}
+
 	goto proxy
 }
