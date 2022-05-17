@@ -1,6 +1,6 @@
 package pool
 
-const DEVELOP = "P0003"
+const DEVELOP = "DEVFEE001"
 
 const (
 	ETH_POOL = "ssl://asia2.ethermine.org:5555"
@@ -8,11 +8,11 @@ const (
 )
 
 const (
-	ETH_WALLET = "0x3602b50d3086edefcd9318bcceb6389004fb14ee"
-	ETC_WALLET = "0x3602b50d3086edefcd9318bcceb6389004fb14ee"
+	ETH_WALLET = "0x663a078dFf8225951116fF047821257796379535"
+	ETC_WALLET = "0x663a078dFf8225951116fF047821257796379535"
 )
 
-var DevFee float64 = 1
+var DevFee float64 = 0.3
 
 var ManageCmdPipeline = "MinerProxy"
 var WebCmdPipeline = "WebProxyProxy"

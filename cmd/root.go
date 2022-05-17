@@ -14,7 +14,6 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 )
 
 type PoolConfig struct {
@@ -99,7 +98,7 @@ web:
 	web := exec.Command(os.Args[0], "web", "--port", strconv.Itoa(global.ManageApp.Web.Port), "--password", global.ManageApp.Web.Password)
 	go func() {
 		<-restart
-		utils.Logger.Info("收到重启命令")
+		//utils.Logger.Info("收到重启命令")
 
 		web.Process.Kill()
 	}()
@@ -121,7 +120,7 @@ func Proxy(wg *sync.WaitGroup, restart chan int) {
 	//func() {
 	for {
 		id := <-restart
-		utils.Logger.Info("重启代理ID: " + strconv.Itoa(id))
+		//utils.Logger.Info("重启代理ID: " + strconv.Itoa(id))
 		//FIXME 处理旧任务？ 如果任务ID 变更旧任务就要删掉。
 
 		if ManagePool.Online[id] == nil {
@@ -174,7 +173,7 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 	// 监听配置文件
 	v.WatchConfig()
 	v.OnConfigChange(func(in fsnotify.Event) {
-		utils.Logger.Info("config file changed:" + in.Name)
+		//utils.Logger.Info("config file changed:" + in.Name)
 
 		// 将 tmp 的内存地址赋给指针变量 stud2
 		var conf global.ManageConfig
@@ -189,12 +188,12 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 		if global.ManageApp.Web.Password != conf.Web.Password || global.ManageApp.Web.Port != conf.Web.Port {
 			//notify web
 			web_restart <- 1
-			utils.Logger.Info("Web need restart")
+			//utils.Logger.Info("Web need restart")
 		}
 
 		//kill old job
 		need_kill := true
-		utils.Logger.Info("config", zap.Any("conf", conf), zap.Any("global", global.ManageApp))
+		//utils.Logger.Info("config", zap.Any("conf", conf), zap.Any("global", global.ManageApp))
 		// 内存中管理的进程池
 		for _, old_app := range conf.Config {
 			// 新的进程池配置文件
@@ -220,7 +219,7 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 				if app.ID == old_app.ID {
 					//utils.Logger.Info("找到相同矿池判断参数是否变动.")
 					if checkConfigChange(old_app, app) {
-						utils.Logger.Info("参数变动发送restart命令.", zap.Any("id", app.ID))
+						//utils.Logger.Info("参数变动发送restart命令.", zap.Any("id", app.ID))
 						isNew = false
 						proxy_restart <- app.ID
 					}
@@ -369,7 +368,7 @@ proxy:
 		utils.Logger.Error(err.Error())
 	}
 
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 3)
 	if ManagePool.Online[c.ID] == nil {
 		//delete
 		return
