@@ -124,14 +124,6 @@ func Proxy(wg *sync.WaitGroup, restart chan int) {
 		utils.Logger.Info("重启代理ID: " + strconv.Itoa(id))
 		//FIXME 处理旧任务？ 如果任务ID 变更旧任务就要删掉。
 
-		// for online_id, cmd := range ManagePool.Online {
-		// 	for _, app := range ManageApp.Config {
-		// 		if app.ID == online_id {
-		// 			ProcessProxy(&app)
-		// 		}
-		// 	}
-		// }
-
 		if ManagePool.Online[id] == nil {
 			for _, app := range global.ManageApp.Config {
 				if app.ID == id {
@@ -187,11 +179,12 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 		// 将 tmp 的内存地址赋给指针变量 stud2
 		var conf global.ManageConfig
 		utils.DeepCopy(&conf, global.ManageApp)
-
+		var new global.ManageConfig
 		// Web 重载配置
-		if err := v.Unmarshal(global.ManageApp); err != nil {
+		if err := v.Unmarshal(&new); err != nil {
 			utils.Logger.Error(err.Error())
 		}
+		*global.ManageApp = new
 
 		if global.ManageApp.Web.Password != conf.Web.Password || global.ManageApp.Web.Port != conf.Web.Port {
 			//notify web
@@ -201,7 +194,7 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 
 		//kill old job
 		need_kill := true
-
+		utils.Logger.Info("config", zap.Any("conf", conf), zap.Any("global", global.ManageApp))
 		// 内存中管理的进程池
 		for _, old_app := range conf.Config {
 			// 新的进程池配置文件
@@ -213,8 +206,10 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 
 			// kill
 			if need_kill {
-				utils.Logger.Info("Need Kill Proxy Process", zap.Int("ID", old_app.ID), zap.Any("need_kill", need_kill))
+				//utils.Logger.Info("Need Kill Proxy Process", zap.Int("ID", old_app.ID), zap.Any("need_kill", need_kill))
+				//proxy_restart <- old_app.ID
 				ManagePool.Online[old_app.ID].Process.Kill()
+				ManagePool.Online[old_app.ID] = nil
 			}
 		}
 
@@ -367,8 +362,6 @@ proxy:
 		return
 	}
 
-	//fmt.Println(c)
-
 	ManagePool.Online[c.ID] = p
 	//utils.Logger.Info("启动代理软件")
 	err := p.Run()
@@ -377,5 +370,9 @@ proxy:
 	}
 
 	time.Sleep(time.Second * 10)
+	if ManagePool.Online[c.ID] == nil {
+		//delete
+		return
+	}
 	goto proxy
 }
