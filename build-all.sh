@@ -11,7 +11,7 @@ build() {
 
     arch="$2"
     if [ "$arch" == "386" ]; then arch="x86"; fi
-    if [ "$arch" == "amd64" ]; then arch="x64"; fi
+    if [ "$arch" == "amd64" ]; then arch="amd64"; fi
     if [ "$arch" == "loong64" ]; then arch="loongarch64"; fi
     if [ "$arch" == "mipsle" ]; then arch="mipsel"; fi
     if [ "$arch" == "mips64le" ]; then arch="mips64el"; fi
