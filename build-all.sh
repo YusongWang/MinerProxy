@@ -20,7 +20,7 @@ build() {
     if [ "$1" == "windows" ]; then ext=".exe"; fi
 
     echo "build for $os $arch..."
-    CGO_ENABLED=0 GOOS="$1" GOARCH="$2" go build -a -ldflags '-extldflags "-static" $LDFLAGS -o "build/MinerProxy-$os-$arch$ext"' main.go
+    CGO_ENABLED=0 GOOS="$1" GOARCH="$2" go build -a -ldflags "-extldflags \"-static\" $LDFLAGS" -o "build/MinerProxy-$os-$arch$ext" main.go
 }
 
 cd "$(dirname "$0")"
