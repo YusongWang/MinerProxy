@@ -183,13 +183,15 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 		if err := v.Unmarshal(&new); err != nil {
 			utils.Logger.Error(err.Error())
 		}
+
 		*global.ManageApp = new
 
-		if global.ManageApp.Web.Password != conf.Web.Password || global.ManageApp.Web.Port != conf.Web.Port {
-			//notify web
-			web_restart <- 1
-			//utils.Logger.Info("Web need restart")
-		}
+		//if global.ManageApp.Web.Password != conf.Web.Password || global.ManageApp.Web.Port != conf.Web.Port {
+		//notify web
+		// FIXME: 每次添加修改矿池web都要监听新的矿池通道,这里要优化为只监听新创建通道即可。在web服务上做。
+		web_restart <- 1
+		//utils.Logger.Info("Web need restart")
+		//}
 
 		//kill old job
 		need_kill := true
