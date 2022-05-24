@@ -26,5 +26,8 @@ func main() {
 	global.Branch = branch
 	global.Auther = auther
 
+	// 增大文件描述符上限
+	//utils.IncreaseFDLimit()
+
 	cmd.Execute()
 }

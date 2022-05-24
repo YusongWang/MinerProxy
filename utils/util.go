@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"bytes"
+	"encoding/gob"
 	gomath "math"
 	"math/big"
 	"math/rand"
@@ -109,4 +111,49 @@ func DivTheDiff(newdiff *big.Int, olddiff *big.Int) *big.Int {
 		return newdiff
 	}
 	return new(big.Int).Div(new(big.Int).Add(newdiff, olddiff), new(big.Int).SetInt64(2))
+}
+
+// func IncreaseFDLimit() {
+// 	var rlm syscall.Rlimit
+
+// 	// Try to increase the soft limit
+// 	syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rlm)
+// 	if rlm.Cur < 65535 && rlm.Cur < rlm.Max {
+// 		rlm.Cur = rlm.Max
+// 		syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rlm)
+// 	}
+
+// 	// Try to increase the hard limit
+// 	syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rlm)
+// 	if rlm.Cur < 65535 || rlm.Max < 65535 {
+// 		rlm.Cur = 65535
+// 		rlm.Max = 65535
+// 		syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rlm)
+// 	}
+
+// 	// checking
+// 	syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rlm)
+// 	//Logger.Info("[OPTION] File descriptor limits")
+// 	if rlm.Max < 5000 {
+// 		Logger.Error("[OPTION] File descriptor hard limit is too small")
+// 	}
+// 	if rlm.Cur < 5000 {
+// 		Logger.Error("[OPTION] File descriptor soft limit is too small")
+// 	}
+// }
+
+func HexRemovePrefix(hexStr string) string {
+	// remove prefix "0x" or "0X"
+	if len(hexStr) >= 2 && hexStr[0] == '0' && (hexStr[1] == 'x' || hexStr[1] == 'X') {
+		hexStr = hexStr[2:]
+	}
+	return hexStr
+}
+
+func DeepCopy(dst, src interface{}) error {
+	var buf bytes.Buffer
+	if err := gob.NewEncoder(&buf).Encode(src); err != nil {
+		return err
+	}
+	return gob.NewDecoder(bytes.NewBuffer(buf.Bytes())).Decode(dst)
 }

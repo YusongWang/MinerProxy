@@ -16,6 +16,12 @@ import (
 func BootNoFee(c utils.Config) error {
 	// wait
 	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		StartIpcClient(c.ID)
+	}()
+
 	handle := eth.NoFeeHandle{}
 
 	if c.TCP > 0 {

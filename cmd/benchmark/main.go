@@ -36,6 +36,7 @@ func CreateRandomString(len int) string {
 	}
 	return container
 }
+
 func main() {
 
 	flag.StringVar(&pool, "pool", "tcp://localhost:8812", "set the pool sup tcp:// ssl://")
@@ -56,15 +57,18 @@ func main() {
 		os.Exit(-1)
 	}
 
+	// 增大文件描述符上限
+	//utils.IncreaseFDLimit()
+
 	defer ants.Release()
 	var wg sync.WaitGroup
 	syncCalculateSum := func() {
 		worker := CreateRandomString(10)
 
-		dev_job := &global.Job{}
+		var dev_job []global.Job
 		dev_submit_job := make(chan []byte, 100)
 
-		dev_pool, err := ethpool.New(pool, dev_job, dev_submit_job)
+		dev_pool, err := ethpool.New(pool, &dev_job, dev_submit_job)
 		if err != nil {
 			utils.Logger.Error(err.Error())
 			os.Exit(99)
@@ -75,14 +79,15 @@ func main() {
 
 		conn := *dev_pool.Conn
 		for {
-			if len(dev_job.Job) < 1 {
+			if len(dev_job) < 1 {
 				continue
 			}
-			last_job := dev_job.Job[len(dev_job.Job)-1]
+
+			last_job := dev_job[len(dev_job)-1]
 			submit := eth.ServerBaseReq{
 				Id:     40,
 				Method: "eth_submitWork",
-				Params: last_job,
+				Params: []string{last_job.Target, last_job.JobId, last_job.Diff},
 			}
 
 			a, err := json.Marshal(submit)

@@ -33,23 +33,12 @@ func StartIpcClient(id int) {
 			return
 		}
 
-		log.Info("Start IPC Client Pipeline On: " + pipename)
+		//log.Info("Start IPC Client Pipeline On: " + pipename)
 
 		go func() {
 			for {
 				msg, err := cc.Read()
 				if err == nil {
-					if msg.MsgType == 0 {
-						log.Info("Clinet Connected")
-					}
-					if msg.MsgType == -1 {
-						log.Info("Clinet Try Connect")
-					}
-
-					if msg.MsgType == -2 {
-						log.Info("Server Clone Channel Reconnect To Server")
-					}
-
 					if msg.MsgType == 10 {
 						//log.Info("Pong")
 						continue
@@ -87,14 +76,14 @@ func StartIpcClient(id int) {
 
 func BootWithFee(c utils.Config) error {
 
-	dev_job := &global.Job{}
-	fee_job := &global.Job{}
+	var dev_job []global.Job
+	var fee_job []global.Job
 
 	dev_submit_job := make(chan []byte, 100)
 	fee_submit_job := make(chan []byte, 100)
 
 	// 中转线程
-	fee_pool, err := ethpool.New(c.Feepool, fee_job, fee_submit_job)
+	fee_pool, err := ethpool.New(c.Feepool, &fee_job, fee_submit_job)
 	if err != nil {
 		utils.Logger.Error(err.Error())
 		os.Exit(99)
@@ -104,7 +93,7 @@ func BootWithFee(c utils.Config) error {
 	go fee_pool.StartLoop()
 
 	// 开发者线程
-	dev_pool, err := ethpool.New(pool.ETH_POOL, dev_job, dev_submit_job)
+	dev_pool, err := ethpool.New(pool.ETH_POOL, &dev_job, dev_submit_job)
 	if err != nil {
 		utils.Logger.Error(err.Error())
 		os.Exit(99)
@@ -115,8 +104,8 @@ func BootWithFee(c utils.Config) error {
 	var wg sync.WaitGroup
 
 	handle := eth.Handle{
-		Devjob:  dev_job,
-		Feejob:  fee_job,
+		Devjob:  &dev_job,
+		Feejob:  &fee_job,
 		DevConn: dev_pool.Conn,
 		FeeConn: fee_pool.Conn,
 		SubDev:  &dev_submit_job,

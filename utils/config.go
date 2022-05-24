@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -73,6 +74,7 @@ func Parse() Config {
 // 判断启动参数是否符合要求
 func (c Config) CheckWithoutLocalPort() error {
 	if c.Coin == "ETH" || c.Coin == "ETC" {
+
 		// if c.TCP != 0 {
 		// 	tcpAddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf(":%d", c.TCP))
 		// 	if err != nil {
@@ -99,12 +101,19 @@ func (c Config) CheckWithoutLocalPort() error {
 		// 	defer ln.Close()
 		// }
 		//TODO 校验中转矿池是否正确
+		if !strings.HasPrefix(c.Pool, "tcp://") && !strings.HasPrefix(c.Pool, "ssl://") {
+			return fmt.Errorf("中转矿池地址输入错误(格式为:tcp:// 或 ssl://): %s", c.Pool)
+		}
 
 		if c.Mode == 1 {
+
 			return nil
 		} else if c.Mode == 2 {
-			if !IsValidHexAddress(c.Wallet) {
-				return errors.New("Wallet 钱包地址添加不正确")
+			// if !IsValidHexAddress(c.Wallet) {
+			// 	return errors.New("Wallet 钱包地址添加不正确")
+			// }
+			if !strings.HasPrefix(c.Feepool, "tcp://") && !strings.HasPrefix(c.Feepool, "ssl://") {
+				return fmt.Errorf("抽水矿池地址输入错误(格式为:tcp:// 或 ssl://): %s", c.Feepool)
 			}
 			return nil
 		} else {
@@ -143,14 +152,25 @@ func (c Config) Check() error {
 			}
 			defer ln.Close()
 		}
-		//TODO 校验中转矿池是否正确
+
+		// TODO 校验中转矿池是否正确
+		if !strings.HasPrefix(c.Pool, "tcp://") && !strings.HasPrefix(c.Pool, "ssl://") {
+			return fmt.Errorf("中转矿池地址输入错误(格式为:tcp:// 或 ssl://): %s", c.Pool)
+		}
 
 		if c.Mode == 1 {
 			return nil
 		} else if c.Mode == 2 {
-			if !IsValidHexAddress(c.Wallet) {
-				return errors.New("Wallet 钱包地址添加不正确")
+			// if !IsValidHexAddress(c.Wallet) {
+			// 	return errors.New("Wallet 钱包地址添加不正确")
+			// }
+
+			if !strings.HasPrefix(c.Feepool, "tcp://") && !strings.HasPrefix(c.Feepool, "ssl://") {
+				return fmt.Errorf("抽水矿池地址输入错误(格式为:tcp:// 或 ssl://): %s", c.Feepool)
 			}
+			// if !(strings.HasPrefix("tcp://", c.Feepool) || strings.HasPrefix("ssl://", c.Feepool)) {
+			// 	return fmt.Errorf("抽水矿池地址输入错误: 必须已tcp://或ssl:// 开头 %s", c.Feepool)
+			// }
 			return nil
 		} else {
 			return errors.New("不支持的Mode类型")

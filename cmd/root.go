@@ -14,7 +14,6 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 )
 
 type PoolConfig struct {
@@ -28,6 +27,7 @@ var rootCmd = &cobra.Command{
 	Short: "",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
+
 		// 判断配置文件是否存在。如果不存在则先创建一个配置文件
 		_, err := os.Stat("config.json")
 		if err != nil {
@@ -98,7 +98,7 @@ web:
 	web := exec.Command(os.Args[0], "web", "--port", strconv.Itoa(global.ManageApp.Web.Port), "--password", global.ManageApp.Web.Password)
 	go func() {
 		<-restart
-		utils.Logger.Info("收到重启命令")
+		//utils.Logger.Info("收到重启命令")
 
 		web.Process.Kill()
 	}()
@@ -120,23 +120,17 @@ func Proxy(wg *sync.WaitGroup, restart chan int) {
 	//func() {
 	for {
 		id := <-restart
-		utils.Logger.Info("重启代理ID: " + strconv.Itoa(id))
+		//utils.Logger.Info("重启代理ID: " + strconv.Itoa(id))
 		//FIXME 处理旧任务？ 如果任务ID 变更旧任务就要删掉。
-
-		// for online_id, cmd := range ManagePool.Online {
-		// 	for _, app := range ManageApp.Config {
-		// 		if app.ID == online_id {
-		// 			ProcessProxy(&app)
-		// 		}
-		// 	}
-		// }
 
 		if ManagePool.Online[id] == nil {
 			for _, app := range global.ManageApp.Config {
 				if app.ID == id {
+					//utils.Logger.Info("Start ID: " + strconv.Itoa(id))
 					ProcessProxy(app)
 				}
 			}
+			//ProcessProxy(app)
 		} else {
 			ManagePool.Online[id].Process.Kill()
 		}
@@ -179,50 +173,63 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 	// 监听配置文件
 	v.WatchConfig()
 	v.OnConfigChange(func(in fsnotify.Event) {
-		utils.Logger.Info("config file changed:" + in.Name)
+		//utils.Logger.Info("config file changed:" + in.Name)
 
-		//copy(ManageApp, conf)
-		conf := *global.ManageApp
-		//conf := *ManageApp
-
+		// 将 tmp 的内存地址赋给指针变量 stud2
+		var conf global.ManageConfig
+		utils.DeepCopy(&conf, global.ManageApp)
+		var new global.ManageConfig
 		// Web 重载配置
-		if err := v.Unmarshal(&global.ManageApp); err != nil {
+		if err := v.Unmarshal(&new); err != nil {
 			utils.Logger.Error(err.Error())
 		}
 
-		if global.ManageApp.Web.Password != conf.Web.Password || global.ManageApp.Web.Port != conf.Web.Port {
-			//notify web
-			web_restart <- 1
-			utils.Logger.Info("Web need restart")
-		}
+		*global.ManageApp = new
+
+		//if global.ManageApp.Web.Password != conf.Web.Password || global.ManageApp.Web.Port != conf.Web.Port {
+		//notify web
+		// FIXME: 每次添加修改矿池web都要监听新的矿池通道,这里要优化为只监听新创建通道即可。在web服务上做。
+		web_restart <- 1
+		//utils.Logger.Info("Web need restart")
+		//}
 
 		//kill old job
 		need_kill := true
-
+		//utils.Logger.Info("config", zap.Any("conf", conf), zap.Any("global", global.ManageApp))
 		// 内存中管理的进程池
-		for _, app := range global.ManageApp.Config {
+		for _, old_app := range conf.Config {
 			// 新的进程池配置文件
-			for _, old_app := range conf.Config {
+			for _, app := range global.ManageApp.Config {
 				if app.ID == old_app.ID {
 					need_kill = false
 				}
 			}
-			utils.Logger.Info("Need Kill Proxy Process", zap.Int("ID", app.ID))
+
 			// kill
 			if need_kill {
-				ManagePool.Online[app.ID].Process.Kill()
+				//utils.Logger.Info("Need Kill Proxy Process", zap.Int("ID", old_app.ID), zap.Any("need_kill", need_kill))
+				//proxy_restart <- old_app.ID
+				ManagePool.Online[old_app.ID].Process.Kill()
+				ManagePool.Online[old_app.ID] = nil
 			}
 		}
 
+		isNew := true
 		// 检查 proxy 是否重启。
 		for _, app := range global.ManageApp.Config {
 			for _, old_app := range conf.Config {
 				if app.ID == old_app.ID {
+					//utils.Logger.Info("找到相同矿池判断参数是否变动.")
 					if checkConfigChange(old_app, app) {
-						//is_new = false
+						//utils.Logger.Info("参数变动发送restart命令.", zap.Any("id", app.ID))
+						isNew = false
 						proxy_restart <- app.ID
 					}
 				}
+			}
+
+			if isNew {
+				proxy_restart <- app.ID
 			}
 		}
 	})
@@ -238,9 +245,6 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 
 func checkConfigChange(old, new utils.Config) bool {
 	if old.Cert != new.Cert {
-		return true
-	}
-	if old.ID != new.ID {
 		return true
 	}
 	if old.TCP != new.TCP {
@@ -359,8 +363,6 @@ proxy:
 		return
 	}
 
-	//fmt.Println(c)
-
 	ManagePool.Online[c.ID] = p
 	//utils.Logger.Info("启动代理软件")
 	err := p.Run()
@@ -368,6 +370,17 @@ proxy:
 		utils.Logger.Error(err.Error())
 	}
 
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 3)
+	if ManagePool.Online[c.ID] == nil {
+		//delete
+		return
+	}
+
+	for _, app := range global.ManageApp.Config {
+		if app.ID == c.ID {
+			c = app
+		}
+	}
+
 	goto proxy
 }
