@@ -208,6 +208,7 @@ func (hand *Handle) OnMessage(
 			}
 			nonce = params[2]
 			mixHash = params[4]
+
 		case eth.ProtocolETHProxy:
 			if len(params) < 3 {
 				//err = StratumErrTooFewParams
@@ -268,6 +269,14 @@ func (hand *Handle) OnMessage(
 				return
 			}
 
+			var rpc_id int64
+			rpc_id, _ = jsonparser.GetInt(*data, "id")
+			out, err = eth.EthSuccess(rpc_id)
+			if err != nil {
+				hand.log.Error(err.Error())
+				c.Close()
+				return
+			}
 		} else if _, ok := proxyFee.Fee.Load(powHash); ok {
 			worker.FeeAdd()
 			// var parse_byte []byte
@@ -304,6 +313,14 @@ func (hand *Handle) OnMessage(
 
 			if err != nil {
 				hand.log.Error("写入矿池失败: " + err.Error())
+				c.Close()
+				return
+			}
+			var rpc_id int64
+			rpc_id, _ = jsonparser.GetInt(*data, "id")
+			out, err = eth.EthSuccess(rpc_id)
+			if err != nil {
+				hand.log.Error(err.Error())
 				c.Close()
 				return
 			}
