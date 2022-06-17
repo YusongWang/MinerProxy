@@ -66,8 +66,13 @@ func (hand *Handle) OnMessage(
 	// 	rpc_id = 0
 	// }
 
+	hand.log.Error("RPC",zap.Any("data",string(*data)) )
+	
 	switch method {
+	case "mining.hello":
+		fallthrough
 	case "mining.subscribe":
+		
 		worker.SetProtocol(eth.ProtocolLegacyStratum)
 
 		var params []string

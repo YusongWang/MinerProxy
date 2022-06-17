@@ -27,7 +27,6 @@ var rootCmd = &cobra.Command{
 	Short: "",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-
 		// 判断配置文件是否存在。如果不存在则先创建一个配置文件
 		_, err := os.Stat("config.json")
 		if err != nil {
