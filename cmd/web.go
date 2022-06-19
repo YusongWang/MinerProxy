@@ -46,7 +46,7 @@ var WebCmd = &cobra.Command{
 		// 解析SERVER配置文件。
 		// 监听配置文件
 		InitializeConfig(web_notify_ch, proxy_notify_ch)
-		FristStartIpcClients()
+		//FristStartIpcClients()
 
 		port := viper.GetInt("port")
 		global.WebApp.Port = port
@@ -56,12 +56,12 @@ var WebCmd = &cobra.Command{
 		go clacChart()
 
 		// TODO： 将旷工5分钟内没有更新的旷工设置为离线。
-		//go ChangeWorkerOffline()
+		// go ChangeWorkerOffline()
 
 		r := initRouter()
 		utils.Logger.Info("Start Web Port On: " + strconv.Itoa(global.WebApp.Port))
 
-		fmt.Println("Start Web Port On: " + strconv.Itoa(global.WebApp.Port) + "Password: " + global.WebApp.Password)
+		fmt.Println("Start Web Port On: " + strconv.Itoa(global.WebApp.Port) + "\n Password: " + global.WebApp.Password)
 
 		r.Run(fmt.Sprintf(":%v", global.WebApp.Port))
 	},
@@ -198,7 +198,8 @@ func StartIpcClient(id int) {
 
 func initRouter() *gin.Engine {
 	router := gin.New()
-
+	gin.SetMode(gin.ReleaseMode)
+	
 	router.Use(gin.Logger())
 	routeRegister.RegisterApiRouter(router)
 	router.NoRoute(func(c *gin.Context) {
@@ -298,4 +299,12 @@ func GetCpuPercent() float64 {
 func GetMemPercent() float64 {
 	memInfo, _ := mem.VirtualMemory()
 	return memInfo.UsedPercent
+}
+
+
+func RunWeb() {
+	r := initRouter()
+	utils.Logger.Info("Start Web Port On: " + strconv.Itoa(global.ManageApp.Web.Port))
+	fmt.Println("Start Web Port On: " + strconv.Itoa(global.ManageApp.Web.Port) + "    Password: " + global.ManageApp.Web.Password)
+	r.Run(fmt.Sprintf(":%v", global.ManageApp.Web.Port))
 }

@@ -111,11 +111,11 @@ func BootWithFee(c utils.Config) error {
 		SubFee:  &fee_submit_job,
 	}
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		StartIpcClient(c.ID)
-	}()
+	// wg.Add(1)
+	// go func() {
+	// 	defer wg.Done()
+	// 	StartIpcClient(c.ID)
+	// }()
 
 	//utils.Logger.Info("Start the Server And ready To serve")
 

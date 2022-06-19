@@ -89,9 +89,9 @@ func (s *Serve) serve(conn io.ReadWriteCloser, pool *io.ReadWriteCloser, fee *gl
 
 	reader := bufio.NewReader(conn)
 	//TODO 处理通知所有线程结束任务
-
+	
 	for {
-		buf, err := reader.ReadBytes('\n')
+		buf,isPrefix, err := reader.ReadLine()
 		if err != nil {
 			if err == io.EOF {
 
@@ -102,6 +102,13 @@ func (s *Serve) serve(conn io.ReadWriteCloser, pool *io.ReadWriteCloser, fee *gl
 			return
 		}
 
+		if isPrefix {
+			// ban this ip address
+			s.log.Error("recv the prefix. that is attak. TODO: ban this")
+			s.handle.OnClose(worker)
+			return
+		}
+		
 		ret, err := s.handle.OnMessage(conn, pool, s.config, fee, &buf, worker)
 		if err != nil {
 			if err == io.EOF {
@@ -126,6 +133,6 @@ func (s *Serve) serve(conn io.ReadWriteCloser, pool *io.ReadWriteCloser, fee *gl
 				return
 			}
 		}
-
+		
 	}
 }

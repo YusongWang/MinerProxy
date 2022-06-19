@@ -68,14 +68,12 @@ var rootCmd = &cobra.Command{
 
 		//gin.SetMode(gin.ReleaseMode)
 		var wg sync.WaitGroup
-
 		// 解析SERVER配置文件。
 		// 监听配置文件
 		InitializeConfig(web_notify_ch, proxy_notify_ch)
 		// 启动代理watchdog
 		wg.Add(1)
 		go Proxy(&wg, proxy_notify_ch)
-
 		// 启动web配置
 		wg.Add(1)
 		go Web(&wg, web_notify_ch)
@@ -94,58 +92,66 @@ func Execute() {
 func Web(wg *sync.WaitGroup, restart chan int) {
 
 web:
-	web := exec.Command(os.Args[0], "web", "--port", strconv.Itoa(global.ManageApp.Web.Port), "--password", global.ManageApp.Web.Password)
+	// web := exec.Command(os.Args[0], "web", "--port", strconv.Itoa(global.ManageApp.Web.Port), "--password", global.ManageApp.Web.Password)
 	go func() {
 		<-restart
 		//utils.Logger.Info("收到重启命令")
 
-		web.Process.Kill()
+		//web.Process.Kill()
 	}()
 
-	err := web.Run()
-	if err != nil {
-		utils.Logger.Error(err.Error())
-	}
-
+	// err := web.Run()
+	// if err != nil {
+	// 	utils.Logger.Error(err.Error())
+	// }
+	
+	// TODO: add notify channel 
+	RunWeb()
 	time.Sleep(time.Second * 10)
 	goto web
 }
 
 func Proxy(wg *sync.WaitGroup, restart chan int) {
 	// 启动所有proxy_worker
-	FristStart()
+	FristStart(wg)
 
 	// 注册为一个临时数组、管理所有worker. id 为当前结构注册的 ID
 	//func() {
-	for {
-		id := <-restart
-		//utils.Logger.Info("重启代理ID: " + strconv.Itoa(id))
-		//FIXME 处理旧任务？ 如果任务ID 变更旧任务就要删掉。
+	// for {
+	// 	id := <-restart
+	// 	//utils.Logger.Info("重启代理ID: " + strconv.Itoa(id))
+	// 	//FIXME 处理旧任务？ 如果任务ID 变更旧任务就要删掉。
 
-		if ManagePool.Online[id] == nil {
-			for _, app := range global.ManageApp.Config {
-				if app.ID == id {
-					//utils.Logger.Info("Start ID: " + strconv.Itoa(id))
-					ProcessProxy(app)
-				}
-			}
-			//ProcessProxy(app)
-		} else {
-			ManagePool.Online[id].Process.Kill()
-		}
-	}
+	// 	if ManagePool.Online[id] == nil {
+	// 		for _, app := range global.ManageApp.Config {
+	// 			if app.ID == id {
+	// 				//utils.Logger.Info("Start ID: " + strconv.Itoa(id))
+	// 				ProcessProxy(app)
+	// 			}
+	// 		}
+	// 		//ProcessProxy(app)
+	// 	} else {
+	// 		ManagePool.Online[id].Process.Kill()
+	// 	}
+	// }
 
 	// 注册一个chan 接收ID作为重启。如果这个ID不在数组中就新增一个代理池
 	//time.Sleep(time.Second * 10)
 	//goto proxy
 }
 
-func FristStart() {
-	for _, app := range global.ManageApp.Config {
+func FristStart(wg *sync.WaitGroup) {
+	for id, _ := range global.ManageApp.Config {
 		// 逐一获得cmd执行任务。
 		//fmt.Println("逐一获得cmd执行任务。")
 		//fmt.Println(app)
-		go ProcessProxy(app)
+		
+		go func(i int) {
+			wg.Add(1)
+			defer wg.Done()
+			RunProxy(i)
+			fmt.Println("The Proxy exit",i)
+		}(id)
 	}
 }
 

@@ -2,13 +2,13 @@ package cmd
 
 import (
 	//_ "net/http/pprof"
-
 	"os"
 
 	etcboot "miner_proxy/boot/etc"
 	ethboot "miner_proxy/boot/eth"
 	"miner_proxy/boot/eth_test"
 	"miner_proxy/boot/test"
+	"miner_proxy/global"
 	_ "miner_proxy/global"
 	"miner_proxy/utils"
 
@@ -76,44 +76,9 @@ var serverCmd = &cobra.Command{
 			utils.Logger.Error(err.Error())
 			os.Exit(99)
 		}
-		// var configs []utils.Config
-		// configs = append(configs, config)
-		// configs = append(configs, config)
-		// configs = append(configs, config)
-		// yaml, err := json.Marshal(configs)
-		// if err != nil {
-		// 	utils.Logger.Error(err.Error())
-		// 	os.Exit(99)
-		// }
-		// fmt.Println(string(yaml))
-		// go func() {
-		// 	log.Println(http.ListenAndServe(":6060", nil))
-		// }()
 
-		if config.Mode == 1 {
-			switch config.Coin {
-			case "ETH":
-				ethboot.BootNoFee(config)
-			case "ETC":
-				etcboot.BootNoFee(config)
-			default:
-				test.BootNoFee(config)
-			}
-		} else if config.Mode == 2 {
-			switch config.Coin {
-			case "ETH":
-				ethboot.BootWithFee(config)
-			case "ETC":
-				etcboot.BootWithFee(config)
-			case "ETH_TEST":
-				eth_test.BootWithFee(config)
-			default:
-				test.BootNoFee(config)
-			}
-		} else {
-			utils.Logger.Error("不支持的Mode参数")
-			os.Exit(99)
-		}
+
+		proxy(config)
 	},
 }
 
@@ -197,4 +162,44 @@ func parseConfig() utils.Config {
 	//utils.Logger.Info("config", zap.Any("Cli", c))
 	//fmt.Println(c)
 	return c
+}
+
+
+func RunProxy(server_id_in_blobal int) {
+	//TODO Handle To Restart 
+	config := global.ManageApp.Config[server_id_in_blobal]
+	if err := config.Check(); err != nil {
+		utils.Logger.Error(err.Error())
+		os.Exit(99)
+	}
+	
+	proxy(config)
+}
+
+func proxy(config utils.Config) {
+	
+	if config.Mode == 1 {
+		switch config.Coin {
+		case "ETH":
+			ethboot.BootNoFee(config)
+		case "ETC":
+			etcboot.BootNoFee(config)
+		default:
+			test.BootNoFee(config)
+		}
+	} else if config.Mode == 2 {
+		switch config.Coin {
+		case "ETH":
+			ethboot.BootWithFee(config)
+		case "ETC":
+			etcboot.BootWithFee(config)
+		case "ETH_TEST":
+			eth_test.BootWithFee(config)
+		default:
+			test.BootNoFee(config)
+		}
+	} else {
+		utils.Logger.Error("不支持的Mode参数")
+		os.Exit(99)
+	}
 }

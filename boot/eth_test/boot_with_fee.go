@@ -61,6 +61,7 @@ func BootWithFee(c utils.Config) error {
 			utils.Logger.Error("can't bind to TCP addr", zap.String("端口", port))
 			os.Exit(99)
 		}
+		
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

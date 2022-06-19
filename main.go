@@ -3,6 +3,7 @@ package main
 import (
 	"miner_proxy/cmd"
 	"miner_proxy/global"
+	"github.com/gin-gonic/gin"
 	_ "miner_proxy/global"
 	_ "miner_proxy/utils"
 	"runtime"
@@ -29,5 +30,9 @@ func main() {
 	// 增大文件描述符上限
 	//utils.IncreaseFDLimit()
 
+
+	// 设置gin
+	gin.SetMode(gin.ReleaseMode)
+	
 	cmd.Execute()
 }
