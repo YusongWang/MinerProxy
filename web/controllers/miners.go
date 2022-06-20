@@ -20,7 +20,7 @@ func MinerList(c *gin.Context) {
 		return
 	}
 
-	var res []global.Worker
+	var res []*global.Worker
 	if len(global.OnlinePools[id]) > 0 {
 		for _, miner := range global.OnlinePools[id] {
 			if miner.IsOnline() {

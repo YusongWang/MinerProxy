@@ -56,7 +56,7 @@ var rootCmd = &cobra.Command{
 		proxy_notify_ch := make(chan int)
 		// deamon the watch dog.
 		//for i := 0; i < 1000; i++ {
-		ManagePool.Online = make([]*exec.Cmd, 1000)
+		//ManagePool.Online = make([]*exec.Cmd, 1000)
 		//}
 		// viper watch the File change. Web save the pool list
 
@@ -65,7 +65,8 @@ var rootCmd = &cobra.Command{
 		// start Parse the web strings
 
 		// if not set on web set the password and web port . gen the config,and restart self
-
+		//global.OnlinePools = make(map[string]*global.Worker,1000)
+		
 		//gin.SetMode(gin.ReleaseMode)
 		var wg sync.WaitGroup
 		// 解析SERVER配置文件。
@@ -194,49 +195,49 @@ func InitializeConfig(web_restart chan int, proxy_restart chan int) *viper.Viper
 		//if global.ManageApp.Web.Password != conf.Web.Password || global.ManageApp.Web.Port != conf.Web.Port {
 		//notify web
 		// FIXME: 每次添加修改矿池web都要监听新的矿池通道,这里要优化为只监听新创建通道即可。在web服务上做。
-		web_restart <- 1
+		//web_restart <- 1
 		//utils.Logger.Info("Web need restart")
 		//}
 
 		//kill old job
-		need_kill := true
-		//utils.Logger.Info("config", zap.Any("conf", conf), zap.Any("global", global.ManageApp))
-		// 内存中管理的进程池
-		for _, old_app := range conf.Config {
-			// 新的进程池配置文件
-			for _, app := range global.ManageApp.Config {
-				if app.ID == old_app.ID {
-					need_kill = false
-				}
-			}
+		// need_kill := true
+		// //utils.Logger.Info("config", zap.Any("conf", conf), zap.Any("global", global.ManageApp))
+		// // 内存中管理的进程池
+		// for _, old_app := range conf.Config {
+		// 	// 新的进程池配置文件
+		// 	for _, app := range global.ManageApp.Config {
+		// 		if app.ID == old_app.ID {
+		// 			need_kill = false
+		// 		}
+		// 	}
 
-			// kill
-			if need_kill {
-				//utils.Logger.Info("Need Kill Proxy Process", zap.Int("ID", old_app.ID), zap.Any("need_kill", need_kill))
-				//proxy_restart <- old_app.ID
-				ManagePool.Online[old_app.ID].Process.Kill()
-				ManagePool.Online[old_app.ID] = nil
-			}
-		}
+		// 	// kill
+		// 	if need_kill {
+		// 		//utils.Logger.Info("Need Kill Proxy Process", zap.Int("ID", old_app.ID), zap.Any("need_kill", need_kill))
+		// 		//proxy_restart <- old_app.ID
+		// 		ManagePool.Online[old_app.ID].Process.Kill()
+		// 		ManagePool.Online[old_app.ID] = nil
+		// 	}
+		// }
 
-		isNew := true
-		// 检查 proxy 是否重启。
-		for _, app := range global.ManageApp.Config {
-			for _, old_app := range conf.Config {
-				if app.ID == old_app.ID {
-					//utils.Logger.Info("找到相同矿池判断参数是否变动.")
-					if checkConfigChange(old_app, app) {
-						//utils.Logger.Info("参数变动发送restart命令.", zap.Any("id", app.ID))
-						isNew = false
-						proxy_restart <- app.ID
-					}
-				}
-			}
+		// isNew := true
+		// // 检查 proxy 是否重启。
+		// for _, app := range global.ManageApp.Config {
+		// 	for _, old_app := range conf.Config {
+		// 		if app.ID == old_app.ID {
+		// 			//utils.Logger.Info("找到相同矿池判断参数是否变动.")
+		// 			if checkConfigChange(old_app, app) {
+		// 				//utils.Logger.Info("参数变动发送restart命令.", zap.Any("id", app.ID))
+		// 				isNew = false
+		// 				proxy_restart <- app.ID
+		// 			}
+		// 		}
+		// 	}
 
-			if isNew {
-				proxy_restart <- app.ID
-			}
-		}
+		// 	if isNew {
+		// 		proxy_restart <- app.ID
+		// 	}
+		// }
 	})
 
 	// 将配置赋值给全局变量

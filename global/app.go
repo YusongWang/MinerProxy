@@ -36,7 +36,7 @@ type ManageConfig struct {
 
 var ManageApp = new(ManageConfig)
 
-var OnlinePools [1000]map[string]Worker
+var OnlinePools = make([]map[string]*Worker,1000)
 
 var Start_Time = time.Now().Unix()
 

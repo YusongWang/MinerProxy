@@ -1,11 +1,11 @@
 package main
 
 import (
+	"github.com/gin-gonic/gin"
 	"miner_proxy/cmd"
 	"miner_proxy/global"
-	"github.com/gin-gonic/gin"
-	"miner_proxy/utils"
 	_ "miner_proxy/global"
+	"miner_proxy/utils"
 	_ "miner_proxy/utils"
 	"runtime"
 )

@@ -3,6 +3,8 @@ package eth
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
+
 	"io"
 	"miner_proxy/global"
 	"miner_proxy/pack/eth"
@@ -34,16 +36,24 @@ func ConnectToPool(
 	// 处理上游矿池。如果连接失败。矿工线程直接退出并关闭
 	go func(read *bufio.Reader) {
 		var buf []byte
+		isPrefix := false
+		
 		for {
-			buf, err = read.ReadBytes('\n')
+			buf,isPrefix, err = read.ReadLine()
 			if err != nil {
 				c.Close()
 				pool.Close()
 				return
 			}
+			
+			if isPrefix {
+				c.Close()
+				pool.Close()
+				return
+			}
 
-			//log.Info("Message", zap.String("RPC", string(buf)))
-
+			log.Info("Message", zap.String("RPC", string(buf)))
+			buf = append(buf,'\n')
 			if worker.Protocol == eth.ProtocolETHProxy {
 				if result, _, _, err := jsonparser.Get(buf, "result"); err == nil {
 					//if result, ok := buf.(bool); ok {
@@ -131,13 +141,16 @@ func ConnectToPool(
 							pool.Close()
 							return
 						}
-
 					}
 				} else {
-					c.Close()
-					pool.Close()
-					log.Error(err.Error())
-					return
+					_, err = c.Write(buf)
+					if err != nil {
+						log.Error(err.Error())
+
+						c.Close()
+						pool.Close()
+						return
+					}
 				}
 			} else if worker.Protocol == eth.ProtocolLegacyStratum {
 				if result, _, _, err := jsonparser.Get(buf, "result"); err == nil {
@@ -148,11 +161,17 @@ func ConnectToPool(
 						} else {
 							worker.AddReject()
 						}
-
 						_, err = c.Write(buf)
 						if err != nil {
 							log.Error(err.Error())
-
+							c.Close()
+							pool.Close()
+							return
+						}
+					} else {
+						_, err = c.Write(buf)
+						if err != nil {
+							log.Error(err.Error())
 							c.Close()
 							pool.Close()
 							return
@@ -242,7 +261,6 @@ func ConnectToPool(
 						continue
 					}
 				LegacySendWorker:
-
 					if worker.Worker_idx == 5 {
 						job_diff, err := jsonparser.GetString(buf, "params", "[2]")
 						if err == nil {
@@ -260,10 +278,14 @@ func ConnectToPool(
 					}
 
 				} else {
-					c.Close()
-					pool.Close()
-					log.Error(err.Error())
-					return
+					_, err = c.Write(buf)
+					if err != nil {
+						log.Error(err.Error())
+
+						c.Close()
+						pool.Close()
+						return
+					}
 				}
 			} else if worker.Protocol == eth.ProtocolEthereumStratum {
 				if result, _, _, err := jsonparser.Get(buf, "result"); err == nil {
@@ -279,6 +301,15 @@ func ConnectToPool(
 						if err != nil {
 							log.Error(err.Error())
 
+							c.Close()
+							pool.Close()
+							return
+						}
+					} else {
+						fmt.Println("Send subscripted")
+						_, err = c.Write(buf)
+						if err != nil {
+							log.Error(err.Error())
 							c.Close()
 							pool.Close()
 							return
@@ -386,10 +417,14 @@ func ConnectToPool(
 					}
 
 				} else {
-					c.Close()
-					pool.Close()
-					log.Error(err.Error())
-					return
+					_, err = c.Write(buf)
+					if err != nil {
+						log.Error(err.Error())
+
+						c.Close()
+						pool.Close()
+						return
+					}
 				}
 			} else {
 				_, err = c.Write(buf)

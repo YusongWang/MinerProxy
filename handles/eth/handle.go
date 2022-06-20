@@ -3,6 +3,7 @@ package eth
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"miner_proxy/global"
 	"miner_proxy/pack/eth"
@@ -65,16 +66,15 @@ func (hand *Handle) OnMessage(
 	// 	err = nil
 	// 	rpc_id = 0
 	// }
-
-	hand.log.Error("RPC",zap.Any("data",string(*data)) )
+	*data = append(*data, '\n')
+	hand.log.Error("RPC",zap.Any("data",string(*data)))
 	
 	switch method {
 	case "mining.hello":
 		fallthrough
 	case "mining.subscribe":
-		
 		worker.SetProtocol(eth.ProtocolLegacyStratum)
-
+		
 		var params []string
 		var parse_byte []byte
 
@@ -103,20 +103,25 @@ func (hand *Handle) OnMessage(
 			}
 		}
 
+		fmt.Println("链接到池",config.Pool)
 		//TODO 解析协议，
 		*pool, err = ConnectToPool(c, hand, config, proxyFee, worker)
 		if err != nil {
 			hand.log.Error("矿池拒绝链接或矿池地址不正确! " + err.Error())
 			return
 		}
-
+		fmt.Println("链接成功",config.Pool)
+		
 		worker.SetAuthStat(eth.StatSubScribed)
+		fmt.Println(string(*data))
 		_, err = (*pool).Write(*data)
 		if err != nil {
 			hand.log.Error("写入矿池失败: " + err.Error())
 			c.Close()
 			return
 		}
+		
+		fmt.Println("写入成功")
 
 		return
 	case "eth_submitLogin":
@@ -155,10 +160,17 @@ func (hand *Handle) OnMessage(
 			err = errors.New("矿工登录失败")
 			return
 		}
+		
 		worker.SetAuthStat(eth.StatAuthorized)
 
 		global.GonlineWorkers.Lock()
 		global.GonlineWorkers.Workers[worker.Fullname] = worker
+		if global.OnlinePools[config.ID] == nil {
+			global.OnlinePools[config.ID] = make(map[string]*global.Worker)
+			global.OnlinePools[config.ID][worker.Fullname] = worker
+		} else {
+			global.OnlinePools[config.ID][worker.Fullname] = worker		
+		}
 		global.GonlineWorkers.Unlock()
 
 		_, err = (*pool).Write(*data)
