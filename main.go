@@ -23,6 +23,7 @@ func main() {
 	ballast := make([]byte, mem.Alloc)
 	runtime.KeepAlive(ballast)
 
+	// 设置版本号
 	global.Commit = commit
 	global.Version = version
 	global.Branch = branch
@@ -33,6 +34,5 @@ func main() {
 
 	// 设置gin
 	gin.SetMode(gin.ReleaseMode)
-	
 	cmd.Execute()
 }

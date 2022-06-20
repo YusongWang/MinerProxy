@@ -26,7 +26,6 @@ func IncreaseFDLimit() {
 
 	// checking
 	syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rlm)
-	fmt.Println("[OPTION] File descriptor limits: ", rlm.Cur, " / ", rlm.Max)
 	if rlm.Max < 5000 {
 		fmt.Println("[OPTION] File descriptor hard limit is too small: ", rlm.Max, "! The problem may be solved by executing the following command before launching BTCAgent: ulimit -Hn 65535")
 	}
