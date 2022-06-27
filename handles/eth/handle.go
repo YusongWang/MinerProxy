@@ -10,6 +10,7 @@ import (
 	poolconst "miner_proxy/pools"
 	"miner_proxy/utils"
 	"strings"
+	"sync"
 
 	//"github.com/pkg/profile"
 
@@ -67,14 +68,14 @@ func (hand *Handle) OnMessage(
 	// 	rpc_id = 0
 	// }
 	*data = append(*data, '\n')
-	hand.log.Error("RPC",zap.Any("data",string(*data)))
-	
+	hand.log.Error("RPC", zap.Any("data", string(*data)))
+
 	switch method {
 	case "mining.hello":
 		fallthrough
 	case "mining.subscribe":
 		worker.SetProtocol(eth.ProtocolLegacyStratum)
-		
+
 		var params []string
 		var parse_byte []byte
 
@@ -103,15 +104,15 @@ func (hand *Handle) OnMessage(
 			}
 		}
 
-		fmt.Println("链接到池",config.Pool)
+		fmt.Println("链接到池", config.Pool)
 		//TODO 解析协议，
 		*pool, err = ConnectToPool(c, hand, config, proxyFee, worker)
 		if err != nil {
 			hand.log.Error("矿池拒绝链接或矿池地址不正确! " + err.Error())
 			return
 		}
-		fmt.Println("链接成功",config.Pool)
-		
+		fmt.Println("链接成功", config.Pool)
+
 		worker.SetAuthStat(eth.StatSubScribed)
 		fmt.Println(string(*data))
 		_, err = (*pool).Write(*data)
@@ -120,7 +121,7 @@ func (hand *Handle) OnMessage(
 			c.Close()
 			return
 		}
-		
+
 		fmt.Println("写入成功")
 
 		return
@@ -160,7 +161,7 @@ func (hand *Handle) OnMessage(
 			err = errors.New("矿工登录失败")
 			return
 		}
-		
+
 		worker.SetAuthStat(eth.StatAuthorized)
 
 		global.GonlineWorkers.Lock()
@@ -169,7 +170,7 @@ func (hand *Handle) OnMessage(
 			global.OnlinePools[config.ID] = make(map[string]*global.Worker)
 			global.OnlinePools[config.ID][worker.Fullname] = worker
 		} else {
-			global.OnlinePools[config.ID][worker.Fullname] = worker		
+			global.OnlinePools[config.ID][worker.Fullname] = worker
 		}
 		global.GonlineWorkers.Unlock()
 
@@ -246,22 +247,28 @@ func (hand *Handle) OnMessage(
 
 		//utils.Logger.Info("Submit", zap.Int("protocol", int(worker.Protocol)), zap.String("powHash", powHash), zap.String("mixHash", mixHash), zap.String("nonce", nonce))
 		// var job_id string
-		// job_id, err = jsonparser.GetString(*data, "params", "[1]")
-		// if err != nil {
-		// 	hand.log.Error(err.Error())
-		// 	c.Close()
-		// 	return
-		// }
 
 		if _, ok := proxyFee.Dev.Load(powHash); ok {
 			worker.DevAdd()
-			// var parse_byte []byte
-			// parse_byte, _, _, err = jsonparser.Get(*data, "params")
-			// if err != nil {
-			// 	hand.log.Error(err.Error())
-			// 	c.Close()
-			// 	return
-			// }
+			var wg sync.WaitGroup
+			wg.Add(1)
+			go func() {
+				id, err := jsonparser.GetInt(*data, "id")
+				if err != nil {
+					hand.log.Error(err.Error())
+					c.Close()
+					return
+				}
+				out, err = eth.EthSuccess(id)
+				if err != nil {
+					hand.log.Error(err.Error())
+					c.Close()
+					return
+				}
+				c.Write(out)
+				wg.Done()
+			}()
+
 			req := eth.ServerReq{
 				ServerBaseReq: eth.ServerBaseReq{
 					Id:     40,
@@ -284,9 +291,28 @@ func (hand *Handle) OnMessage(
 				c.Close()
 				return
 			}
-
+			wg.Wait()
 		} else if _, ok := proxyFee.Fee.Load(powHash); ok {
 			worker.FeeAdd()
+			var wg sync.WaitGroup
+			wg.Add(1)
+			go func() {
+				id, err := jsonparser.GetInt(*data, "id")
+				if err != nil {
+					hand.log.Error(err.Error())
+					c.Close()
+					return
+				}
+				out, err = eth.EthSuccess(id)
+				if err != nil {
+					hand.log.Error(err.Error())
+					c.Close()
+					return
+				}
+				c.Write(out)
+				wg.Done()
+			}()
+
 			// var parse_byte []byte
 			// parse_byte, _, _, err = jsonparser.Get(*data, "params")
 			// if err != nil {
@@ -324,6 +350,9 @@ func (hand *Handle) OnMessage(
 				c.Close()
 				return
 			}
+
+			wg.Wait()
+
 		} else {
 			worker.AddShare()
 			_, err = (*pool).Write(*data)
