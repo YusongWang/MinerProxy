@@ -4,6 +4,7 @@ import (
 	"miner_proxy/cmd"
 	"miner_proxy/global"
 	_ "miner_proxy/global"
+	"miner_proxy/syscall"
 	_ "miner_proxy/utils"
 	"runtime"
 )
@@ -27,7 +28,7 @@ func main() {
 	global.Auther = auther
 
 	// 增大文件描述符上限
-	//utils.IncreaseFDLimit()
-
+	syscall.IncreaseFDLimit()
+	// 执行命令
 	cmd.Execute()
 }
